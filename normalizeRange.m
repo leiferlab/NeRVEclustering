@@ -1,4 +1,4 @@
-function V=normalizeRange(X)
+function V=NormalizeRange(X)
 L=numel(X);
 XX=reshape(X,1,L);
 if max(XX)==min(XX)
