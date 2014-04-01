@@ -2,6 +2,7 @@ function [H,D]=hessianMatrix(A,h)
 % function computes the hessian matrix of A at all points answer is output
 % as a cell array. Also computes the divergence,D. 
 
+%This is another comment. We all love jeff's work.
 if nargin==1
     h=1;
 end
