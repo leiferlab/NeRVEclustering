@@ -326,7 +326,7 @@ centerIm=bwulterode(centerIm);
 scatter3(x,y,z);axis equal
     
     
-    
+    %track all
 end
 
 
