@@ -1,5 +1,5 @@
 
-function [initialIm,stackInfo]=timeTraceAnalysis(imFolder)
+function [initialIm,stackInfo]=timeTraceAnalysis_test(imFolder)
 %  loads excel file with 3 channels representing output camera
 % trigger, peizo stage, and flash trigger. searches large image sequence to
 % find flash and align flashes and images. initialIm is a max projection of
@@ -30,8 +30,9 @@ startWave=normalizeRange(output(:,flashIdx));
 startWave=startWave-.5;
 
 
-startWave=cumsum(startWave>.2)>1;
-
+startWave=(startWave>.4);
+startWave=[0;diff(startWave)>.5];
+startWave=rem(cumsum(startWave),2)==1;
 
 
 %  find image times from the trigger
@@ -148,40 +149,48 @@ if length(startFlash)>1
 else
     endFlash=stackSize;
 end
-
+%%
 images=imFiles(startFlashOff:endFlash);
 imageZ=zWave(imageSpikes & startWave);
-imageZ=imageZ(startFlashOff-startFlash:end);
-imageZ=imageZ(1:length(images));
-zgrad=medfilt1(gradient(zWave,5),5)>0;
-zgrad=zgrad(imageSpikes & startWave);
-zgrad=zgrad(startFlashOff-startFlash:end);
-zgrad=zgrad(1:length(images));
-time=time(imageSpikes & startWave);
-time=time(startFlashOff-startFlash:end);
-time=time(1:length(images));
-time=time-min(time);
-
-stackIdx=[0;cumsum(abs(diff(zgrad)))];
-
-for i=1:max(stackIdx);
-    imSelect=stackIdx==i;
-    stackInfo(i).z=imageZ(imSelect);
-    stackInfo(i).fileNames=images(imSelect);
-    stackInfo(i).time=time(imSelect);
-end
 
 
+numImages=endFlash-startFlash;
+numSpikes=length(imageZ);
 
-
-
-
-
-
-
-
-
-    
-
-
-
+display(['Number of images between flashes: ' num2str(numImages)]);
+display(['Number of image pulses between flashes: ' num2str(numSpikes)]);
+keyboard
+%imageZ=imageZ(startFlashOff-startFlash:end);
+% imageZ=imageZ(1:length(images));
+% zgrad=medfilt1(gradient(zWave,5),5)>0;
+% zgrad=zgrad(imageSpikes & startWave);
+% %zgrad=zgrad(startFlashOff-startFlash:end);
+% zgrad=zgrad(1:length(images));
+% time=time(imageSpikes & startWave);
+% time=time(startFlashOff-startFlash:end);
+% time=time(1:length(images));
+% time=time-min(time);
+% 
+% stackIdx=[0;cumsum(abs(diff(zgrad)))];
+% 
+% for i=1:max(stackIdx);
+%     imSelect=stackIdx==i;
+%     stackInfo(i).z=imageZ(imSelect);
+%     stackInfo(i).fileNames=images(imSelect);
+%     stackInfo(i).time=time(imSelect);
+% end
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+%     
+% 
+% 
+% 
