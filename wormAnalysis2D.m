@@ -2,26 +2,24 @@
 
 %load folder and extract and align timing data.
 imFolder=uigetdir;
-[initialIm,stackInfo]=timeTraceAnalysis(imFolder);
-
+imNames=dir([imFolder filesep '*.tif']);
 %% better initial Im by averaging multiple stacks and doing a max projection
 %!!! may be better to just take images from BEFORE the flash,
 %photobleaching appears to make these images better than my averaging. 
 clear worm
-wormAll=zeros(size(initialIm,1),size(initialIm,2),length(stackInfo(1).z));
-for i=1:2:31
-stackSize=length(stackInfo(i).fileNames);
 
-    for slice=1:min(length(stackInfo(1).z),stackSize)
-        
-        temp=double(imread([imFolder filesep stackInfo(i).fileNames(slice).name],'tif'));
+for iImage=1:1:60
+
+        temp=double(imread([imFolder filesep imNames(iImage).name],'tif'));
                 temp=pixelIntensityCorrection(temp);
-        %worm(:,:,slice)=temp;
-        wormAll(:,:,slice)=wormAll(:,:,slice)+double(temp);
-    end
+                if iImage==1
+                    initialIm=temp;
+                else
+                    
+        initialIm=initialIm+(temp);
+                end
 end
-initialIm=max(wormAll,[],3);
-save([imFolder filesep 'stackInfo'],'stackInfo','initialIm');
+%save([imFolder filesep 'stackInfo'],'stackInfo','initialIm');
 
 
 
@@ -54,55 +52,48 @@ Rsegment = imref2d(size(channelSegment));
 activityRegistered = imwarp(channelActivity,t_concord,'OutputView',Rsegment);
 padRegion=activityRegistered==0;
 padRegion=imdilate(padRegion,true(3));
-
+%% save 
 save([imFolder filesep 'stackInfo'],'rect1','rect2','t_concord'...
-    ,'Rsegment','rectSize1','rectSize2','padRegion','imFolder','-append');
+    ,'Rsegment','rectSize1','rectSize2','padRegion','imFolder','initialIm');
 
 %% segment subimages and create masks
 
 mkdir([imFolder filesep 'stackData']);
 
-
-for iStack=504:length(stackInfo);
+movieLength=length(imNames);
+progressbar(0)
+for iImage=1:movieLength;
+    progressbar(iImage/movieLength);
     tic
-stackSize=length(stackInfo(iStack).fileNames);
-    worm=zeros(rectSize1(2),rectSize1(1),stackSize);
-    activity=worm;
+
     % load stacks
-    for slice=1:stackSize
-        
-        temp=double(imread([imFolder filesep stackInfo(iStack).fileNames(slice).name],'tif'));
+
+        temp=double(imread([imFolder filesep imNames(iImage).name],'tif'));
         temp=pixelIntensityCorrection(temp);
         temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
-        worm(:,:,slice)=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
+        worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
         temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
         temp_activity(padRegion)=median(temp_activity(~padRegion));
-        activity(:,:,slice)=temp_activity;
-    end
+    %    activity=bpass_jn((temp_activity),1,[20,20]);
+        activity=temp_activity;
     imsize=size(worm);  
-    %resize image, arbitrary for now
-   worm=image_resize(worm,imsize(1),imsize(2),2*imsize(3));
-      activity=image_resize(activity,imsize(1),imsize(2),2*imsize(3));
-%do segmentation
-    wormMask=WormSegmentHessian(worm);
-    
-    %look up intensities on both channels
-    wormLabelMask=bwlabeln(wormMask);
+  %do segmentation
+    wormMask=WormSegmentHessian2D(worm);
+   wormMask= bwmorph(wormMask,'clean');
+    %look up intensities on both channels, after a bit of dilation
+    wormLabelMask=imdilate(bwlabeln(wormMask),true(5,5));
 wormcc=bwconncomp(wormMask);
 stats=regionprops(wormcc,'Centroid','Area');
-centroids=reshape([stats.Centroid],3,[])';
-Rintensities=cellfun(@(x) mean(worm(x)),[wormcc.PixelIdxList])';
-Gintensities=cellfun(@(x) mean(activity(x)),[wormcc.PixelIdxList])';
+centroids=reshape([stats.Centroid],2,[])';
+Rintensities=cellfun(@(x) trimmean(worm(x),20),[wormcc.PixelIdxList])';
+Gintensities=cellfun(@(x) trimmean(activity(x),20),[wormcc.PixelIdxList])';
 
     %interpolate Z properly and scale
-centroids(:,3)=interp1(stackInfo(iStack).z,centroids(:,3)/2)*100; %arb scaling for now
 Volume=[stats.Area]';
-realTime=interp1(stackInfo(iStack).time,centroids(:,3)/2); %arb scaling for now
-
 %save outputs in unique file
-outputFile=[imFolder filesep 'stackData' filesep 'stack' num2str(iStack,'%04d') 'data'];
+outputFile=[imFolder filesep 'stackData' filesep 'stack' num2str(iImage,'%04d') 'data'];
 
-save(outputFile,'centroids','Rintensities','Gintensities','Volume','realTime',...
+save(outputFile,'centroids','Rintensities','Gintensities','Volume',...
     'wormMask');
-display(['Completed stack' num2str(iStack,'%04d') ' in ' num2str(toc) ' seconds']);
+display(['Completed stack' num2str(iImage,'%04d') ' in ' num2str(toc) ' seconds']);
 end

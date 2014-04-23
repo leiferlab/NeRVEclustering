@@ -1,7 +1,5 @@
-function res = bpass3_jn(image_array,lnoise,lobject,threshold, isForcedDouble)
-% Implements a real-space bandpass filter that suppresses pixel noise and long-wavelength image variations while retaining information of a characteristic size.
-%
-%
+function res = bpass_jn(image_array,lnoise,lobject,threshold, isForcedDouble)
+% 
 % NAME:
 %               bpass
 % PURPOSE:
@@ -97,7 +95,7 @@ function res = bpass3_jn(image_array,lnoise,lobject,threshold, isForcedDouble)
 if nargin < 3, lobject = false; end
 if nargin < 4, threshold = 0; end
 if nargin < 5, isForcedDouble = true; end
-if numel(lobject)==1, lobject=repmat(lobject,1,3);end
+
 normalize = @(x) x/sum(x(:));
 
 if isForcedDouble
@@ -109,8 +107,40 @@ else
     end
 end
 
+    
+if lnoise == 0
+  gaussian_kernel = 1;
+else      
+  gaussian_kernel = normalize(...
+    exp(-((-ceil(5*lnoise):ceil(5*lnoise))/(2*lnoise)).^2));
+end
 
- 
+if lobject  
+  boxcar_kernel = normalize(...
+      ones(1,length(-round(lobject):round(lobject))));
+end
+  
+%JN added saving and checking of parameters. If parameters are same as last
+%call, load the kernal in fourier space and use that insetad;
+
+paramMem=getappdata(0,'bpassParams');
+if isempty(paramMem) || length(paramMem)~=5
+setappdata(0,'bpassParams',[lobject,lnoise,size(image_array)]);
+memFlag=0;
+else
+    if all(paramMem==[lobject,lnoise,size(image_array)])
+        memFlag=1;
+    else
+        setappdata(0,'bpassParams',[lobject,lnoise,size(image_array)]);
+        memFlag=0;
+    
+    end   
+end
+
+
+
+
+
 % JWM: Do a 2D convolution with the kernels in two steps each.  It is
 % possible to do the convolution in only one step per kernel with 
 %
@@ -146,38 +176,45 @@ end
 % in internal matlab make this version as fast or faster than previous.
 % Tested on Matlab 2010a, ver 7.10.0.499
 
-% BPB 20131008 working on three dimensional filtering
-% JN 20130314 added normalization to convolutions to reduce edge problems
 % gconv = conv2(gaussian_kernel',gaussian_kernel,image_array,'same');
+% if lobject
+%     bconv = conv2(boxcar_kernel', boxcar_kernel,image_array,'same');
+%     filtered = gconv - bconv;
+% else
+%     filtered = gconv;
+% end
 
-    
-
-
-
+% JN changed all conv2 to convnfft and created 2d kernals directly
 
 if any(lobject)
-   kx=-1.5*lobject(1):1:1.5*lobject(1);
-    ky=-1.5*lobject(2):1:1.5*lobject(2);
-   kz=-1.5*lobject(3):1:1.5*lobject(3);
-   
-   [KX,KY,KZ]=ndgrid(kx,ky,kz);
-   KR=sqrt(KX.^2+KY.^2+KZ.^2);
-   
-      
+    if ~memFlag
+   kx=-.5*lobject(1):1:.5*lobject(1);
+    ky=-.5*lobject(2):1:.5*lobject(2);   
+   [KX,KY]=ndgrid(kx,ky);
+   KR=sqrt(KX.^2+KY.^2);
     if lnoise == 0
   noiseKernel = zeros(size(KR));
 else      
    noiseKernel=normalize(exp(-KR.^2./2/lnoise));
 
     end
-   smoothkernel=normalize(exp(-.5*(KX.^2/lobject(1)+KY.^2/lobject(2)+KZ.^2/lobject(3))));
-kernal=smoothkernel-noiseKernel;
-kernal=kernal-mean(kernal(:));
-gconv = convnfft(image_array,kernal,'same');
+   smoothkernel=normalize(exp(-.5*(KX.^2/lobject(1)+KY.^2/lobject(2))));
+kernel=smoothkernel-noiseKernel;
+kernel=kernel-mean(kernel(:));
+kernelfft=fft2(kernel,size(image_array,1)+size(kernel,1)-1,...
+    size(image_array,2)+size(kernel,2)-1);
+setappdata(0,'bpassKernel',kernelfft)
+    else
+kernelfft=getappdata(0,'bpassKernel');
+
+    end
+    options.FourierKernel=true;
+    options.Power2Flag=false;
+gconv = convnfft(image_array,kernelfft,'same',[1,2],options);
     filtered = -gconv;
       
 else
-    
+    % may need testing
     if lnoise == 0
   gaussian_kernel = 1;
 else      
@@ -186,9 +223,9 @@ else
     end
 
     gaussian_kernel = repmat(gaussian_kernel,[length(gaussian_kernel),1,length(gaussian_kernel)]);
-gaussian_kernel = gaussian_kernel.*permute(gaussian_kernel,[3,1,2]).*permute(gaussian_kernel,[2,3,1]);
+gaussian_kernel = gaussian_kernel.*permute(gaussian_kernel,[1,2]);
 
-ngconv=convnfft(ones(size(image_array)),gaussian_kernel,'same');
+%ngconv=convnfft(ones(size(image_array)),gaussian_kernel,'same');
 gconv = convnfft(image_array,gaussian_kernel,'same')./ngconv;
 
     filtered = gconv;
@@ -197,12 +234,11 @@ end
 % Zero out the values on the edges to signal that they're not useful.     
 lzero = max(lobject,ceil(5*lnoise));
 
-% filtered(1:(round(lzero(1))),:,:) = 0;
-% filtered((end - lzero(1) + 1):end,:,:) = 0;
-% filtered(:,1:(round(lzero(2))),:) = 0;
-% filtered(:,(end - lzero(2) + 1):end,:) = 0;
-% filtered(:,:,1:(round(lzero(3)))) = 0;
-% filtered(:,:,(end - lzero(3) + 1):end) = 0;
+% filtered(1:(round(lzero)),:) = 0;
+% filtered((end - lzero + 1):end,:) = 0;
+% filtered(:,1:(round(lzero))) = 0;
+% filtered(:,(end - lzero + 1):end) = 0;
+
 % JWM: I question the value of zeroing out negative pixels.  It's a
 % nonlinear operation which could potentially mess up our expectations
 % about statistics.  Is there data on 'Now centroid gets subpixel accuracy
