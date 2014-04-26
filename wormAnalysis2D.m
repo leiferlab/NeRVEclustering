@@ -3,12 +3,14 @@
 %load folder and extract and align timing data.
 imFolder=uigetdir;
 imNames=dir([imFolder filesep '*.tif']);
+alignFlag=0;
+if alignFlag
 %% better initial Im by averaging multiple stacks and doing a max projection
 %!!! may be better to just take images from BEFORE the flash,
 %photobleaching appears to make these images better than my averaging. 
 clear worm
 
-for iImage=1:1:60
+for iImage=1
 
         temp=double(imread([imFolder filesep imNames(iImage).name],'tif'));
                 temp=pixelIntensityCorrection(temp);
@@ -19,7 +21,6 @@ for iImage=1:1:60
         initialIm=initialIm+(temp);
                 end
 end
-%save([imFolder filesep 'stackInfo'],'stackInfo','initialIm');
 
 
 
@@ -55,6 +56,19 @@ padRegion=imdilate(padRegion,true(3));
 %% save 
 save([imFolder filesep 'stackInfo'],'rect1','rect2','t_concord'...
     ,'Rsegment','rectSize1','rectSize2','padRegion','imFolder','initialIm');
+
+else
+    load('Y:\CommunalCode\3dbrain\registration')
+end
+
+if alignFlag==2
+    
+    save('Y:\CommunalCode\3dbrain\registration','rect1','rect2','t_concord'...
+    ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm')
+end
+
+
+%%
 
 %% segment subimages and create masks
 

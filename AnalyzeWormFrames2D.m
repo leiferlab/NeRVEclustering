@@ -30,7 +30,18 @@ trackOutput=track(trackData,maxDist,params);
          [ trackIdx,ia,ib]=unique(trackOutput(:,end));
          %%
 for i=1:max(unique(ib))
-             plot(trackOutput(ib==i,end-1),normalizeRange(smooth(trackOutput(ib==i,3),20)))%./ ...
+    t=trackOutput(ib==i,end-1);
+    a=(smooth(trackOutput(ib==i,3),20));
+    b=(smooth(trackOutput(ib==i,4),20));
+    good=t>10;
+    t=t(good);a=a(good);
+    a=normalizeRange(a);
+    b=normalizeRange(b(good));
+    t=t/13;
+             plot(t,a,'g')%./ ...
+             hold on
+             plot(t,b,'r')
+             hold off
                 % normalizeRange(smooth(trackOutput(ib==i,4),100)));
              % plot(normalizeRange(smooth(trackOutput(ib==i,4)-mean(trackOutput(ib==i,4)),100)),'r');
              pause(1);
