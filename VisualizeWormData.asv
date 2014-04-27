@@ -233,7 +233,7 @@ switch get(handles.plotChannel,'value')
 
 end
 
-setappdata(handles.figure1,'output',output);
+set(handles.
 
 for i=1:length(plotIdx);
     idx=plotIdx(i);
@@ -312,7 +312,7 @@ plotIdx=str2double(displayIdx(:,1));
 plotIdx=plotIdx(~isnan(plotIdx));
 hold(handles.axes2,'on');
 h=getappdata(0,'scatter');
-output=getappdata(handles.figure1,'output');
+
 for iPlot=1:length(plotIdx); 
     try
     delete(h(iPlot));
@@ -321,7 +321,7 @@ for iPlot=1:length(plotIdx);
     
     idx=plotIdx(iPlot);
     t=trackData((trackData(:,end)==idx),end-1);
-    a=trackData((output(:,end)==idx));
+    a=trackData((trackData(:,end)==idx),3);
         a=a(t>startTime);
     t=t(t>startTime);
     a=normalizeRange(smooth(a,smoothWindow))+iPlot-1;
