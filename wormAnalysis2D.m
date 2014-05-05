@@ -58,12 +58,13 @@ save([imFolder filesep 'stackInfo'],'rect1','rect2','t_concord'...
     ,'Rsegment','rectSize1','rectSize2','padRegion','imFolder','initialIm');
 
 else
-    load('Y:\CommunalCode\3dbrain\registration')
+    [regFile,regFolder]=uigetfile('Y:\CommunalCode\3dbrain\registration\');
+    load([regFolder filesep regFile]);
 end
 
 if alignFlag==2
     
-    save('Y:\CommunalCode\3dbrain\registration','rect1','rect2','t_concord'...
+    save(['Y:\CommunalCode\3dbrain\registration\' datestr(date,29)],'rect1','rect2','t_concord'...
     ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm')
 end
 
@@ -71,7 +72,10 @@ end
 %%
 
 %% segment subimages and create masks
-
+[folderList] = uipickfiles;
+for iFolder=1:length(folderList)
+imFolder=folderList{iFolder};
+imNames=dir([imFolder filesep '*.tif']);
 mkdir([imFolder filesep 'stackData']);
 
 movieLength=length(imNames);
@@ -110,4 +114,5 @@ outputFile=[imFolder filesep 'stackData' filesep 'stack' num2str(iImage,'%04d') 
 save(outputFile,'centroids','Rintensities','Gintensities','Volume',...
     'wormMask');
 display(['Completed stack' num2str(iImage,'%04d') ' in ' num2str(toc) ' seconds']);
+end
 end

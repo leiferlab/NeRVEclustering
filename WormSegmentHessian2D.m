@@ -3,8 +3,8 @@ function wormBW2=WormSegmentHessian2D(worm)
 %% Initialize parameters
 thresh1=.03; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
-minObjSize=100; 
-maxObjSize=Inf;
+minObjSize=50; 
+maxObjSize=700;
 minObjectSpacing=5;
 minSearchRad=3;
 pad=4;
@@ -95,7 +95,7 @@ pedMask(:,end-pad+1+overEdge(3):end,:)=false;
 
 % smooth image and calculate hessian and eigenvalues
 subIm=normalizeRange(smooth2a(subIm,5,5));
-H=hessianMatrix(subIm,3);
+H=hessianMatrix(subIm,1);
 Heig=hessianEig(H,subBW);
 Htrace=sum(Heig,3);
 % Jm= Heig(:,:,:,1)<-hthresh & Heig(:,:,:,2)<-hthresh & ...
@@ -124,7 +124,7 @@ for isubBlob=1:subCC.NumObjects
 %        sp=sum((latent-circshift(latent,1)).^2)./sum(latent.^2);
       %  Jm(subCC.PixelIdxList{isubBlob})=length(x);
         if length(x)>maxObjSize
-            Jw=ones(size(Jd));
+            Jw=ones(size(Jm));
             watershedthresh=.7;
             while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
             Jd=-bwdist(~blank);

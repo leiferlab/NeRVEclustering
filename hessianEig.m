@@ -34,6 +34,11 @@ elseif numel(Hsize)==2
             
            Heig(:,:,1)=reshape(D(1,1,:),Hsize(1),Hsize(2));
            Heig(:,:,2)=reshape(D(1,2,:),Hsize(1),Hsize(2));
+           HeigVec{1,1}=reshape(V(1,1,:),Hsize(1),Hsize(2));
+           HeigVec{1,2}=reshape(V(1,2,:),Hsize(1),Hsize(2));
+           HeigVec{2,1}=reshape(V(2,1,:),Hsize(1),Hsize(2));
+           HeigVec{2,2}=reshape(V(2,2,:),Hsize(1),Hsize(2));
+
 
       
 end
@@ -47,13 +52,16 @@ end
 end
 
 function [vec,v]=eig2D(A)
+%finds eigenvectors and eigen values of large set of 2x2 matricies, in put
+%A is a 2x2xn matrix, output is v, a 1x2xn matrix of eigenvalues in
+%descending order, vec is a 2x2xn matrix with corresponding eigenvectors.
 a=A(1,1,:);b=A(1,2,:);c=A(2,1,:);d=A(2,2,:);
 vec=zeros(2,2,size(A,3));
 T=a+d;D=a.*d-b.*c;
 desc=sqrt(T.^2-4*(D));
 v=[(T+desc)/2,(T-desc)/2];
-vec(:,1,:)=bsxfun(@rdivide,[ones(size(b)),-b./(a-v(1,1,:))],(1+b./(a-v(1,1,:))).^2);
-vec(:,2,:)=bsxfun(@rdivide,[ones(size(b)),-b./(a-v(1,2,:))],(1+b./(a-v(1,2,:))).^2);
+vec(:,1,:)=bsxfun(@rdivide,[ones(size(b)),-b./(a-v(1,1,:))],(1+(b./(a-v(1,1,:))).^2).^.5);
+vec(:,2,:)=bsxfun(@rdivide,[ones(size(b)),-b./(a-v(1,2,:))],(1+(b./(a-v(1,2,:))).^2).^.5);
 end
 
 function [vec,v]=eig3D(A)

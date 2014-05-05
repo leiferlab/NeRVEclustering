@@ -18,8 +18,13 @@ for imat=1:2:length(files)
     trackData=[trackData;tracks];
     progressbar((1+imat)/length(files));
 end
-
+try
 trackOutput=track(trackData,maxDist,params);
+catch 
+    trackOutput=track(trackData,maxDist/2,params);
+
+end
+
     trackLengths=accumarray(trackOutput(:,end),ones(size(trackOutput(:,end))));
     
     badtracks=find(trackLengths<minTrack);
