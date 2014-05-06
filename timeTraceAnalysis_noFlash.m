@@ -1,19 +1,150 @@
-function wormBW2=WormSegmentHessian(worm)
 
+flashAlgin=0;
+
+
+
+%% load excel file, take outputs and find peak
+imFolder=uigetdir();
+p=dir([imFolder filesep '*.xlsx']);
+p=p(1).name;
+imFiles=dir([imFolder filesep '*.tif']);
+output=xlsread([imFolder filesep p],1,'A:C');
+
+%%
+camIdx=1;
+zIdx=2;
+
+%  find image times from the trigger
+imageWave=output(:,camIdx)>smooth(output(:,camIdx),100);
+
+% find z positions
+zWave=output(:,zIdx);
+zWave=smooth(zWave,100);
+
+%find time of images, take middle of rising and falling edge
+imageRise=[false;diff(single(imageWave))>.2];
+imageFall=[diff(single(imageWave))<-.2;false];
+[x,lags]=xcorr(double(imageFall),double(imageRise),100);
+shift=lags(x>range(x)/2 & lags'>0);
+shift=shift(1);
+imageSpikes=circshift(imageRise,round(shift/2));
+
+
+imageZ=zWave(imageSpikes);
+zgrad=medfilt1(gradient(zWave,5),5)>0;
+zgrad=zgrad(imageRise);
+stackIdx=[0;cumsum(abs(diff(zgrad)))];
+
+
+
+
+%% load images and find flash in images using user defined ROI
+
+stackSize=length(imFiles);
+initialIm=(imread([imFolder filesep imFiles(1).name], 'tif'));
+progressbar;
+for i=round(stackSize/2):round(stackSize/2)+60;
+    temp=(imread([imFolder filesep imFiles(i).name], 'tif'));
+    initialIm=max(initialIm,temp);
+    progressbar((i-round(stackSize/2))/60);
+
+end
+% imsize=size(initialIm);
+% fig=imagesc(initialIm);
+% display('Select area to find flash');
+% roiFlash=roipoly;
+% delete(fig)
+% 
+fig=imagesc(initialIm);
+display('Select labeled region');
+roiCell1=roipoly;
+delete(fig)
+
+
+%% search for the flash
+cellall=zeros(1,stackSize);
+progressbar;
+for i=1:1:stackSize
+    temp=(imread([imFolder filesep imFiles(i).name], 'tif'));
+    cellall(i)=mean(temp(roiCell1));
+    progressbar(i/stackSize);
+end
+progressbar(1);
+
+
+%%
+zWave2=zWave-mean(zWave);
+zWave2=abs(zWave2);
+zWave2=zWave2-mean(zWave2);
+L=length(zWave2);
+zfft = fft(zWave2);
+imagefft=fft(smooth(cellall,7)-smooth(cellall,400))/stackSize;
+[~,zMax]=max(zfft(50:floor(length(zfft)/2)));
+[~,imMax]=max(imagefft(50:floor(length(imagefft)/2)));
+zfreq=(zMax+50)/L;
+imfreq=(imMax+50)/stackSize;
+cellall2=interp1(linspace(0,1,stackSize),smooth(cellall,7),...
+    linspace(0,1,stackSize*imfreq/zfreq));
+[x,lags]=xcorr(cellall2,zWave2);
+x=x./xcorr(ones(size(cellall2)),ones(size(zWave2)));
+offset=lags((x==max(x(~isinf(x)& lags>0))));
+zWave3=zWave2(offset:end);
+
+
+
+
+%%
+
+flashWave=imFlash;
+flashWave=flashWave-min(flashWave);
+flashWave=flashWave>(mean(flashWave)*5);
+flashWave=[0,diff(flashWave)>.5];
+startFlash=find(flashWave>.5);
+
+if length(startFlash)>1
+    endFlash=startFlash(end);
+    startFlash=startFlash(1);
+else
+    endFlash=stackSize;
+end
+
+images=imFiles(startFlash:endFlash);
+
+
+%%
+fig=imagesc(initialIm);
+rect=getrect(gcf);
+rect=round(rect);
+rectSize=rect(3:4);
+rect=round(rect +[0,0 rect(1:2)]);
+
+%%
+for i=2
+    imSelect=find(stackIdx==i);
+    worm=zeros(rectSize(2),rectSize(1),length(imSelect));
+    for slice=1:length(imSelect)
+        
+        temp=imread([imFolder filesep images(imSelect(slice)).name],'tif');
+        
+        worm(:,:,slice)=temp((rect(2)+1):rect(4),(1+rect(1)):rect(3));
+    end
+    imsize=size(worm);
+    
+    worm=image_resize(worm,imsize(1),imsize(2),2*imsize(3));
+    
+    
 %% Initialize parameters
-thresh1=.03; %initial Threshold
+thresh1=.01; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
-minObjSize=100; 
-maxObjSize=Inf;
+minObjSize=200; 
+maxObjSize=1500;
 minObjectSpacing=5;
 minSearchRad=3;
 pad=4;
-show=0;
+show=1;
 box=true(3,3,3);
-imsize=size(worm);
-imsize=imsize([2,1,3]);
-%% subtract pedistal, normalize, filter
 
+%% subtract pedistal, normalize, filter
 pedMask=false(imsize);
 pedMask(1:3,:,:)=true;
 pedMask(:,1:3,:)=true;
@@ -22,10 +153,8 @@ pedMask(:,end-2:end,:)=true;
 
 pedistal=median(worm(pedMask));
 worm=worm-pedistal;
-worm(worm<0)=0;
-
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
-wormtop=bpass3_jn(worm,1,[40,40,10]);
+wormtop=worm;
 wormtop=worm-abs(worm-wormtop);
 wormtop(wormtop<0)=0;
 wormtop=normalizeRange(wormtop);
@@ -35,8 +164,12 @@ wormBW=wormtop>thresh1;
 %% find connected objects
 cc=bwconncomp(wormBW,6);
 blobSizes=cellfun(@(x) length(x), cc.PixelIdxList);
-cc.PixelIdxList(blobSizes<minObjSize)=[];
-cc.NumObjects=sum(blobSizes>=minObjSize);
+wormBW(cell2mat(cc.PixelIdxList(blobSizes<minObjSize)'))=0;
+
+% cc.PixelIdxList(blobSizes<minObjSize)=[];
+% cc.NumObjects=sum(blobSizes>minObjSize);
+cc=bwconncomp(wormBW,6);
+
 blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
 
 
@@ -44,6 +177,8 @@ blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
 %% use hessian to find nuclei in objects
 centerIm=zeros(size(wormBW));
 wormBW2=zeros(size(wormBW));
+%%
+
 for iblob=1:cc.NumObjects;
     %crop out object with pad
     BB=floor(blobStats(iblob).BoundingBox);
@@ -56,10 +191,9 @@ for iblob=1:cc.NumObjects;
     BB(BB<1)=1;
     BB([false,false,false,bsxfun(@ge,BB(4:6),imsize)])=imsize((bsxfun(@ge,BB(4:6),imsize)));
 
-
     subBW=wormBW(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
     subIm=wormtop(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
-    
+    if all(size(subBW)>7) && size(subBW,3)>7
     %filter/normalize sub image
     if mean(size(subIm))<30
         subIm=imtophat(subIm,strel('disk',10'));
@@ -96,7 +230,10 @@ pedMask(:,:,end-pad+1+overEdge(6):end)=false;
 % DL=watershed(DD,18);
 
 % smooth image and calculate hessian and eigenvalues
-subIm=smooth3(subIm,'gaussian',5,3);
+subIm=bpass3_jn(subIm,1,[20,20,20]);
+subBW=subIm>thresh1;
+%subIm=smooth3(subIm,'gaussian',5,3);
+
 H=hessianMatrix(subIm,3);
 Heig=hessianEig(H,subBW);
 Htrace=sum(Heig,4);
@@ -128,8 +265,8 @@ for isubBlob=1:subCC.NumObjects
       %  Jm(subCC.PixelIdxList{isubBlob})=length(x);
         if length(x)>maxObjSize
             Jw=ones(size(Jd));
-            watershedthresh=.7;
-            while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
+            watershedthresh=.8;
+            while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.5;
             Jd=-bwdist(~blank);
             %Jd=smooth3(Jd,'gaussian',5,2);
             Jd=imhmin(Jd,watershedthresh);
@@ -181,13 +318,29 @@ wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=Jm;
 % 
 % 
 %         
-        
+    end
+    
 end
 %% 
 %centerIm is binary image of all centroid positions. 
 centerIm=bwulterode(centerIm);
 
-%[y,x,z]=ind2sub(size(wormBW),find(centerIm));
-%    figure;
-%scatter3(x,y,z);axis equal
+[y,x,z]=ind2sub(size(wormBW),find(centerIm));
+    figure;
+scatter3(x,y,z);axis equal
+    
+    
+    %track all
+end
+
+
+
+
+
+
+
+
+    
+
+
 

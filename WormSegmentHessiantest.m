@@ -1,19 +1,31 @@
-function wormBW2=WormSegmentHessian(worm)
+%This is Jeff's amazing code!! We are so greatfule for jeff 
+% To work on it testafsdasd
+
+%% load George's file with manual identification
+A=importdata('/Users/jeffnguyen/Documents/Data/for andy/d1.tif.marker');
+A.x=A.data(:,1);
+A.y=A.data(:,2);
+A.z=A.data(:,3)*2;
+
+
+%% load worm image
+
+
+worm=stackLoad('/Users/jeffnguyen/Documents/Data/for andy/d1.tif', 28,2);
+imsize=size(worm);
 
 %% Initialize parameters
 thresh1=.03; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
 minObjSize=100; 
-maxObjSize=Inf;
+maxObjSize=1500;
 minObjectSpacing=5;
 minSearchRad=3;
 pad=4;
-show=0;
+show=1;
 box=true(3,3,3);
-imsize=size(worm);
-imsize=imsize([2,1,3]);
-%% subtract pedistal, normalize, filter
 
+%% subtract pedistal, normalize, filter
 pedMask=false(imsize);
 pedMask(1:3,:,:)=true;
 pedMask(:,1:3,:)=true;
@@ -22,10 +34,7 @@ pedMask(:,end-2:end,:)=true;
 
 pedistal=median(worm(pedMask));
 worm=worm-pedistal;
-worm(worm<0)=0;
-
-%wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
-wormtop=bpass3_jn(worm,1,[40,40,10]);
+wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
 wormtop=worm-abs(worm-wormtop);
 wormtop(wormtop<0)=0;
 wormtop=normalizeRange(wormtop);
@@ -36,7 +45,7 @@ wormBW=wormtop>thresh1;
 cc=bwconncomp(wormBW,6);
 blobSizes=cellfun(@(x) length(x), cc.PixelIdxList);
 cc.PixelIdxList(blobSizes<minObjSize)=[];
-cc.NumObjects=sum(blobSizes>=minObjSize);
+cc.NumObjects=sum(blobSizes>minObjSize);
 blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
 
 
@@ -129,7 +138,7 @@ for isubBlob=1:subCC.NumObjects
         if length(x)>maxObjSize
             Jw=ones(size(Jd));
             watershedthresh=.7;
-            while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
+            while(all(Jw(:))) || ~sum(~Jw(blank))
             Jd=-bwdist(~blank);
             %Jd=smooth3(Jd,'gaussian',5,2);
             Jd=imhmin(Jd,watershedthresh);
@@ -187,7 +196,16 @@ end
 %centerIm is binary image of all centroid positions. 
 centerIm=bwulterode(centerIm);
 
-%[y,x,z]=ind2sub(size(wormBW),find(centerIm));
-%    figure;
-%scatter3(x,y,z);axis equal
+[y,x,z]=ind2sub(size(wormBW),find(centerIm));
+    figure;
+scatter3(x,y,z);axis equal
+%% show George's result as well. 
+hold on
+
+scatter3(A.x,A.y,A.z+mean(z)-mean(A.z),'rx');
+
+disp([ num2str(length(x)) ' points found, compared to ' num2str(length(A.x)) ,...
+    ' found by Geroge']);
+
+
 
