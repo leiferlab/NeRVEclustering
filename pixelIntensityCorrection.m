@@ -10,7 +10,13 @@ pixB=getappdata(0,'pixB');
 pixM(pixM<.7)=.7;
 pixM(pixM>1.5)=1.5;
 if isempty(pixM) || isempty(pixB)
+try
     load('Y:\CommunalCode\3dbrain\PixelCalibration\');
+catch
+calibration=uipickfiles;
+
+load(calibration{1});
+end
     setappdata(0,'pixM',pixM);
     setappdata(0,'pixB',pixB);
 end
@@ -19,6 +25,6 @@ if isempty(pixM) || isempty(pixB)
     error('pixel stats not found');
 end
 
-
+%pixM(abs(pixM-1)>.2)=1;
 imOut=(imIn-pixB).*pixM;
 imOut(imOut<0)=0;

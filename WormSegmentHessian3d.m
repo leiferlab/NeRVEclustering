@@ -1,15 +1,20 @@
-function wormBW2=WormSegmentHessian(worm,options)
+function wormBW2=WormSegmentHessian3d(worm,options)
 
-%% Initialize parameters
+%% Initialize default parameters, all of these can also be fields in options
 thresh1=.03; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
-minObjSize=500; 
-maxObjSize=Inf;
-watershedFilter=0;
-filterSize=[40,40,10];
-pad=4;
-noise=1;
-show=0;
+minObjSize=500; % min object size
+maxObjSize=5000; % max object size
+watershedFilter=0; % watershed filter object shapes?
+filterSize=[20,20,10]; %bp filter size low f
+noise=1; % bp filter hi f
+pad=4; % pad to take around each sub blob
+show=0; %show fits (deactivated)
+maxSplit=1; % split objects using regional maxima
+minSphericity=.55; % minimum sphericity for splitting.
+
+
+% parse options to load fields
 if nargin==2
     Fnames=fieldnames(options);
     for i=1:length(Fnames)
@@ -18,9 +23,8 @@ if nargin==2
     
 end
 
-
-
-
+%cuberoot for min obj dimension
+minObjDim=round(minObjSize^(1/3));
 imsize=size(worm);
 imsize=imsize([2,1,3]);
 %% subtract pedistal, normalize, filter
@@ -37,8 +41,6 @@ worm(worm<0)=0;
 
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
 wormtop=bpass3_jn(worm,noise,filterSize);
-wormtop=worm-abs(worm-wormtop);
-wormtop(wormtop<0)=0;
 wormtop=normalizeRange(wormtop);
 
 %% initial threshold
@@ -72,30 +74,22 @@ for iblob=1:cc.NumObjects;
     subIm=wormtop(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
     
     %filter/normalize sub image
-    if mean(size(subIm))<30
-        subIm=imtophat(subIm,strel('disk',10'));
-    end
+%     if mean(size(subIm))<30
+%         subIm=imtophat(subIm,strel('disk',10'));
+%     end
     
     subIm=normalizeRange(subIm);
-%     minIm=imerode(subIm,true(11,11,1));
-%     maxIm=imdilate(subIm,true(11,11,1));
-%    maxIm=smooth3(maxIm,'box',[5,5,5]);
-%     
-%     subThresh=(subIm-minIm);
-%     subThresh(maxIm<.01)=0;
-%     subThresh=subThresh./(maxIm-minIm);
-%     
-%subBW=subIm>.1;
 
-pedMask=true(size(subIm));
-pedMask(1:pad-overEdge(2),:,:)=false;
-pedMask(:,1:pad-overEdge(1),:)=false;
-pedMask(:,:,1:pad-overEdge(3))=false;
-pedMask(end-pad+1+overEdge(5):end,:,:)=false;
-pedMask(:,end-pad+1+overEdge(4):end,:)=false;
-pedMask(:,:,end-pad+1+overEdge(6):end)=false;
-  
-    
+
+% pedMask=true(size(subIm));
+% pedMask(1:pad-overEdge(2),:,:)=false;
+% pedMask(:,1:pad-overEdge(1),:)=false;
+% pedMask(:,:,1:pad-overEdge(3))=false;
+% pedMask(end-pad+1+overEdge(5):end,:,:)=false;
+% pedMask(:,end-pad+1+overEdge(4):end,:)=false;
+% pedMask(:,:,end-pad+1+overEdge(6):end)=false;
+%   
+%     
 
 % BWe=bwulterode(subBW);
 % [x,y,z]=ind2sub(size(subBW),find(BWe));
@@ -106,15 +100,18 @@ pedMask(:,:,end-pad+1+overEdge(6):end)=false;
 % DD=imhmin(DD,.5);
 % DL=watershed(DD,18);
 
-% smooth image and calculate hessian and eigenvalues
+% smooth image and calculate hessian and eigenvalues for segmentation
+
+
 subIm=smooth3(subIm,'gaussian',5,3);
 H=hessianMatrix(subIm,3);
 Heig=hessianEig(H);
-Htrace=sum(Heig,4);
+Htrace=max(Heig,[],4);
 % Jm= Heig(:,:,:,1)<-hthresh & Heig(:,:,:,2)<-hthresh & ...
 %    Heig(:,:,:,3)<-hthresh;
+Htrace(isnan(Htrace))=0;
 Jm=Htrace<hthresh;
-Jm=Jm & pedMask;
+%Jm=Jm & pedMask;
 Jm=xyzConvHull(Jm,3);
 
 % watershed filter shapes
@@ -127,20 +124,47 @@ Jw=watershed(Jd);
 Jm=Jm.*(Jw>0);
 end
 Jm=imerode(Jm,true(2,2,2));
+Jm=imclearborder(Jm);
 
+
+%watershed splitting based on local maxima locations
+if maxSplit
+subImax=imregionalmax(subIm);
+
+subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
+
+JmLabel=bwlabeln(Jm,6);
+for iLabel=1:max(JmLabel(:));
+    subJm=JmLabel==iLabel;
+    subsubImax=subImax & subJm;
+maxBW=watershed(bwdist(subsubImax));
+Jm(maxBW==0 & subJm)=0;
+end
+
+end
 
 subCC=bwconncomp(Jm>0,6);
 
 %check size, if size is too large, increase watershedding
 for isubBlob=1:subCC.NumObjects
-    if length(subCC.PixelIdxList{isubBlob})>50
+    if length(subCC.PixelIdxList{isubBlob})>minObjSize
+        %calculate volume and sphericity for checking before further
+        %watershed
         blank=false(size(subBW));
         blank(subCC.PixelIdxList{isubBlob})=true;
-        [x,y,z]=ind2sub(size(subBW),subCC.PixelIdxList{isubBlob});
+ %       [x,y,z]=ind2sub(size(subBW),subCC.PixelIdxList{isubBlob});
+        subblobP=bwperim(blank,26);
+        subblobP=sum(subblobP(:));
+        
+        subblobV=sum(blank(:));
+        subblobS=(pi*36*subblobV.^2)^(1/3)/subblobP;
+        
+        
+        
  %       [coeff,score,latent,~,explianed]=pca([x,y,z]);
 %        sp=sum((latent-circshift(latent,1)).^2)./sum(latent.^2);
       %  Jm(subCC.PixelIdxList{isubBlob})=length(x);
-        if length(x)>maxObjSize
+        if subblobV>maxObjSize || subblobS<minSphericity
             Jw=ones(size(Jd));
             watershedthresh=.7;
             while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
@@ -159,25 +183,17 @@ for isubBlob=1:subCC.NumObjects
 end
 
 % remove small objects in subImage
-subCC=bwconncomp(Jm>0,6);
-subBlobStats=regionprops(subCC,'Centroid');
-objectSizes=cellfun(@(x) length(x), subCC.PixelIdxList);
-badIdx=objectSizes<minObjSize;
-bad=cell2mat(subCC.PixelIdxList(badIdx)');
-subCC.PixelIdxList((badIdx))=[];
-subCC.NumObjects=sum(~badIdx);
-Jm(bad)=0;
-
-centerPnts=round([subBlobStats.Centroid]);
-centerPnts=reshape(centerPnts',3,[])';
-Jc=false(size(Jm));
-Jc(sub2ind(size(Jm),centerPnts(:,2),centerPnts(:,1),centerPnts(:,3)))=true;
-Jc(bad)=false;
+Jm=AreaFilter(Jm,minObjSize,[],6);
+% centerPnts=round([subBlobStats.Centroid]);
+% centerPnts=reshape(centerPnts',3,[])';
+% Jc=false(size(Jm));
+% Jc(sub2ind(size(Jm),centerPnts(:,2),centerPnts(:,1),centerPnts(:,3)))=true;
+% Jc(bad)=false;
 
 
 
 
-%% find centroids, display
+%% find centroids, display (off)
 if show
 centerIm(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=Jc;
 imagesc(sum(subIm,3));
@@ -190,8 +206,9 @@ hold off
 pause(1);
 end
 
-%compile results of all sub images into final segmented mask. 
-wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=Jm;
+%compile results of all sub images into final segmented mask.
+Jm=imclearborder(Jm);
+wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=or(Jm,wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6)));
 % 
 % 
 %         
@@ -199,7 +216,6 @@ wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=Jm;
 end
 %% 
 %centerIm is binary image of all centroid positions. 
-centerIm=bwulterode(centerIm);
 
 %[y,x,z]=ind2sub(size(wormBW),find(centerIm));
 %    figure;

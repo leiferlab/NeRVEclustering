@@ -1,69 +1,55 @@
 
 
 %load folder and extract and align timing data.
+display('Select Registration mat File');
+[regFile,regFolder]=uigetfile('Y:\CommunalCode\3dbrain\registration\');
+
+%%
+display('Select folder to analyze');
+
 imFolder=uigetdir;
+
+if ~exist(fullfile(imFolder,'StackInfo.mat'),'file')
 [initialIm,stackInfo]=timeTraceAnalysis(imFolder);
-
-%% better initial Im by averaging multiple stacks and doing a max projection
-%!!! may be better to just take images from BEFORE the flash,
-%photobleaching appears to make these images better than my averaging. 
-clear worm
-wormAll=zeros(size(initialIm,1),size(initialIm,2),length(stackInfo(1).z));
-for i=1:2:31
-stackSize=length(stackInfo(i).fileNames);
-
-    for slice=1:min(length(stackInfo(1).z),stackSize)
-        
-        temp=double(imread([imFolder filesep stackInfo(i).fileNames(slice).name],'tif'));
-                temp=pixelIntensityCorrection(temp);
-        %worm(:,:,slice)=temp;
-        wormAll(:,:,slice)=wormAll(:,:,slice)+double(temp);
-    end
-end
-initialIm=max(wormAll,[],3);
 save([imFolder filesep 'stackInfo'],'stackInfo','initialIm');
+end
 
+%% load registration file
+load([imFolder filesep 'stackInfo'],'stackInfo','initialIm');
 
+    load([regFolder filesep regFile]);
 
-
-
-%% Draw 2 rectangles for the shape and activity channels
-fig=imagesc(initialIm);
-display('Get segmenting ROI')
-rect1=getrect(gcf);
-rect1=round(rect1);
-rectSize1=rect1(3:4);
-rect1=round(rect1 +[0,0 rect1(1:2)]);
-channelSegment=initialIm((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-display('Get Activity ROI');
-rect2=getrect(gcf);
-rect2=round(rect2);
-rectSize2=rect2(3:4);
-rect2=round(rect2 +[0,0 rect2(1:2)]);
-channelActivity=initialIm((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
-
-
-channelSegment=normalizeRange(double(channelSegment));
-channelActivity=normalizeRange(double(channelActivity));
-close all
-%% Select control points and create transform
-[activityPts,segmentPts]=cpselect(wiener2(channelActivity,[3,3],1),channelSegment,...
-                'Wait',true);
-t_concord = fitgeotrans(activityPts,segmentPts,'projective');
-Rsegment = imref2d(size(channelSegment));
-activityRegistered = imwarp(channelActivity,t_concord,'OutputView',Rsegment);
-padRegion=activityRegistered==0;
-padRegion=imdilate(padRegion,true(3));
-
-save([imFolder filesep 'stackInfo'],'rect1','rect2','t_concord'...
-    ,'Rsegment','rectSize1','rectSize2','padRegion','imFolder','-append');
 
 %% segment subimages and create masks
+paraPool=gcp('nocreate');
+if ~isempty(paraPool)
+paraPool=parpool('local',8,'IdleTimeout', 600);
+else
+    delete(paraPool)
+    paraPool=parpool('local',8,'IdleTimeout', 600);
+
+end
+    
+%%
+
+options.thresh1=.03; %initial Threshold
+options.hthresh=-.0001; %threshold for trace of hessian.
+options.minObjSize=500; 
+options.maxObjSize=Inf;
+options.watershedFilter=1;
+options.filterSize=[50,50,50];
+options.pad=9;
+options.noise=12;
+options.show=0;
+options.maxSplit=1;
+options.minSphericity=.55;
+%%
+
 
 mkdir([imFolder filesep 'stackData']);
 
 
-for iStack=504:length(stackInfo);
+for iStack=1:length(stackInfo);
     tic
 stackSize=length(stackInfo(iStack).fileNames);
     worm=zeros(rectSize1(2),rectSize1(1),stackSize);
@@ -84,7 +70,7 @@ stackSize=length(stackInfo(iStack).fileNames);
    worm=image_resize(worm,imsize(1),imsize(2),2*imsize(3));
       activity=image_resize(activity,imsize(1),imsize(2),2*imsize(3));
 %do segmentation
-    wormMask=WormSegmentHessian(worm);
+    wormMask=WormSegmentHessian3d(worm,options);
     
     %look up intensities on both channels
     wormLabelMask=bwlabeln(wormMask);
@@ -101,8 +87,15 @@ realTime=interp1(stackInfo(iStack).time,centroids(:,3)/2); %arb scaling for now
 
 %save outputs in unique file
 outputFile=[imFolder filesep 'stackData' filesep 'stack' num2str(iStack,'%04d') 'data'];
+outputData(iStack).centroids=centroids;
+outputData(iStack).Rintensities=Rintensities;
+outputData(iStack).Gintensities=Gintensities;
+outputData(iStack).Volume=Volume;
+outputData(iStack).time=realTime;
+outputData(iStack).wormMask=wormLabelMask;
 
-save(outputFile,'centroids','Rintensities','Gintensities','Volume','realTime',...
-    'wormMask');
-display(['Completed stack' num2str(iStack,'%04d') ' in ' num2str(toc) ' seconds']);
+parsavestruct(outputFile,outputData(iStack));
+
+
+display(['Completed stack' num2str(iStack,'%04d') 'in ' num2str(toc) ' seconds']);
 end
