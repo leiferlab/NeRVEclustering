@@ -31,7 +31,7 @@
 %The number of neurons aren't necessarily the same because it is hard for a
 %  user to tell what exactly is a neuron.
 
-N=125; %acquisition A
+N=120; %acquisition A
 M=120; %acquisition B
 assert(N>=M); %by convention, the code assumes A has more neurons then B
 
@@ -319,3 +319,7 @@ disp([num2str(numFails) ' pairs were incorrect.'])
 
 disp(['true energy: ' num2str(trueEnergy)])
 disp(['final energy: ' num2str(DEnergyMin)])
+
+
+
+

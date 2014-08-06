@@ -1,4 +1,4 @@
-function wormBW2=WormSegmentHessian2D(worm)
+function wormBW2=WormSegmentWindow(worm)
 
 %% Initialize parameters
 thresh1=.03; %initial Threshold

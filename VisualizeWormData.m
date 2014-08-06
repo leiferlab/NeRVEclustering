@@ -22,7 +22,7 @@ function varargout = VisualizeWormData(varargin)
 
 % Edit the above text to modify the response to help VisualizeWormData
 
-% Last Modified by GUIDE v2.5 04-May-2014 20:34:27
+% Last Modified by GUIDE v2.5 05-May-2014 11:58:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -65,12 +65,10 @@ setappdata(handles.slider2,'hlistener',hlistener2);
 set(handles.slider2,'SliderStep',[1,1]);
 
 
-try
-registration=load('Y:\CommunalCode\3dbrain\registration');
-catch
-    [rpath,parent]=uigetfile;
-    registration=load([parent filesep rpath]);
-end
+
+[rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\');
+registration=load([parent filesep rpath]);
+
 
 setappdata(0,'registration',registration);
 
@@ -115,8 +113,13 @@ if isempty(imFolder)
     imFolder = uigetdir();
     setappdata(0,'imFolder',imFolder);
 else
+    try
     imFolder = uigetdir(imFolder);
     setappdata(0,'imFolder',imFolder);
+    catch
+    imFolder = uigetdir();
+    setappdata(0,'imFolder',imFolder);
+    end
 end
 
 matFiles=dir([imFolder filesep 'stackdata' filesep '*.mat']);
@@ -238,20 +241,29 @@ temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
 worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
 temp_activity(padRegion)=median(temp_activity(~padRegion));
-activity=normalizeRange(temp_activity);%bpass_jn(temp_activity,1,[40,40]);
-worm=normalizeRange(worm);
+activity=(temp_activity);%bpass_jn(temp_activity,1,[40,40]);
 hold(handles.axes1,'off')
 %clear current axes
 arrayfun(@(x) delete(x),get(handles.axes1,'children'))
 
 switch get(handles.channelSelect,'value')
     case 1
-ax1=imagesc(worm,'parent',handles.axes1);
+baseImg=worm;
     case 2
-ax1=imagesc(activity,'parent',handles.axes1);
+baseImg=activity;
 end
+end
+setappdata(handles.figure1,'baseImg',baseImg);
+newContrast=getappdata(handles.figure1,'newContrast');
+if isempty(newContrast)
+    newContrast=[min(baseImg(:)),max(baseImg(:))];
+end
+baseImg(baseImg<newContrast(1)) = newContrast(1);
+baseImg(baseImg>newContrast(2)) = newContrast(2);
+baseImg = (baseImg-newContrast(1))./diff(newContrast);
+ax1=imagesc(baseImg,'parent',handles.axes1);
 hold(handles.axes1,'on')
-end
+
 tracks=trackData(trackData(:,end-1)==iImage,:);
 scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');
 currentCentroids=tracks(:,[1,2,size(tracks,2)]);
@@ -271,7 +283,12 @@ for i=1:length(B)
     plot(handles.axes1,b(:,2),b(:,1),'b')
 end
 hold(handles.axes1,'off')
-
+if get(handles.showAll,'value')
+%show heatmap of all tracks
+activityMat=getappdata(handles.figure1,'activityMat');
+imagesc(activityMat,'parent',handles.axes2);
+else
+    
 %display point on axis 2
 displayIdx=get(handles.DisplayIdx,'data');
 plotIdx=[displayIdx{:,1}];
@@ -363,6 +380,7 @@ for iPlot=1:length(plotIdx);
 hold(handles.axes2,'on');
 end
 setappdata(0,'scatter',h);
+end
 set(handles.currentFolder,'String',imFolder);
 
 
@@ -750,7 +768,7 @@ function runTrack_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     minDist=30;
     minTrack=800;
-    params.mem=300;
+    params.mem=30;
 imFolder=getappdata(0,'imFolder');
 
 matFiles=dir([imFolder filesep 'stackdata' filesep '*.mat']);
@@ -771,7 +789,7 @@ end
 
     params.dim=size(centroids,2);
 
-for i=0:minDist*.9
+for i=1:minDist*.5
 try
 trackOutput=track(trackData,minDist/i,params);
 break
@@ -907,3 +925,78 @@ function timeStep_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --------------------------------------------------------------------
+function adjustContrast_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to adjustContrast (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% display the base image, calculate the display image;
+baseImg = getappdata(handles.figure1,'baseImg');
+imageHandle = findobj('Parent',handles.axes1,'type','image');
+storedImage = get(imageHandle);
+set(imageHandle,'cdata',baseImg,'cdataMapping','scaled');
+
+
+% imshow(baseImg,[]);
+contrastWindow = imcontrast(handles.axes1);
+waitfor(contrastWindow);
+newContrast = getDisplayRange(getimagemodel(findobj('parent',handles.axes1,'type','image')));
+baseImg(baseImg<newContrast(1)) = newContrast(1);
+baseImg(baseImg>newContrast(2)) = newContrast(2);
+baseImg = (baseImg-newContrast(1))./diff(newContrast);
+setappdata(handles.figure1,'displayImg',baseImg);
+setappdata(handles.figure1,'newContrast',newContrast);
+
+% currentColorMask = double(repmat(baseImg,[1,1,3]));
+% currentColorMask = currentColorMask*0.8+coloredLabels.*0.2.*(1/255);
+% set(imageHandle,'cdataMapping','direct');
+% set(imageHandle,'cdata',currentColorMask);
+
+
+% --- Executes on button press in showAll.
+function showAll_Callback(hObject, eventdata, handles)
+% hObject    handle to showAll (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+trackData=getappdata(0,'trackOutput');
+smoothWindow=str2double(get(handles.smoothingWindow,'String'));
+startTime=str2double(get(handles.startTime,'string'));
+normalizeFlag=get(handles.normalizeButton,'value');
+
+
+switch get(handles.plotChannel,'value')
+    case 1
+        output=trackData(:,4);
+    case 2
+        output=trackData(:,3);
+      
+    case 3
+        output=trackData(:,3)./trackData(:,4);
+end
+
+output(trackData(:,end-1)<startTime)=nan;
+ output=normalizeRange(output);
+ %output=output/median(output);
+nTracks=max(trackData(:,end));
+nTime=max(trackData(:,end-1));
+activityMat=zeros(nTracks,nTime);
+for i=1:nTracks
+    t=trackData((trackData(:,end)==i),end-1);
+    a=output((trackData(:,end)==i));
+    a=a(t>startTime);
+    t=t(t>startTime);        
+    a=(smooth(a,smoothWindow));
+    if normalizeFlag
+        a=normalizeRange(a);
+    end
+    
+    activityMat(i,t)=a;
+    
+end
+ setappdata(handles.figure1,'activityMat',activityMat);
+ cla(handles.axes2);
+ plotter(handles.slider1,eventdata);
+   
+% Hint: get(hObject,'Value') returns toggle state of showAll

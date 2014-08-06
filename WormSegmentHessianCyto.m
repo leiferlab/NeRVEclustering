@@ -1,27 +1,13 @@
-function wormBW2=WormSegmentHessian(worm,options)
+function wormBW2=WormSegmentHessianCyto(worm)
 
 %% Initialize parameters
-thresh1=.03; %initial Threshold
+thresh1=.2; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
-minObjSize=500; 
-maxObjSize=Inf;
-watershedFilter=0;
-filterSize=[40,40,10];
-intensityPeakFlag=1;
+minObjSize=200; 
+maxObjSize=1000;
+watershedFilter=.5;
 pad=4;
-noise=1;
 show=0;
-if nargin==2
-    Fnames=fieldnames(options);
-    for i=1:length(Fnames)
-        eval([Fnames{i} '= options.' Fnames{i} ';']);
-    end
-    
-end
-
-
-
-
 imsize=size(worm);
 imsize=imsize([2,1,3]);
 %% subtract pedistal, normalize, filter
@@ -37,7 +23,7 @@ worm=worm-pedistal;
 worm(worm<0)=0;
 
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
-wormtop=bpass3_jn(worm,noise,filterSize);
+wormtop=bpass3_jn(worm,1,[40,40,10]);
 wormtop=worm-abs(worm-wormtop);
 wormtop(wormtop<0)=0;
 wormtop=normalizeRange(wormtop);
@@ -71,7 +57,7 @@ for iblob=1:cc.NumObjects;
 
     subBW=wormBW(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
     subIm=wormtop(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
-    subBW=imclearborder(subBW);
+    
     %filter/normalize sub image
     if mean(size(subIm))<30
         subIm=imtophat(subIm,strel('disk',10'));
@@ -120,17 +106,7 @@ Jm=xyzConvHull(Jm,3);
 
 % watershed filter shapes
 if watershedFilter
-
-if intensityPeakFlag
-    subImMax=imregionalmax(subIm);
-    subImMax=and(subImMax, subBW);
-    subImMax=imclose(subImMax,true(4,4,4));
-Jd=-bwdist(subImMax);
-else
 Jd=-bwdist(~Jm);
-end
-
-
 %Jd=smooth3(Jd,'gaussian',5,2);
 Jd=imhmin(Jd,watershedFilter);
 Jd(~Jm)=Inf;

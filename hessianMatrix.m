@@ -1,8 +1,9 @@
 function [H,D]=hessianMatrix(A,h)
 % function computes the hessian matrix of A at all points answer is output
-% as a cell array. Also computes the divergence,D. 
+% as a cell array. Also computes the divergence,D. input matrix A can be
+% either 2 or 3D, h is the smoothing distance over which to take descrete
+% differences. The outputs are in the form of cell arrays.
 
-%This is another comment. We all love jeff's work.
 if nargin==1
     h=1;
 end

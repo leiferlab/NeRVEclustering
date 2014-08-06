@@ -1,86 +1,47 @@
 
 
 %load folder and extract and align timing data.
-imFolder=uigetdir;
-imNames=dir([imFolder filesep '*.tif']);
+
 alignFlag=0;
-if alignFlag
-%% better initial Im by averaging multiple stacks and doing a max projection
-%!!! may be better to just take images from BEFORE the flash,
-%photobleaching appears to make these images better than my averaging. 
-clear worm
-
-for iImage=1
-
-        temp=double(imread([imFolder filesep imNames(iImage).name],'tif'));
-                temp=pixelIntensityCorrection(temp);
-                if iImage==1
-                    initialIm=temp;
-                else
-                    
-        initialIm=initialIm+(temp);
-                end
-end
+tStack=1;
+overwrite=1;
+startPoint=1;
 
 
-
-
-
-%% Draw 2 rectangles for the shape and activity channels
-fig=imagesc(initialIm);
-display('Get segmenting ROI')
-rect1=getrect(gcf);
-rect1=round(rect1);
-rectSize1=rect1(3:4);
-rect1=round(rect1 +[0,0 rect1(1:2)]);
-channelSegment=initialIm((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-display('Get Activity ROI');
-rect2=getrect(gcf);
-rect2=round(rect2);
-rectSize2=rect2(3:4);
-rect2=round(rect2 +[0,0 rect2(1:2)]);
-channelActivity=initialIm((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
-
-
-channelSegment=normalizeRange(double(channelSegment));
-channelActivity=normalizeRange(double(channelActivity));
-close all
-%% Select control points and create transform
-[activityPts,segmentPts]=cpselect(wiener2(channelActivity,[3,3],1),channelSegment,...
-                'Wait',true);
-t_concord = fitgeotrans(activityPts,segmentPts,'projective');
-Rsegment = imref2d(size(channelSegment));
-activityRegistered = imwarp(channelActivity,t_concord,'OutputView',Rsegment);
-padRegion=activityRegistered==0;
-padRegion=imdilate(padRegion,true(3));
-%% save 
-save([imFolder filesep 'stackInfo'],'rect1','rect2','t_concord'...
-    ,'Rsegment','rectSize1','rectSize2','padRegion','imFolder','initialIm');
-
-else
     [regFile,regFolder]=uigetfile('Y:\CommunalCode\3dbrain\registration\');
     load([regFolder filesep regFile]);
-end
 
-if alignFlag==2
-    
-    save(['Y:\CommunalCode\3dbrain\registration\' datestr(date,29)],'rect1','rect2','t_concord'...
-    ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm')
-end
 
 
 %%
 
 %% segment subimages and create masks
 [folderList] = uipickfiles;
+se=strel('disk',5);
+%%
 for iFolder=1:length(folderList)
 imFolder=folderList{iFolder};
 imNames=dir([imFolder filesep '*.tif']);
 mkdir([imFolder filesep 'stackData']);
 
+if ~overwrite
+    matFiles=dir([imFolder filesep 'stackData' filesep '*.mat']);
+    matFileNames={matFiles.name}';
+    mat2tifFileNames=cellfun(@(x) strrep(x,'.mat','.tif'),matFileNames,...
+        'UniformOutput',0);
+    [Lia,Locb]=ismember(mat2tifFileNames,{imNames.name}');
+    startPoint=max(max(Locb),startPoint);
+end
+
+
+maskStack=[];
+wormStack=[];
+activityStack=[];
+imNameStack=[];
+
 movieLength=length(imNames);
 progressbar(0)
-for iImage=1:movieLength;
+for iImage=10:movieLength;
     progressbar(iImage/movieLength);
     tic
 
@@ -96,23 +57,67 @@ for iImage=1:movieLength;
         activity=temp_activity;
     imsize=size(worm);  
   %do segmentation
-    wormMask=WormSegmentHessian2D(worm);
+    %wormMask=WormSegmentHessian2D(worm);
+    wormMask=WormSegmentHessian2D_whole(worm);
    wormMask= bwmorph(wormMask,'clean');
-    %look up intensities on both channels, after a bit of dilation
-    wormLabelMask=imdilate(bwlabeln(wormMask),true(5,5));
-wormcc=bwconncomp(wormMask);
-stats=regionprops(wormcc,'Centroid','Area');
-centroids=reshape([stats.Centroid],2,[])';
-Rintensities=cellfun(@(x) trimmean(worm(x),20),[wormcc.PixelIdxList])';
-Gintensities=cellfun(@(x) trimmean(activity(x),20),[wormcc.PixelIdxList])';
+   
+   
 
-    %interpolate Z properly and scale
-Volume=[stats.Area]';
+    %build stack
+    maskStack=  cat(3,maskStack,bwlabel(wormMask));
+wormStack= cat(3,wormStack,worm);
+activityStack=cat(3,activityStack,activity);
+imNameStack=cat(1,imNameStack,{ strrep(imNames(iImage).name,'.tif','.mat')});
+
+if size(maskStack,3)==tStack;
+    
+
+%pick the part of the stack you want
+wormMask=(mean(maskStack>0,3)>.8);
+worm=wormStack(:,:,ceil(tStack/2));
+activity=activityStack(:,:,ceil(tStack/2));
+
+
+
+%make labels and dilate, do the same in reverse order so theres no bias
+   wormLabelMask1=bwlabeln(wormMask);
+    wormLabelMask2=(max(wormLabelMask1(:))+1-wormLabelMask1).*(wormLabelMask1>0);
+    wormLabelMask1=imdilate(wormLabelMask1,se);
+    wormLabelMask2=imdilate(wormLabelMask2,se);
+    wormLabelMask2=(max(wormLabelMask2(:))-wormLabelMask2+1).*(wormLabelMask2>0);
+
+    %calculate fluor intensities for each region of labeled masks
+Rstats=regionprops(wormLabelMask1,worm,'Area','PixelValues','Centroid');
+Gstats=regionprops(wormLabelMask1,activity,'PixelValues');
+Rstats2=regionprops(wormLabelMask2,worm,'PixelValues');
+Gstats2=regionprops(wormLabelMask2,activity,'PixelValues');
+
+Rintensities=cellfun(@(x) trimmean(x,10), {Rstats.PixelValues}');
+Rintensities2=cellfun(@(x) trimmean(x,10), {Rstats2.PixelValues}');
+Gintensities=cellfun(@(x) trimmean(x,10), {Gstats.PixelValues}');
+Gintensities2=cellfun(@(x) trimmean(x,10), {Gstats2.PixelValues}');
+
+Rintensities=.5*(Rintensities+Rintensities2);
+Gintensities=.5*(Gintensities+Gintensities2);
+
+Volume=[Rstats.Area]';
+centroids=cell2mat({Rstats.Centroid}');
 %save outputs in unique file
-outputFile=[imFolder filesep 'stackData' filesep 'stack' num2str(iImage,'%04d') 'data'];
+outputFile=[imFolder filesep 'stackData' filesep imNameStack{ceil(tStack/2)}];
 
 save(outputFile,'centroids','Rintensities','Gintensities','Volume',...
     'wormMask');
+
+%remove from bottom of stack
+maskStack(:,:,1)=[];
+wormStack(:,:,1)=[];
+activityStack(:,:,1)=[];
+imNameStack(1)=[];
+if all(isempty((imNameStack)))
+imNameStack=[];
+end
+
 display(['Completed stack' num2str(iImage,'%04d') ' in ' num2str(toc) ' seconds']);
+end
 end
 end

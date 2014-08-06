@@ -2,13 +2,14 @@ function createAlignment()
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
+%pick files
+[fileName]=uipickfiles();
+%name alignmentfiles
+alignmentName = inputdlg('Name the alignment file:', 's');
 
-[fileName,pathName]=uigetfile('*.tif','MultiSelect','on');
 
 
-
-
-    initialIm=double(imread([pathName filesep fileName{1}],'tif'));
+    initialIm=double(imread([fileName{1}],'tif'));
 
 %% Draw 2 rectangles for the shape and activity channels
 fig=imagesc(initialIm);
@@ -27,7 +28,7 @@ rect2=round(rect2 +[0,0 rect2(1:2)]);
 Aall=[];
 Sall=[];
 for iImage=1:length(fileName)
-    initialIm=double(imread([pathName filesep fileName{iImage}],'tif'));
+    initialIm=double(imread([fileName{iImage}],'tif'));
 
 channelSegment=initialIm((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 
@@ -57,9 +58,8 @@ activityRegistered = imwarp(channelActivity,t_concord,'OutputView',Rsegment);
 padRegion=activityRegistered==0;
 padRegion=imdilate(padRegion,true(3));
 %% save 
-fileDateString=fileparts(fileparts(pathName));
-fileDateString=fileDateString(strfind(fileDateString,filesep)+1:end);
-save(['Y:\CommunalCode\3dbrain\registration\' fileDateString],'rect1','rect2','t_concord'...
+
+save(['Y:\CommunalCode\3dbrain\registration\' alignmentName{1}],'rect1','rect2','t_concord'...
     ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm')
 
 

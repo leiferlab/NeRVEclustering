@@ -173,7 +173,7 @@ if any(lobject)
    noiseKernel=normalize(exp(-KR.^2./2/lnoise));
 
    smoothkernel=normalize(exp(-.5*(KX.^2/lobject(1)+KY.^2/lobject(2)+KZ.^2/lobject(3))));
-kernal=smoothkernel-noiseKernel;
+kernal=convnfft(smoothkernel,noiseKernel,'same')-noiseKernel;
 gconv = convnfft(image_array,kernal,'same');
     filtered = -gconv;
       
