@@ -5,11 +5,8 @@ thresh1=.03; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
 minObjSize=500; % min object size
 maxObjSize=5000; % max object size
-<<<<<<< HEAD
-watershedFilter=1; % watershed filter object shapes?
-=======
+
 watershedFilter=0; % watershed filter object shapes?
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
 filterSize=[20,20,10]; %bp filter size low f
 noise=1; % bp filter hi f
 pad=4; % pad to take around each sub blob
@@ -17,10 +14,6 @@ show=0; %show fits (deactivated)
 maxSplit=1; % split objects using regional maxima
 minSphericity=.55; % minimum sphericity for splitting.
 
-<<<<<<< HEAD
-=======
-
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
 % parse options to load fields
 if nargin==2
     Fnames=fieldnames(options);
@@ -119,18 +112,9 @@ Htrace=max(Heig,[],4);
 Htrace(isnan(Htrace))=0;
 Jm=Htrace<hthresh;
 %Jm=Jm & pedMask;
-<<<<<<< HEAD
 Jm=xyzConvHull(Jm,3); % ghetto way to try to fill holes in all directions
-
 % watershed filter shapes
 if watershedFilter
-
-=======
-Jm=xyzConvHull(Jm,3);
-
-% watershed filter shapes
-if watershedFilter
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
 Jd=-bwdist(~Jm);
 %Jd=smooth3(Jd,'gaussian',5,2);
 Jd=imhmin(Jd,watershedFilter);
@@ -138,33 +122,24 @@ Jd(~Jm)=Inf;
 Jw=watershed(Jd);
 Jm=Jm.*(Jw>0);
 end
-<<<<<<< HEAD
 
-%Jm=imerode(Jm,true(2,2,2));
-=======
-Jm=imerode(Jm,true(2,2,2));
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
 Jm=imclearborder(Jm);
 
 
 %watershed splitting based on local maxima locations
 if maxSplit
-<<<<<<< HEAD
 %find regionalmaxima and threshold around that intensity
 subImaxPnts=imregionalmax(subIm.*Jm);
 
 subImaxReg=subIm>(max(subIm(subImaxPnts)))*.75; 
 %subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
-=======
-subImax=imregionalmax(subIm);
-
-subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
+% subImax=imregionalmax(subIm);
+% 
+% subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
 
 JmLabel=bwlabeln(Jm,6);
 for iLabel=1:max(JmLabel(:));
     subJm=JmLabel==iLabel;
-<<<<<<< HEAD
     subsubImax=subImaxReg & subJm;
     subsubcc=bwconncomp(subsubImax);
     if subsubcc.NumObjects>1
@@ -174,11 +149,6 @@ Jm(maxBW==0 & subJm)=0;
     
     end
     
-=======
-    subsubImax=subImax & subJm;
-maxBW=watershed(bwdist(subsubImax));
-Jm(maxBW==0 & subJm)=0;
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
 end
 
 end
@@ -211,16 +181,12 @@ for isubBlob=1:subCC.NumObjects
             Jd=-bwdist(~blank);
             %Jd=smooth3(Jd,'gaussian',5,2);
             Jd=imhmin(Jd,watershedthresh);
-<<<<<<< HEAD
             Jd(~blank)=Inf;
             subsubcc=bwconncomp(imregionalmin(Jd));
             if subsubcc.NumObjects>1
             Jw=watershed(Jd);
             end
-=======
-            Jd(~Jm)=Inf;
-            Jw=watershed(Jd);
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
+
             watershedthresh=watershedthresh-.1;
             end
             Jm(blank)=~~Jw(blank);

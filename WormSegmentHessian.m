@@ -7,10 +7,7 @@ minObjSize=500;
 maxObjSize=Inf;
 watershedFilter=0;
 filterSize=[40,40,10];
-<<<<<<< HEAD
-intensityPeakFlag=1;
-=======
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
+
 pad=4;
 noise=1;
 show=0;
@@ -123,7 +120,6 @@ Jm=xyzConvHull(Jm,3);
 
 % watershed filter shapes
 if watershedFilter
-<<<<<<< HEAD
 
 if intensityPeakFlag
     subImMax=imregionalmax(subIm);
@@ -131,8 +127,7 @@ if intensityPeakFlag
     subImMax=imclose(subImMax,true(4,4,4));
 Jd=-bwdist(subImMax);
 else
-=======
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
+
 Jd=-bwdist(~Jm);
 end
 
