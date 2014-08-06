@@ -1,34 +1,31 @@
-function wormBW2=WormSegmentHessian(worm,options)
+%This is Jeff's amazing code!! We are so greatfule for jeff 
+% To work on it
+
+% %% load George's file with manual identification
+% A=importdata('/Users/jeffnguyen/Documents/Data/for andy/d1.tif.marker');
+% A.x=A.data(:,1);
+% A.y=A.data(:,2);
+% A.z=A.data(:,3)*2;
+% 
+
+%% load worm image
+
+
+worm=stackLoad('C:\Users\gplummer\Documents\data\odr2\03242014\odr2_gfpa2.tif', 34,2);
+imsize=size(worm);
 
 %% Initialize parameters
 thresh1=.03; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
-minObjSize=500; 
-maxObjSize=Inf;
-watershedFilter=0;
-filterSize=[40,40,10];
-<<<<<<< HEAD
-intensityPeakFlag=1;
-=======
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
+minObjSize=100; 
+maxObjSize=1500;
+minObjectSpacing=5;
+minSearchRad=3;
 pad=4;
-noise=1;
-show=0;
-if nargin==2
-    Fnames=fieldnames(options);
-    for i=1:length(Fnames)
-        eval([Fnames{i} '= options.' Fnames{i} ';']);
-    end
-    
-end
+show=1;
+box=true(3,3,3);
 
-
-
-
-imsize=size(worm);
-imsize=imsize([2,1,3]);
 %% subtract pedistal, normalize, filter
-
 pedMask=false(imsize);
 pedMask(1:3,:,:)=true;
 pedMask(:,1:3,:)=true;
@@ -37,10 +34,7 @@ pedMask(:,end-2:end,:)=true;
 
 pedistal=median(worm(pedMask));
 worm=worm-pedistal;
-worm(worm<0)=0;
-
-%wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
-wormtop=bpass3_jn(worm,noise,filterSize);
+wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
 wormtop=worm-abs(worm-wormtop);
 wormtop(wormtop<0)=0;
 wormtop=normalizeRange(wormtop);
@@ -51,7 +45,7 @@ wormBW=wormtop>thresh1;
 cc=bwconncomp(wormBW,6);
 blobSizes=cellfun(@(x) length(x), cc.PixelIdxList);
 cc.PixelIdxList(blobSizes<minObjSize)=[];
-cc.NumObjects=sum(blobSizes>=minObjSize);
+cc.NumObjects=sum(blobSizes>minObjSize);
 blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
 
 
@@ -74,7 +68,7 @@ for iblob=1:cc.NumObjects;
 
     subBW=wormBW(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
     subIm=wormtop(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6));
-    subBW=imclearborder(subBW);
+    
     %filter/normalize sub image
     if mean(size(subIm))<30
         subIm=imtophat(subIm,strel('disk',10'));
@@ -113,7 +107,7 @@ pedMask(:,:,end-pad+1+overEdge(6):end)=false;
 % smooth image and calculate hessian and eigenvalues
 subIm=smooth3(subIm,'gaussian',5,3);
 H=hessianMatrix(subIm,3);
-Heig=hessianEig(H);
+Heig=hessianEig(H,subBW);
 Htrace=sum(Heig,4);
 % Jm= Heig(:,:,:,1)<-hthresh & Heig(:,:,:,2)<-hthresh & ...
 %    Heig(:,:,:,3)<-hthresh;
@@ -122,29 +116,13 @@ Jm=Jm & pedMask;
 Jm=xyzConvHull(Jm,3);
 
 % watershed filter shapes
-if watershedFilter
-<<<<<<< HEAD
-
-if intensityPeakFlag
-    subImMax=imregionalmax(subIm);
-    subImMax=and(subImMax, subBW);
-    subImMax=imclose(subImMax,true(4,4,4));
-Jd=-bwdist(subImMax);
-else
-=======
->>>>>>> eebfa9d705a26fcfad326f556618a70e7416a879
 Jd=-bwdist(~Jm);
-end
-
-
 %Jd=smooth3(Jd,'gaussian',5,2);
-Jd=imhmin(Jd,watershedFilter);
+Jd=imhmin(Jd,.8);
 Jd(~Jm)=Inf;
 Jw=watershed(Jd);
 Jm=Jm.*(Jw>0);
-end
 Jm=imerode(Jm,true(2,2,2));
-
 
 subCC=bwconncomp(Jm>0,6);
 
@@ -160,7 +138,7 @@ for isubBlob=1:subCC.NumObjects
         if length(x)>maxObjSize
             Jw=ones(size(Jd));
             watershedthresh=.7;
-            while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
+            while(all(Jw(:))) || ~sum(~Jw(blank))
             Jd=-bwdist(~blank);
             %Jd=smooth3(Jd,'gaussian',5,2);
             Jd=imhmin(Jd,watershedthresh);
@@ -218,7 +196,16 @@ end
 %centerIm is binary image of all centroid positions. 
 centerIm=bwulterode(centerIm);
 
-%[y,x,z]=ind2sub(size(wormBW),find(centerIm));
-%    figure;
-%scatter3(x,y,z);axis equal
+[y,x,z]=ind2sub(size(wormBW),find(centerIm));
+    figure;
+scatter3(x,y,z);axis equal
+% %% show George's result as well. 
+% hold on
+% 
+% scatter3(A.x,A.y,A.z+mean(z)-mean(A.z),'rx');
+% 
+% disp([ num2str(length(x)) ' points found, compared to ' num2str(length(A.x)) ,...
+%     ' found by Geroge']);
+% 
+% 
 
