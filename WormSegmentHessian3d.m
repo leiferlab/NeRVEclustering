@@ -5,7 +5,7 @@ thresh1=.03; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
 minObjSize=500; % min object size
 maxObjSize=5000; % max object size
-
+valleyRatio=.75;
 watershedFilter=0; % watershed filter object shapes?
 filterSize=[20,20,10]; %bp filter size low f
 noise=1; % bp filter hi f
@@ -13,6 +13,7 @@ pad=4; % pad to take around each sub blob
 show=0; %show fits (deactivated)
 maxSplit=1; % split objects using regional maxima
 minSphericity=.55; % minimum sphericity for splitting.
+
 
 % parse options to load fields
 if nargin==2
@@ -131,7 +132,7 @@ if maxSplit
 %find regionalmaxima and threshold around that intensity
 subImaxPnts=imregionalmax(subIm.*Jm);
 
-subImaxReg=subIm>(max(subIm(subImaxPnts)))*.75; 
+subImaxReg=subIm>(max(subIm(subImaxPnts)))*valleyRatio; 
 %subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
 % subImax=imregionalmax(subIm);
 % 
