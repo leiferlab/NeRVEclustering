@@ -1,4 +1,4 @@
-function wormBW2=WormSegmentHessian3d(worm,options)
+function [wormBW2,wormtop]=WormSegmentHessian3d_rescale(worm,options)
 
 %% Initialize default parameters, all of these can also be fields in options
 thresh1=.03; %initial Threshold
@@ -13,6 +13,7 @@ pad=4; % pad to take around each sub blob
 show=0; %show fits (deactivated)
 maxSplit=1; % split objects using regional maxima
 minSphericity=.55; % minimum sphericity for splitting.
+scaleFactor=[1,1,6];
 
 
 % parse options to load fields
@@ -41,9 +42,16 @@ worm=worm-pedistal;
 worm(worm<0)=0;
 
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
+bpassPad=5;
+hamWindow=hamming(bpassPad*2);
+prePad=bsxfun(@times,repmat(worm(:,:,1),1,1,bpassPad),permute(hamWindow(1:end/2),[2,3,1]));
+postPad=bsxfun(@times,repmat(worm(:,:,end),1,1,bpassPad),permute(hamWindow(end/2+1:end),[2,3,1]));
+
+worm=cat(3,prePad,worm,postPad);
 wormtop=bpass3_jn(worm,noise,filterSize);
 wormtop=normalizeRange(wormtop);
-
+worm=worm(:,:,bpassPad+1:end-bpassPad);
+wormtop=wormtop(:,:,bpassPad+1:end-bpassPad);
 %% initial threshold
 wormBW=wormtop>thresh1;
 wormBW=imclearborder(wormBW,6);
@@ -120,7 +128,7 @@ Jm=xyzConvHull(Jm,3); % ghetto way to try to fill holes in all directions
 % watershed filter shapes
 
 if watershedFilter
-Jd=-bwdist(~Jm);  %make distance map
+Jd=-bwdist(~Jm,scaleFactor);  %make distance map
 %Jd=smooth3(Jd,'gaussian',5,2);
 Jd=imhmin(Jd,watershedFilter);
 Jd(~Jm)=Inf;
@@ -149,7 +157,7 @@ for iLabel=1:max(JmLabel(:));
     subsubImax=subImaxReg & subJm;
     subsubcc=bwconncomp(subsubImax);
     if subsubcc.NumObjects>1
-maxBW=watershed(bwdist(subsubImax));
+maxBW=watershed(bwdist(subsubImax),scaleFactor);
         
 Jm(maxBW==0 & subJm)=0;
     
@@ -184,7 +192,7 @@ for isubBlob=1:subCC.NumObjects
             Jw=ones(size(Jm));
             watershedthresh=.7;
             while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
-            Jd=-bwdist(~blank);
+            Jd=-bwdist_jn(~blank,scaleFactor);
             %Jd=smooth3(Jd,'gaussian',5,2);
             Jd=imhmin(Jd,watershedthresh);
             Jd(~blank)=Inf;

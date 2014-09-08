@@ -65,7 +65,9 @@ stackSize=length(stackInfo(iStack).fileNames);
         temp_activity(padRegion)=median(temp_activity(~padRegion));
         activity(:,:,slice)=temp_activity;
     end
+    
     imsize=size(worm);  
+    
     %resize image, arbitrary for now
    worm=image_resize(worm,imsize(1),imsize(2),2*imsize(3));
       activity=image_resize(activity,imsize(1),imsize(2),2*imsize(3));

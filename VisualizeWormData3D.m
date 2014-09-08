@@ -1,35 +1,35 @@
-function varargout = VisualizeWormData(varargin)
-% VISUALIZEWORMDATA MATLAB code for VisualizeWormData.fig
-%      VISUALIZEWORMDATA, by itself, creates a new VISUALIZEWORMDATA or raises the existing
+function varargout = VisualizeWormData3D(varargin)
+% VISUALIZEWORMDATA3D MATLAB code for VisualizeWormData3D.fig
+%      VISUALIZEWORMDATA3D, by itself, creates a new VISUALIZEWORMDATA3D or raises the existing
 %      singleton*.
 %
-%      H = VISUALIZEWORMDATA returns the handle to a new VISUALIZEWORMDATA or the handle to
+%      H = VISUALIZEWORMDATA3D returns the handle to a new VISUALIZEWORMDATA3D or the handle to
 %      the existing singleton*.
 %
-%      VISUALIZEWORMDATA('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in VISUALIZEWORMDATA.M with the given input arguments.
+%      VISUALIZEWORMDATA3D('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in VISUALIZEWORMDATA3D.M with the given input arguments.
 %
-%      VISUALIZEWORMDATA('Property','Value',...) creates a new VISUALIZEWORMDATA or raises the
+%      VISUALIZEWORMDATA3D('Property','Value',...) creates a new VISUALIZEWORMDATA3D or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before VisualizeWormData_OpeningFcn gets called.  An
+%      applied to the GUI before VisualizeWormData3D_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to VisualizeWormData_OpeningFcn via varargin.
+%      stop.  All inputs are passed to VisualizeWormData3D_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help VisualizeWormData
+% Edit the above text to modify the response to help VisualizeWormData3D
 
-% Last Modified by GUIDE v2.5 06-Aug-2014 14:29:56
+% Last Modified by GUIDE v2.5 07-Aug-2014 14:13:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
-    'gui_OpeningFcn', @VisualizeWormData_OpeningFcn, ...
-    'gui_OutputFcn',  @VisualizeWormData_OutputFcn, ...
+    'gui_OpeningFcn', @VisualizeWormData3D_OpeningFcn, ...
+    'gui_OutputFcn',  @VisualizeWormData3D_OutputFcn, ...
     'gui_LayoutFcn',  [] , ...
     'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,17 +44,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before VisualizeWormData is made visible.
-function VisualizeWormData_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before VisualizeWormData3D is made visible.
+function VisualizeWormData3D_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to VisualizeWormData (see VARARGIN)
+% varargin   command line arguments to VisualizeWormData3D (see VARARGIN)
 
-% Choose default command line output for VisualizeWormData
-
-%set up slider
+% Choose default command line output for VisualizeWormData3D
 handles.output = hObject;
 hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
     @plotter);
@@ -67,12 +65,13 @@ setappdata(handles.slider2,'hlistener',hlistener2);
 set(handles.slider2,'SliderStep',[1,1]);
 
 
-%load registration file
+
 [rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\','Select Registration File');
 registration=load([parent filesep rpath]);
+
+
 setappdata(0,'registration',registration);
 
-% set up timer for video play
 playt.TimerFcn = {@TmrFcn,handles};
 playt.BusyMode = 'Queue';
 playt.ExecutionMode = 'FixedRate';
@@ -87,12 +86,12 @@ set(handles.framesPerSecond,'String','1')
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes VisualizeWormData wait for user response (see UIRESUME)
+% UIWAIT makes VisualizeWormData3D wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = VisualizeWormData_OutputFcn(hObject, eventdata, handles)
+function varargout = VisualizeWormData3D_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -108,27 +107,24 @@ function SelectFolder_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%select folers with data,
-
-%get last loaded folder if there is one
+    
 imFolder=getappdata(0,'imFolder');
 
-%load mat file folder
+
 if isempty(imFolder)
     imFolder = uigetdir([],'Select MatFile Folder');
     setappdata(0,'imFolder',imFolder);
 else
     try
-        imFolder = uigetdir(imFolder,'Select MatFile Folder');
-        setappdata(0,'imFolder',imFolder);
+    imFolder = uigetdir(imFolder,'Select MatFile Folder');
+    setappdata(0,'imFolder',imFolder);
     catch
-        imFolder = uigetdir([],'Select MatFile Folder');
-        setappdata(0,'imFolder',imFolder);
+    imFolder = uigetdir([],'Select MatFile Folder');
+    setappdata(0,'imFolder',imFolder);
     end
 end
 
-%select image folder
-rawImFolder=uigetdir(fileparts(imFolder),'Select tif File Folder');
+rawImFolder=uigetdir(imFolder,'Select tif File Folder');
 
 matFiles=dir([imFolder filesep '*.mat']);
 setappdata(0,'matFiles',matFiles);
@@ -150,10 +146,10 @@ end
 set(handles.slider1,'Value',1)
 
 if ~exist([imFolder filesep 'trackOutput.mat'],'file')
-    runTrack_Callback(hObject, eventdata, handles)
-    
+runTrack_Callback(hObject, eventdata, handles)
+
 end
-load([imFolder filesep 'trackOutput']);
+    load([imFolder filesep 'trackOutput']);
 
 
 
@@ -223,10 +219,6 @@ end
 
 
 function plotter(hObject,eventdata)
-
-%plots current frame in image window and plot window
-
-
 handles=guidata(get(hObject,'Parent'));
 timeStep=str2double(get(handles.timeStep,'string'));
 smoothWindow=str2double(get(handles.smoothingWindow,'String'));
@@ -236,194 +228,183 @@ imFolder=getappdata(0,'imFolder');
 iImage=round(get(handles.slider1,'Value'));
 set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's']);
 
-%load track data, and lists of mat and tif files
 trackData=getappdata(0,'trackOutput');
+
 matFiles=getappdata(0,'matFiles');
 imFiles=getappdata(0,'imFiles');
 rawImFolder=getappdata(0,'rawImFolder');
-wormMask=load([imFolder filesep matFiles(iImage).name],'wormMask');
 
-%proceed only if mat file has wormMask
-if isfield(wormMask,'wormMask')
-    wormMask=wormMask.wormMask;
-    R=getappdata(0,'registration');
+ wormMask=load([imFolder filesep matFiles(iImage).name],'wormMask');
+ if isfield(wormMask,'wormMask')
+wormMask=wormMask.wormMask;
+R=getappdata(0,'registration');
+
+if ~isempty(R)
+rect1=R.rect1;
+rect2=R.rect2;
+t_concord=R.t_concord;
+Rsegment=R.Rsegment;
+padRegion=R.padRegion;
+temp=double(imread([rawImFolder filesep imFiles(iImage).name],'tif'));
+temp=pixelIntensityCorrection(temp);
+temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
+temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
+temp_activity(padRegion)=median(temp_activity(~padRegion));
+activity=(temp_activity);%bpass_jn(temp_activity,1,[40,40]);
+hold(handles.axes1,'off')
+%clear current axes
+arrayfun(@(x) delete(x),get(handles.axes1,'children'))
+
+switch get(handles.channelSelect,'value')
+    case 1
+baseImg=worm;
+    case 2
+baseImg=activity;
+end
+end
+setappdata(handles.figure1,'baseImg',baseImg);
+newContrast=getappdata(handles.figure1,'newContrast');
+if isempty(newContrast)
+    newContrast=[min(baseImg(:)),max(baseImg(:))];
+end
+baseImg(baseImg<newContrast(1)) = newContrast(1);
+baseImg(baseImg>newContrast(2)) = newContrast(2);
+baseImg = (baseImg-newContrast(1))./diff(newContrast);
+ax1=imagesc(baseImg,'parent',handles.axes1);
+hold(handles.axes1,'on')
+
+tracks=trackData(trackData(:,end-1)==iImage,:);
+scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');
+currentCentroids=tracks(:,[1,2,size(tracks,2)]);
+setappdata(handles.figure1,'currentCentroids',currentCentroids);
+
+hold(handles.axes1,'on')
+axis(handles.axes1,'equal');
+
+text(tracks(:,1),tracks(:,2),cellstr(num2str(tracks(:,end))),'VerticalAlignment'...
+    ,'bottom', 'HorizontalAlignment','right','color',[1 1 1],'parent',handles.axes1);
+
+
+
+B=bwboundaries(wormMask);
+for i=1:length(B)
+    b=B{i};
+    plot(handles.axes1,b(:,2),b(:,1),'b')
+end
+hold(handles.axes1,'off')
+if get(handles.showAll,'value')
+%show heatmap of all tracks
+activityMat=getappdata(handles.figure1,'activityMat');
+imagesc(activityMat,'parent',handles.axes2);
+else
     
-    if ~isempty(R)
-        %load image and correct pixels
-        temp=double(imread([rawImFolder filesep imFiles(iImage).name],'tif'));
-        temp=pixelIntensityCorrection(temp);
-        %crop left and right regions
-        rect1=R.rect1;
-        rect2=R.rect2;
-        t_concord=R.t_concord;
-        Rsegment=R.Rsegment;
-        padRegion=R.padRegion;
-        temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
-        worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-        
-        %align 2 halves
-        temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
-        temp_activity(padRegion)=median(temp_activity(~padRegion));
-        activity=(temp_activity);%bpass_jn(temp_activity,1,[40,40]);
-        hold(handles.axes1,'off')
-        %clear current axes
-        arrayfun(@(x) delete(x),get(handles.axes1,'children'))
-        
-        %chose which image to display, red or green
-        switch get(handles.channelSelect,'value')
-            case 1
-                baseImg=worm; %red
-            case 2
-                baseImg=activity; %green
-        end
-        
-    end
-    setappdata(handles.figure1,'baseImg',baseImg);
-    
-    %scale dynamic range
-    newContrast=getappdata(handles.figure1,'newContrast');
-    if isempty(newContrast)
-        newContrast=[min(baseImg(:)),max(baseImg(:))];
-    end
-    baseImg(baseImg<newContrast(1)) = newContrast(1);
-    baseImg(baseImg>newContrast(2)) = newContrast(2);
-    baseImg = (baseImg-newContrast(1))./diff(newContrast);
-    ax1=imagesc(baseImg,'parent',handles.axes1);
-    
-    hold(handles.axes1,'on')
-    
-    %scatter centroids and label
-    tracks=trackData(trackData(:,end-1)==iImage,:);
-    scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');
-    currentCentroids=tracks(:,[1,2,size(tracks,2)]);
-    setappdata(handles.figure1,'currentCentroids',currentCentroids);
-    
-    hold(handles.axes1,'on')
-    axis(handles.axes1,'equal');
-    
-    text(tracks(:,1),tracks(:,2),cellstr(num2str(tracks(:,end))),'VerticalAlignment'...
-        ,'bottom', 'HorizontalAlignment','right','color',[1 1 1],'parent',handles.axes1);
-    
-    
-     % plot boundaries
-    B=bwboundaries(wormMask);
-    for i=1:length(B)
-        b=B{i};
-        plot(handles.axes1,b(:,2),b(:,1),'b')
-    end
-    hold(handles.axes1,'off')
-    if get(handles.showAll,'value')
-        %show heatmap of all tracks
-        activityMat=getappdata(handles.figure1,'activityMat');
-        imagesc(activityMat,'parent',handles.axes2);
+%display point on axis 2
+displayIdx=get(handles.DisplayIdx,'data');
+plotIdx=[displayIdx{:,1}];
+plotIdx=plotIdx(~isnan(plotIdx) & plotIdx~=0);
+hold(handles.axes2,'off');
+
+switch get(handles.plotChannel,'value')
+    case 1
+        output=trackData(:,4);
+    case 2
+        output=trackData(:,3);
+      
+    case 3
+        output=trackData(:,3)./trackData(:,4);
+end
+setappdata(handles.figure1,'output',output);
+
+switch get(handles.plotChannel2,'value')
+    case 1
+        output2= nan*ones(size(trackData(:,1)));
+    case 2
+        output2=trackData(:,4);
+    case 3
+        output2=trackData(:,3);
+    case 4
+        output2=trackData(:,3)./trackData(:,4);
+    case 5
+        output2=trackData(:,1);
+end
+setappdata(handles.figure1,'output',output);
+
+output(trackData(:,end-1)<startTime)=nan;
+ output=normalizeRange(output);
+ %output=output/median(output);
+
+for i=1:length(plotIdx);
+    idx=plotIdx(i);
+    t=trackData((trackData(:,end)==idx),end-1);
+    a=output((trackData(:,end)==idx));
+    a2=output2((trackData(:,end)==idx));
+    a=a(t>startTime);
+    a2=a2(t>startTime);
+    t=t(t>startTime);
+    if normalizeFlag
+            a=normalizeRange(smooth(a,smoothWindow))+i-1;
     else
         
-        %display point on axis 2
-        displayIdx=get(handles.DisplayIdx,'data');
-        plotIdx=[displayIdx{:,1}];
-        plotIdx=plotIdx(~isnan(plotIdx) & plotIdx~=0);
-        hold(handles.axes2,'off');
-        
-        switch get(handles.plotChannel,'value')
-            case 1
-                output=trackData(:,4);
-            case 2
-                output=trackData(:,3);
-                
-            case 3
-                output=trackData(:,3)./trackData(:,4);
-        end
-        setappdata(handles.figure1,'output',output);
-        
-        switch get(handles.plotChannel2,'value')
-            case 1
-                output2= nan*ones(size(trackData(:,1)));
-            case 2
-                output2=trackData(:,4);
-            case 3
-                output2=trackData(:,3);
-            case 4
-                output2=trackData(:,3)./trackData(:,4);
-            case 5
-                output2=trackData(:,1);
-        end
-        setappdata(handles.figure1,'output',output);
-        
-        output(trackData(:,end-1)<startTime)=nan;
-        output=normalizeRange(output);
-        %output=output/median(output);
-        
-        for i=1:length(plotIdx);
-            idx=plotIdx(i);
-            t=trackData((trackData(:,end)==idx),end-1);
-            a=output((trackData(:,end)==idx));
-            a2=output2((trackData(:,end)==idx));
-            a=a(t>startTime);
-            a2=a2(t>startTime);
-            t=t(t>startTime);
-            if normalizeFlag
-                a=normalizeRange(smooth(a,smoothWindow))+i-1;
-            else
-                
-                a=(smooth(a,smoothWindow))+i-1;
-                a2=normalizeRange(smooth(a2,smoothWindow))+i-1;
-            end
-            t=t*timeStep;
-            plot(handles.axes2,t,a);
-            hold(handles.axes2,'on');
-            plot(handles.axes2,t,a2,'g');
-        end
-        
-        
-        
-        
-        subIdx=ismember(tracks(:,end),plotIdx);
-        text(tracks(subIdx,1),tracks(subIdx,2),cellstr(num2str(tracks(subIdx,end))),'VerticalAlignment'...
-            ,'bottom', 'HorizontalAlignment','right','color',[0 1 0],'parent',handles.axes1);
-        
-        
-        hold(handles.axes2,'on');
-        h=getappdata(0,'scatter');
-        for iPlot=1:length(plotIdx);
-            try
-                delete(h(iPlot));
-            catch
-            end
-            
-            idx=plotIdx(iPlot);
-            t=trackData((trackData(:,end)==idx),end-1);
-            a=output((trackData(:,end)==idx));
-            a=a(t>startTime);
-            t=t(t>startTime);
-            t=t*timeStep;
-            if normalizeFlag
-                a=normalizeRange(smooth(a,smoothWindow))+iPlot-1;
-            else
-                a=(smooth(a,smoothWindow))+iPlot-1;
-            end
-            a=a(t==(iImage*timeStep));
-            if sum(a)
-                h(iPlot)=scatter(handles.axes2,(iImage*timeStep),a,'r','fill');
-            end
-            
-            hold(handles.axes2,'on');
-        end
-        setappdata(0,'scatter',h);
+    a=(smooth(a,smoothWindow))+i-1;
+    a2=normalizeRange(smooth(a2,smoothWindow))+i-1;
     end
-    set(handles.currentFolder,'String',imFolder);
-    
-    
-else
-    display('no data in this matfile');
+    t=t*timeStep;
+    plot(handles.axes2,t,a);
+hold(handles.axes2,'on');
+plot(handles.axes2,t,a2,'g');
 end
 
+
+
+
+subIdx=ismember(tracks(:,end),plotIdx);
+text(tracks(subIdx,1),tracks(subIdx,2),cellstr(num2str(tracks(subIdx,end))),'VerticalAlignment'...
+    ,'bottom', 'HorizontalAlignment','right','color',[0 1 0],'parent',handles.axes1);
+
+
+hold(handles.axes2,'on');
+h=getappdata(0,'scatter');
+for iPlot=1:length(plotIdx); 
+    try
+    delete(h(iPlot));
+    catch
+    end
+    
+    idx=plotIdx(iPlot);
+    t=trackData((trackData(:,end)==idx),end-1);
+    a=output((trackData(:,end)==idx));
+        a=a(t>startTime);
+    t=t(t>startTime);
+    t=t*timeStep;
+    if normalizeFlag
+    a=normalizeRange(smooth(a,smoothWindow))+iPlot-1;
+    else
+    a=(smooth(a,smoothWindow))+iPlot-1;
+    end
+    a=a(t==(iImage*timeStep));
+    if sum(a)
+    h(iPlot)=scatter(handles.axes2,(iImage*timeStep),a,'r','fill');
+    end
+    
+hold(handles.axes2,'on');
+end
+setappdata(0,'scatter',h);
+end
+set(handles.currentFolder,'String',imFolder);
+
+
+ else
+     display('no data in this matfile');
+ end
+ 
 
 
 function smoothingWindow_Callback(hObject, eventdata, handles)
 % hObject    handle to smoothingWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-plotter(handles.slider1,eventdata);
+ plotter(handles.slider1,eventdata);
 
 % Hints: get(hObject,'String') returns contents of smoothingWindow as text
 %        str2double(get(hObject,'String')) returns contents of smoothingWindow as a double
@@ -447,7 +428,7 @@ function startTime_Callback(hObject, eventdata, handles)
 % hObject    handle to startTime (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-plotter(handles.slider1,eventdata);
+ plotter(handles.slider1,eventdata);
 % Hints: get(hObject,'String') returns contents of startTime as text
 %        str2double(get(hObject,'String')) returns contents of startTime as a double
 
@@ -535,7 +516,7 @@ elseif button_state == get(hObject,'Min')
     % Toggle button is not pressed, take appropriate action
     set(hObject,'String','Play');
     set(hObject,'ForegroundColor',[0 1 0]);
-    
+   
     stop(getappdata(handles.figure1,'playTimer'))
     %     set(handles.cursortoggle,'State','on'); % cursor on is default!
 end
@@ -572,7 +553,7 @@ end
 
 function TmrFcn(src,event,handles)
 % pull appdata from the handles structure
-
+ 
 CurrentFrame = getappdata(handles.figure1,'currentFrame');
 % set(handles.slider1,'Value',CurrentFrame)
 %CurrentFrame=1;
@@ -580,7 +561,7 @@ totalFrames = get(handles.slider1,'Max');
 frameStep=str2double(get(handles.framesPerSecond,'string'))/2;
 setappdata(handles.figure1,'currentFrame',CurrentFrame+frameStep);
 loop = false;
-
+ 
 % at some point, include the ability to loop
 % loop = get(handles.loop,'Value');
 % if the current frame is less than the total, increment frame by one
@@ -605,7 +586,7 @@ if get(handles.makeMovie,'value')
     frame2=getframe(handles.axes2);
     writerObj2=getappdata(handles.figure1,'writerObj2');
     writeVideo(writerObj2,frame2)
-    
+
 end
 
 
@@ -710,9 +691,9 @@ currentCentroids=getappdata(handles.figure1,'currentCentroids');
 xRange=xlim(handles.axes1);
 yRange=ylim(handles.axes1);
 if xselect>xRange(1) && xselect< xRange(2) && yselect>yRange(1) && yselect<yRange(2);
-    minD=pdist2([xselect,yselect],currentCentroids(:,1:2),'euclidean','smallest',1);
-    pointIdx=find(minD==min(minD),1,'first');
-    pointIdx=currentCentroids(pointIdx,3);
+minD=pdist2([xselect,yselect],currentCentroids(:,1:2),'euclidean','smallest',1);
+pointIdx=find(minD==min(minD),1,'first');
+pointIdx=currentCentroids(pointIdx,3);
 else
     pointIdx=nan;
 end
@@ -798,9 +779,9 @@ function runTrack_Callback(hObject, eventdata, handles)
 % hObject    handle to runTrack (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-minDist=30;
-minTrack=800;
-params.mem=30;
+    minDist=30;
+    minTrack=800;
+    params.mem=30;
 imFolder=getappdata(0,'imFolder');
 
 matFiles=dir([imFolder filesep '*.mat']);
@@ -819,17 +800,17 @@ for imat=1:1:length(matFiles)
     progressbar((imat)/length(matFiles));
 end
 
-params.dim=size(centroids,2);
+    params.dim=size(centroids,2);
 
 for i=1:minDist*.5
-    try
-        trackOutput=track(trackData,minDist/i,params);
-        break
-    catch
-        display(['reducing minDist by factor of ' num2str(i)]);
-    end
+try
+trackOutput=track(trackData,minDist/i,params);
+break
+catch
+    display(['reducing minDist by factor of ' num2str(i)]);
 end
-
+end
+    
 trackLengths=accumarray(trackOutput(:,end),ones(size(trackOutput(:,end))));
 
 badtracks=find(trackLengths<minTrack);
@@ -844,9 +825,9 @@ nTracks=max(trackOutput(:,end));
 nTime=max(trackOutput(:,end-1));
 for iTrack=1:nTracks
     t=trackOutput((trackOutput(:,end)==iTrack),end-1);
-    centroid=trackOutput((trackOutput(:,end)==iTrack),1:2);
-    green=trackOutput((trackOutput(:,end)==iTrack),3);
-    red=trackOutput((trackOutput(:,end)==iTrack),4);
+    centroid=trackOutput((trackOutput(:,end)==iTrack),1:3);
+    green=trackOutput((trackOutput(:,end)==iTrack),4);
+    red=trackOutput((trackOutput(:,end)==iTrack),5);
     
     cellOutput(iTrack).time=t;
     cellOutput(iTrack).centroid=centroid;
@@ -924,19 +905,19 @@ startTime=str2double(get(handles.startTime,'String'));
 imFolder=getappdata(0,'imFolder');
 
 if button_state
-    writerObj=VideoWriter([imFolder filesep ax1movie]);
-    writerObj2=VideoWriter([imFolder filesep ax2movie]);
-    
-    setappdata(handles.figure1,'writerObj',writerObj);
-    setappdata(handles.figure1,'writerObj2',writerObj2);
-    
-    open(writerObj);
-    open(writerObj2);
-    
-    set(handles.slider1,'value',startTime)
-    set(handles.playVideo,'value',1);
-    %playVideo_Callback(handles.playVideo, eventdata, handles)
-    set(hObject,'String','Rec');
+writerObj=VideoWriter([imFolder filesep ax1movie]);
+writerObj2=VideoWriter([imFolder filesep ax2movie]);
+
+setappdata(handles.figure1,'writerObj',writerObj);
+setappdata(handles.figure1,'writerObj2',writerObj2);
+
+open(writerObj);
+open(writerObj2);
+
+set(handles.slider1,'value',startTime)
+set(handles.playVideo,'value',1);
+%playVideo_Callback(handles.playVideo, eventdata, handles)
+set(hObject,'String','Rec');
 else
     writerObj=getappdata(handles.figure1,'writerObj');
     writerObj2=getappdata(handles.figure1,'writerObj2');
@@ -945,8 +926,8 @@ else
     close(writerObj2);
     
     set(handles.playVideo,'value',0);
-    playVideo_Callback(handles.playVideo, eventdata, handles)
-    set(hObject,'String','Make Movie')
+playVideo_Callback(handles.playVideo, eventdata, handles)
+set(hObject,'String','Make Movie')
 end
 
 
@@ -1027,14 +1008,14 @@ switch get(handles.plotChannel,'value')
         output=trackData(:,4);
     case 2
         output=trackData(:,3);
-        
+      
     case 3
         output=trackData(:,3)./trackData(:,4);
 end
 
 output(trackData(:,end-1)<startTime)=nan;
-output=normalizeRange(output);
-%output=output/median(output);
+ output=normalizeRange(output);
+ %output=output/median(output);
 nTracks=max(trackData(:,end));
 nTime=max(trackData(:,end-1));
 activityMat=zeros(nTracks,nTime);
@@ -1042,7 +1023,7 @@ for i=1:nTracks
     t=trackData((trackData(:,end)==i),end-1);
     a=output((trackData(:,end)==i));
     a=a(t>startTime);
-    t=t(t>startTime);
+    t=t(t>startTime);        
     a=(smooth(a,smoothWindow));
     if normalizeFlag
         a=normalizeRange(a);
@@ -1051,10 +1032,10 @@ for i=1:nTracks
     activityMat(i,t)=a;
     
 end
-setappdata(handles.figure1,'activityMat',activityMat);
-cla(handles.axes2);
-plotter(handles.slider1,eventdata);
-
+ setappdata(handles.figure1,'activityMat',activityMat);
+ cla(handles.axes2);
+ plotter(handles.slider1,eventdata);
+   
 % Hint: get(hObject,'Value') returns toggle state of showAll
 
 
@@ -1071,4 +1052,3 @@ registration=load([parent filesep rpath]);
 
 
 setappdata(0,'registration',registration);
-

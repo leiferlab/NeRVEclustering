@@ -11,6 +11,7 @@ pixM(pixM<.7)=.7;
 pixM(pixM>1.5)=1.5;
 if isempty(pixM) || isempty(pixB)
 try
+    %try to load pixel calibration file, if not present, user picks a file
     load('Y:\CommunalCode\3dbrain\PixelCalibration\');
 catch
 calibration=uipickfiles;

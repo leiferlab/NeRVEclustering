@@ -2,7 +2,7 @@ im=uipickfiles();
 %%
 hyper_stack=  stackLoad(im{1});
 imsize=size(hyper_stack);
-hyper_stack=image_resize(hyper_stack,imsize(1),imsize(2),imsize(3)*3.45);
+%hyper_stack=image_resize(hyper_stack,imsize(1),imsize(2),imsize(3)*3.45);
 
 
 %Convert the 3D matrix representation of the image stack to a 3D matrix
@@ -11,11 +11,21 @@ hyper_stack=image_resize(hyper_stack,imsize(1),imsize(2),imsize(3)*3.45);
 
 %%
 options.minObjSize=100;
-options.maxObjSize=200;
-options.minSphericity=0.9;
-options.watershedFilter=1;
-options.filterSize=[30,30,15];
+options.maxObjSize=1000;
+options.minSphericity=0.8;
+options.watershedFilter=0;
+options.filterSize=[40,40,10];
 options.noise=.5;
+options.maxSplit=0;
+options.scaleFactor=[1,1,6];
+thresh1=.05;
+
+
+
 
 %%
-neurons = WormSegmentHessian3D(hyper_stack, options);
+[neurons,filteredWorm] = WormSegmentHessian3d_rescale(hyper_stack, options);
+
+
+%%
+neuronsLabel=bwlabeln(neurons);

@@ -7,7 +7,7 @@ end
     maxDist=20;
     params.mem=40;
 params.good=100;
-files=dir([trackFolder filesep '*.mat']);
+files=dir([trackFolder filesep 'stack*.mat']);
 trackData=[];
 trackIdx=0;
 Volume=[];
@@ -19,7 +19,7 @@ for imat=1:1:length(files)
 %     hold on
 
 tracks=[centroids,Gintensities,Rintensities,Volume,(1:length(Rintensities))',trackIdx*ones(size(Volume))];
-trackTitles={'x','y','z','green','red','Volume','Frame Number', 'inFrame Index','trackIdx'}  ; 
+trackTitles={'x','y','z','green','red','Volume','inframe Idx','frame number','trackIdx'}  ; 
 trackData=[trackData;tracks];
    % progressbar((1+imat)/length(files));
 end

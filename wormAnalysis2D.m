@@ -8,6 +8,7 @@ overwrite=1;
 startPoint=1;
 
 
+%load registration file
     [regFile,regFolder]=uigetfile('Y:\CommunalCode\3dbrain\registration\');
     load([regFolder filesep regFile]);
 
@@ -16,10 +17,12 @@ startPoint=1;
 %%
 
 %% segment subimages and create masks
-[folderList] = uipickfiles;
+[folderList] = uipickfiles; %select folders to analyze
 se=strel('disk',5);
 %%
+%looping through folders to analyze
 for iFolder=1:length(folderList)
+    
 imFolder=folderList{iFolder};
 imNames=dir([imFolder filesep '*.tif']);
 mkdir([imFolder filesep 'stackData']);
@@ -41,7 +44,9 @@ imNameStack=[];
 
 movieLength=length(imNames);
 progressbar(0)
-for iImage=10:movieLength;
+
+%analyze all images
+for iImage=startPoint:movieLength;
     progressbar(iImage/movieLength);
     tic
 
@@ -49,6 +54,8 @@ for iImage=10:movieLength;
 
         temp=double(imread([imFolder filesep imNames(iImage).name],'tif'));
         temp=pixelIntensityCorrection(temp);
+        
+        % cut out gcamp and tdtomato sections of image
         temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
         worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
         temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
@@ -89,11 +96,14 @@ activity=activityStack(:,:,ceil(tStack/2));
     %calculate fluor intensities for each region of labeled masks
 Rstats=regionprops(wormLabelMask1,worm,'Area','PixelValues','Centroid');
 Gstats=regionprops(wormLabelMask1,activity,'PixelValues');
+
+
 Rstats2=regionprops(wormLabelMask2,worm,'PixelValues');
 Gstats2=regionprops(wormLabelMask2,activity,'PixelValues');
 
 Rintensities=cellfun(@(x) trimmean(x,10), {Rstats.PixelValues}');
 Rintensities2=cellfun(@(x) trimmean(x,10), {Rstats2.PixelValues}');
+
 Gintensities=cellfun(@(x) trimmean(x,10), {Gstats.PixelValues}');
 Gintensities2=cellfun(@(x) trimmean(x,10), {Gstats2.PixelValues}');
 

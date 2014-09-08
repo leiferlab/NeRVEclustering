@@ -50,15 +50,21 @@ wormBW2=zeros(size(wormBW));
 % smooth image and calculate hessian and eigenvalues
 subIm=normalizeRange(smooth2a(wormtop,10,10));
 subIm=subIm./smooth2a(subIm,30,30).*wormBW;
+
+
 H=hessianMatrix(subIm,5);
 Heig=hessianEig(H,wormBW);
+
 Htrace=sum(Heig,3);
+
 Jm=Htrace<hthresh;
 Jm=((Jm | subIm>.2) & wormtop>thresh1); %add global thresh
 
 Jm=AreaFilter(Jm,minObjSize,Inf,4);
 subCC=bwconncomp(Jm>0,4);
 stats=regionprops(subCC,'eccentricity','Area');
+
+
 %check size, if size is too large, increase watershedding
 for isubBlob=1:subCC.NumObjects
     if stats(isubBlob).Eccentricity>.8 && stats(isubBlob).Area>maxObjSize/2;
