@@ -1,9 +1,8 @@
 function createAlignment()
 %createAlignment creates an alignment mapping out of images to be used with
-%worm segmentation and gcamp signal
+%worm segmentation and gcamp signal, only uses projective mapping
 
 choice = menu('Image Setup','Split','Multiple');
-
 
 
 %pick files
@@ -33,9 +32,8 @@ rect2(rect2<1)=1;
 
 nImage=length(fileName);
 else
-    channelSegment=double(imread([fileName{1}],'tif'));
-    channelActivity=double(imread([fileName{2}],'tif'));
-    nImage=1;
+
+    nImage=length(fileName)/2;
 end
 
 
@@ -51,7 +49,11 @@ channelSegment=initialIm((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 
 channelActivity=initialIm((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
 
+    else
+    channelSegment=double(imread([fileName{iImage}],'tif'));
+    channelActivity=double(imread([fileName{nImage+iImage}],'tif'));
     end
+    
 channelSegment=normalizeRange(double(channelSegment));
 channelActivity=normalizeRange(double(channelActivity));
 
@@ -97,10 +99,10 @@ padRegion=imdilate(padRegion,true(3));
 %% save 
 if choice==1
 save(['Y:\CommunalCode\3dbrain\registration\' alignmentName{1}],'rect1','rect2','t_concord'...
-    ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm')
+    ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm','Sall','Aall')
 else
 save(['Y:\CommunalCode\3dbrain\registration\' alignmentName{1}],'t_concord'...
-    ,'Rsegment','padRegion')
+    ,'Rsegment','Sall','Aall')
     
 end
 
