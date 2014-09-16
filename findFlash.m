@@ -1,10 +1,19 @@
-%function  imFlash=findFlash(imFolder,flag)
+function  imFlash=findFlash(imFolder,flag)
 % function takes folder of tif images and searches for the flashes in the
 % images by finding the average intensities in either the entire image or
 % some region of the image. 
+if nargin==0
+    imFolder=uipickfiles;
+    imFolder=imFolder{1};
+        flag.customRoi=0;
+    flag.sparsesearch=0;
+    flag.parPool=0;
+end
+
 if nargin==1
     flag.customRoi=0;
     flag.sparsesearch=0;
+    flag.parPool=0;
 end
 if ~isfield(flag, 'custormRoi');
        flag.customRoi=0;
@@ -17,6 +26,7 @@ end
 
 if isdir(imFolder)
 imFiles=dir([imFolder filesep '*.tif']);
+vidObj=[];
 stackSize=length(imFiles);
 initialIm=(imread([imFolder filesep imFiles(1).name], 'tif'));
 aviFlag=0;
@@ -112,22 +122,38 @@ temp=(sum(double(temp),3));
 end
 imFlash(imFlash==0)=flashMean;
 
-else
+elseif flag.parPool
       parfor_progress(stackSize)
     parfor i=1:stackSize
     if aviFlag;
         temp= read(vidObj, i);
-temp=(sum(double(temp),3));
+temp=temp(:,:,1);
     else
     temp=(imread([imFolder filesep imFiles(i).name], 'tif'));
     end
-    imFlash(i)=trimmean(temp(roiFlash),30);
+    imFlash(i)=mean(temp(roiFlash));
         %     cell1(i)=mean(temp(roiCell1));
         %     cell2(i)=mean(temp(roiCell2));
         %progressbar(i/stackSize);
         parfor_progress;
     end
     parfor_progress(0);
+else
+    for i=1:stackSize
+    if aviFlag;
+        temp= read(vidObj, i);
+temp=temp(:,:,1);
+    else
+    temp=(imread([imFolder filesep imFiles(i).name], 'tif'));
+    end
+    imFlash(i)=mean(temp(roiFlash));
+        %     cell1(i)=mean(temp(roiCell1));
+        %     cell2(i)=mean(temp(roiCell2));
+        %progressbar(i/stackSize);
+progressbar(i/stackSize)
+    end
+    progressbar(1);
+    
 end
 
 if aviFlag

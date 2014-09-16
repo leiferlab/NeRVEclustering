@@ -1,8 +1,11 @@
 function [newImage,newBasisX,newBasisY]=wormStraightening(CL,imageIn,windowSize);
+%wormStraightening takes centerline data CL and an image and interpolates a
+%curvilinear coordinate system around it.
 
-windowSize=20;
 windowSpan=-windowSize:1:windowSize;
+%find t vectors
 [~,perpSlopes]=gradient(CL,5);
+%create perpendicular n vectors
 perpSlopes=normr([-perpSlopes(:,2),perpSlopes(:,1)]);
 
 

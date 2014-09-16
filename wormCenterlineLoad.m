@@ -40,7 +40,7 @@ end
  
 for iFrame=1:size(centerline,3);
     if aviFlag
-    lastFrame = read(vidObj);
+    lastFrame = read(vidObj,iFrame);
 lastFrame=normalizeRange(sum(double(lastFrame),3));
     else
 lastFrame=imread([movieFile filesep movFiles(iFrame).name]);
@@ -50,15 +50,8 @@ lastFrame=normalizeRange(sum(double(lastFrame),3));
 CL=centerline(:,:,iFrame);
 CL=[interp1(CL(:,1),-stretchSize+1:100+stretchSize,'*linear','extrap')',...
     interp1(CL(:,2),-stretchSize+1:100+stretchSize,'*linear','extrap')'];
-    [newIm,newX,newY]=wormStraightening(CL,lastFrame,20);
-    if iFrame==1
-phi = zeros(size(newIm)); 
-phi(margin:end-margin, margin:end-margin) = 1; 
-phi = ac_reinit(phi-.5); 
-    end
-    phi = ac_ChanVese_model(max(phi2(:))*normalizeRange(newIm), phi, smooth_weight, image_weight, delta_t, 1); 
+    [newIm,newX,newY]=wormStraightening(CL,lastFrame,60);
 
-    
     
     
 %     imagesc(sum(lastFrame,3))
@@ -77,10 +70,18 @@ hold on
 subplot(1,2,2);
 
 imagesc(newIm)
-hold on
-  [C,h]=contour(phi2,[0,0],'w');axis equal;
-
-  hold off
+%     if iFrame==1
+% phi = zeros(size(newIm)); 
+% phi(margin:end-margin, margin:end-margin) = 1; 
+% phi = ac_reinit(phi-.5); 
+%     end
+%     phi = ac_ChanVese_model(max(phi2(:))*normalizeRange(newIm), phi, smooth_weight, image_weight, delta_t, 1);
+%     
+% hold on
+%   [C,h]=contour(phi2,[0,0],'w');axis equal;
+%   hold off
+%   
+  
     axis equal
     drawnow
 end
