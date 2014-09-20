@@ -22,7 +22,7 @@ function varargout = scanBinaryImageStack(varargin)
 
 % Edit the above text to modify the response to help scanBinaryImageStack
 
-% Last Modified by GUIDE v2.5 12-Sep-2014 15:39:00
+% Last Modified by GUIDE v2.5 19-Sep-2014 15:06:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -124,7 +124,11 @@ nFrames=ftell(Fid)/(2*1024^2)-1;
 setappdata(handles.figure1,'nFrames',nFrames);
 set(handles.slider1,'Value',1);
 set(handles.slider1,'Max',nFrames);
+set(handles.maxSlider,'String',num2str(nFrames));
+set(handles.minSlider,'String','1');
+setappdata(handles.figure1,'MaxValue',nFrames);
 setappdata(0,'Fid',Fid);
+showImage(hObject)
 
 
 function showImage(hObject,eventdata)
@@ -144,3 +148,81 @@ pixelValues=fread(Fid,1024^2,'uint16',0,'l');
 C=reshape(pixelValues,1024,1024);
 h=imagesc(C,'Parent',handles.axes1);
 set(handles.currentFrame,'String',num2str(frameNumber));
+
+
+% --------------------------------------------------------------------
+function Untitled_1_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+function minSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to minSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of minSlider as text
+%        str2double(get(hObject,'String')) returns contents of minSlider as a double
+val=str2double(get(hObject,'String'));
+set(handles.slider1,'Min',val);
+set(handles.slider1,'Value',val);
+
+
+% --- Executes during object creation, after setting all properties.
+function minSlider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to minSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function maxSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to maxSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of maxSlider as text
+%        str2double(get(hObject,'String')) returns contents of maxSlider as a double
+val=str2double(get(hObject,'String'));
+set(handles.slider1,'Max',val);
+
+% --- Executes during object creation, after setting all properties.
+function maxSlider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to maxSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in back1.
+function back1_Callback(hObject, eventdata, handles)
+% hObject    handle to back1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+currentFrame=get(handles.slider1,'Value');
+set(handles.slider1,'Value',currentFrame-1);
+showImage(hObject)
+
+
+% --- Executes on button press in forward1.
+function forward1_Callback(hObject, eventdata, handles)
+% hObject    handle to forward1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+currentFrame=get(handles.slider1,'Value');
+set(handles.slider1,'Value',currentFrame+1);
+showImage(hObject)
+

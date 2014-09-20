@@ -1,9 +1,16 @@
-function [newImage,newBasisX,newBasisY]=wormStraightening(CL,imageIn,windowSize);
+function [newImage,newBasisX,newBasisY]=wormStraightening(CL,imageIn,windowSize,pixSize)
 %wormStraightening takes centerline data CL and an image and interpolates a
 %curvilinear coordinate system around it.
+if nargin==3
+    pixSize=1;
+end
 
-windowSpan=-windowSize:1:windowSize;
+
+windowSpan=-windowSize:pixSize:windowSize;
 %find t vectors
+CL2(:,1)=interp1(CL(:,1),1:pixSize:length(CL));
+ CL2(:,2) =interp1(CL(:,2),1:pixSize:length(CL));
+ CL=CL2;
 [~,perpSlopes]=gradient(CL,5);
 %create perpendicular n vectors
 perpSlopes=normr([-perpSlopes(:,2),perpSlopes(:,1)]);
@@ -20,8 +27,11 @@ newBasisY=bsxfun(@plus,newBasisY,CL(:,2));
 % plot(CL(:,2),CL(:,1),'b');
 % plot(newBasisY',newBasisX','black')
 
-
+if ~isempty(imageIn)
 newImage=interp2(sum(imageIn,3)',newBasisX,newBasisY);
+else
+    newImage=[];
+end
 
 
 

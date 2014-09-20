@@ -4,12 +4,13 @@ function wormBW2=WormSegmentHessian2D_whole(worm)
 thresh1=.05; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
 minObjSize=50; 
-maxObjSize=700;
+maxObjSize=200;
 minObjectSpacing=5;
 minSearchRad=3;
 pad=4;
 show=0;
-watershedthresh=0.5;
+watershedthresh=0;
+maxSplit=1;
 
 box=true(3,3);
 imsize=size(worm);
@@ -22,10 +23,10 @@ pedMask(:,1:3)=true;
 pedMask(end-2:end,:)=true;
 pedMask(:,end-2:end)=true;
 
-pedistal=median(worm(pedMask));
+pedistal=nanmedian(worm(pedMask));
 worm=worm-pedistal;
 worm(worm<0)=0;
-
+worm(isnan(worm))=0;
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
 wormtop=bpass_jn(worm,1,[200,200]);
 %wormtop=worm-abs(worm-wormtop);
@@ -67,7 +68,7 @@ stats=regionprops(subCC,'eccentricity','Area');
 
 %check size, if size is too large, increase watershedding
 for isubBlob=1:subCC.NumObjects
-    if stats(isubBlob).Eccentricity>.8 && stats(isubBlob).Area>maxObjSize/2;
+    if stats(isubBlob).Eccentricity>.8 && stats(isubBlob).Area>maxObjSize;
         blank=false(size(worm));
         blank(subCC.PixelIdxList{isubBlob})=true;
             Jd=-bwdist(~blank);
@@ -75,14 +76,35 @@ for isubBlob=1:subCC.NumObjects
             Jd=imhmin(Jd,watershedthresh);
             Jd(~Jm)=Inf;
             Jw=watershed(Jd);
-            
+          %  Jw=watershed(-imregionalmax(blank.*wormtop));
             
             
             Jm(blank)=~~Jw(blank);
-            
     end
     
 end
+
+if maxSplit
+    subCC=bwconncomp(Jm>0,4);
+%stats=regionprops(subCC,'eccentricity','Area');
+
+
+%check size, if size is too large, increase watershedding
+for isubBlob=1:subCC.NumObjects
+  %  if stats(isubBlob).Eccentricity>.8 && stats(isubBlob).Area>maxObjSize;
+        blank=false(size(worm));
+        blank(subCC.PixelIdxList{isubBlob})=true;
+            Jw=watershed(-imregionalmax(blank.*wormtop));
+            
+            
+            Jm(blank)=~~Jw(blank);
+%    end
+    
+end
+    
+    
+end
+
 
 % remove small objects in subImage
 % subCC=bwconncomp(Jm>0,4);
