@@ -67,10 +67,6 @@ setappdata(handles.slider2,'hlistener',hlistener2);
 set(handles.slider2,'SliderStep',[1,1]);
 
 
-%load registration file
-% [rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\','Select Registration File');
-% registration=load([parent filesep rpath]);
-% setappdata(0,'registration',registration);
 
 % set up timer for video play
 playt.TimerFcn = {@TmrFcn,handles};
@@ -128,14 +124,24 @@ else
 end
 
 %select image folder
+display('Select image folder, select one folder for split image or select red then green folder');
 rawImFolder=uipickfiles('FilterSpec', fileparts(imFolder));
+
+if length(rawImFolder)==1
+%load registration file if needed for split
+[rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\','Select Registration File');
+registration=load([parent filesep rpath]);
+setappdata(0,'registration',registration);
+end
 
 matFiles=dir([imFolder filesep '*.mat']);
 setappdata(0,'matFiles',matFiles);
 
 
+for iFolder=1:length(rawImFolder)
+imFiles{iFolder}=dir([rawImFolder{iFolder} filesep '*.tif']);
+end
 
-imFiles=dir([rawImFolder filesep '*.tif']);
 setappdata(0,'imFiles',imFiles);
 setappdata(0,'rawImFolder',rawImFolder);
 
@@ -245,10 +251,12 @@ wormMask=load([imFolder filesep matFiles(iImage).name],'wormMask');
 
 %proceed only if mat file has wormMask
 if isfield(wormMask,'wormMask')
-    wormMask=wormMask.wormMask;
+        wormMask=wormMask.wormMask;
+
+    if length(imFiles)==1
     R=getappdata(0,'registration');
-    
-    if ~isempty(R)
+        
+        imFiles=imFiles{1};
         %load image and correct pixels
         temp=double(imread([rawImFolder filesep imFiles(iImage).name],'tif'));
         temp=pixelIntensityCorrection(temp);
@@ -277,6 +285,16 @@ if isfield(wormMask,'wormMask')
                 baseImg=activity; %green
         end
         
+    else
+        imFilesIdx=find(cellfun(@(x) ~isempty(x),strfind({imFiles{1}.name},matFiles(iImage).name(6:10))'));
+        switch get(handles.channelSelect,'value')
+            case 1
+                baseImg= double(imread([rawImFolder{1} filesep imFiles{1}(imFilesIdx).name]...
+                    ,'tif')); %red
+            case 2
+                baseImg= double(imread([rawImFolder{2} filesep imFiles{2}(imFilesIdx).name]...
+                    ,'tif')); %green
+        end
     end
     setappdata(handles.figure1,'baseImg',baseImg);
     
@@ -799,14 +817,15 @@ function runTrack_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 minDist=30;
-minTrack=800;
 params.mem=30;
+params.good=30;
+%params.excessive=3;
 imFolder=getappdata(0,'imFolder');
 
 matFiles=dir([imFolder filesep '*.mat']);
 setappdata(0,'matFiles',matFiles);
-imFiles=dir([imFolder filesep '*.tif']);
-setappdata(0,'imFiles',imFiles);
+%imFiles=dir([imFolder filesep '*.tif']);
+% setappdata(0,'imFiles',imFiles);
 
 trackData=[];
 trackIdx=0;
@@ -831,11 +850,6 @@ for i=1:minDist*.5
 end
 
 trackLengths=accumarray(trackOutput(:,end),ones(size(trackOutput(:,end))));
-
-badtracks=find(trackLengths<minTrack);
-badtracks=any(bsxfun(@eq, trackOutput(:,end),badtracks'),2);
-
-trackOutput(badtracks,:)=[];
 %  trackLengths=accumarray(trackOutput(:,end),ones(size(trackOutput(:,end))));
 [ trackIdx,ia,ib]=unique(trackOutput(:,end));
 trackOutput(:,end)=ib;
@@ -855,7 +869,7 @@ for iTrack=1:nTracks
     
     
 end
-
+setappdata(0,'trackOutput',trackOutput);
 save([imFolder filesep 'trackOutput'],'trackOutput','cellOutput')
 
 

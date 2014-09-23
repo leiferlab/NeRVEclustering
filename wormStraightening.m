@@ -11,7 +11,9 @@ windowSpan=-windowSize:pixSize:windowSize;
 CL2(:,1)=interp1(CL(:,1),1:pixSize:length(CL));
  CL2(:,2) =interp1(CL(:,2),1:pixSize:length(CL));
  CL=CL2;
-[~,perpSlopes]=gradient(CL,5);
+ 
+ CL=[smooth(CL(:,1),20),smooth(CL(:,2),20)];
+[~,perpSlopes]=gradient(CL,15/pixSize);
 %create perpendicular n vectors
 perpSlopes=normr([-perpSlopes(:,2),perpSlopes(:,1)]);
 

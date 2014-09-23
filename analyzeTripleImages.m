@@ -19,10 +19,15 @@ fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
 
 %% load centerline data
 centerLineFile=dir([dataFolder filesep '*centerline*']);
-centerLineFile=centerLineFile.name;
+centerLineFile={centerLineFile.name}';
+if length(centerLineFile)>1
+    centerlineFile=uipickfiles('FilterSpec',dataFolder);
+    centerline=load(centerlineFile{1},'centerline');
+    centerline=centerline.centerline;
+else
 centerline=load([dataFolder filesep centerLineFile],'centerline');
 centerline=centerline.centerline;
-
+end
 %% load alignment data
 display('Select Low Res Alignment')
 lowResFluor2BF=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
@@ -84,7 +89,7 @@ Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
 bfIdxList=1:length(bfAll.frameTime);
 fluorIdxList=1:length(fluorAll.frameTime);
 bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'PCHIP');
-fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'PCHIP');
+fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'linear');
 
 [hiImageIdx,ib]=unique(hiResData.imageIdx);
 hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
@@ -98,22 +103,24 @@ stretchSize=15;
 lowResFolder=[dataFolder filesep 'lowResFolder'];
 hiResActivityFolder=[dataFolder filesep 'hiResActivityFolder'];
 hiResSegmentFolder=[dataFolder filesep  'hiResSegmentFolder'];
+p=.001;
+W=ones(1,100);
+W([1,2,3,98,99,100])=10;
 
 mkdir(lowResFolder);
 mkdir(hiResActivityFolder);
 mkdir(hiResSegmentFolder);
-frames=13000:length(hiResData.frameTime); %start 1750, 12000 good too
+frames=firstFullFrame:length(hiResData.frameTime); %start 1750, 12000 good too, 13000 for 3d
 frames(ismember(frames,hiResData.flashLoc))=[];
-movieFlag=1;
+movieFlag=0;
 imH=NaN(1,4);
 lineH=NaN(1,4);
 if movieFlag
-vidOut=VideoWriter([dataFolder filesep 'testing4.avi']);
+vidOut=VideoWriter([dataFolder filesep 'HiMagOnly.avi']);
 vidOut.FrameRate=20;
 
 open(vidOut);
 end
-
 
 
 for iFrame=frames
@@ -153,9 +160,10 @@ fluorFrame2=fluorFrame2((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 %%
 CLcurrent=[interp2(squeeze(centerline(:,1,:))',1:100,repmat(bfIdx,1,100))',...
 interp2(squeeze(centerline(:,2,:))',1:100,repmat(bfIdx,1,100))'];
-
-CLcurrent=[interp1(CLcurrent(:,1),-stretchSize+1:100+stretchSize,'*linear','extrap')',...
-    interp1(CLcurrent(:,2),-stretchSize+1:100+stretchSize,'*linear','extrap')'];
+CLcurrent=[csaps(1:100,CLcurrent(:,1),p,1:100,W)'...
+    csaps(1:100,CLcurrent(:,2),p,1:100,W)'];
+CLcurrent=[interp1(CLcurrent(:,1),-stretchSize+1:100+stretchSize,'*PCHIP','extrap')',...
+    interp1(CLcurrent(:,2),-stretchSize+1:100+stretchSize,'*PCHIP','extrap')'];
 
 endpts=CLcurrent([1,length(CLcurrent)],:);
 [maxPoint(1),maxPoint(2)]=find(fluorFrame==max(fluorFrame(:)),1,'first');
@@ -239,87 +247,97 @@ lowResFluorHiInterp=rectCrop(lowResFluorHiInterp,[maxX-150,maxY-200,maxX+150, ma
 highResInterp=rectCrop(highResInterp,[maxX-150,maxY-200,maxX+150, maxY+200]);
 highResActivityInterp=rectCrop(highResActivityInterp,[maxX-150,maxY-200,maxX+150, maxY+200]);
 
-jointIm=[1+normalizeRange(highResActivityInterp), normalizeRange(highResInterp)];
+jointIm=[1+max(highResActivityInterp(:))/60*normalizeRange(highResActivityInterp),...
+    max(highResInterp(:))/1700*normalizeRange(highResInterp)];
 jointIm(isnan(jointIm))=0;
-jointIm(jointIm==2)=0;
-
-    subplot(2,2,1);
-    if (ishandle(imH(1)) && ishandle(lineH(1)));
-                
-unfreezeColors
-set(imH(1),'Cdata',hiResImage);
-     %   set(lineH(1),'Xdata',CLHighRes(:,2),'Ydata',CLHighRes(:,1));
-        colormap hot
-        freezeColors
-    else
+jointIm(jointIm==1)=0;
+hiResImage=max(highResInterp(:))/1700*normalizeRange(hiResImage);
+%% plotting 4 images 
+% subplot(2,2,1);
+%     if (ishandle(imH(1)) && ishandle(lineH(1)));
+%                 
+% unfreezeColors
+% set(imH(1),'Cdata',hiResImage);
+% caxis([0,1])
+%      %   set(lineH(1),'Xdata',CLHighRes(:,2),'Ydata',CLHighRes(:,1));
+%         colormap hot
+%         freezeColors
+%     else
+%     
+%     imH(1)=imagesc(hiResImage);
+%     caxis([0,1]);
+%      %   axis equal;axis off;
+% axis off; axis equal
+%     hold on
+%    % lineH(1)=plot(CLHighRes(:,2),CLHighRes(:,1),'g');
+%         hold off
+% colormap hot
+%     freezeColors(subplot(2,2,1))
+% 
+%     end
+%     title([ num2str( hiResData.frameTime(iFrame),'%.2f ') ' s']...
+%         ,'fontsize',20,'color','w');
+%     subplot(2,2,3)
+%         if ishandle(imH(2));
+% unfreezeColors
+% set(imH(2), 'Cdata',jointIm);
+% colormap hot
+%    colormap(interp1([hot;circshift(hot,[0,1])],1:2:128));
+%    caxis([0,2]);
+% freezeColors
+% 
+%         else
+%             
+%     imH(2)=imagesc(jointIm);
+%    colormap(interp1([hot;circshift(hot,[0,1])],1:2:128));
+%       caxis([0,2]);
+% freezeColors
+%  %  freezeColors(subplot(2,2,3))
+%     axis equal
+%     axis off
+%         end
+% %         
+%          title([ num2str( round(25*(hiResData.Z(iFrame)+1))) ' um  '...
+%              num2str( hiResData.frameTime(iFrame),'%.2f ') ' s'] ...
+%             ,'fontsize',20,'color','w')
+%     subplot(2,2,2);
+%         if (ishandle(imH(3)) && ishandle(lineH(3)));
+% unfreezeColors
+% set(imH(3),'Cdata',fluorFrame);
+% set(lineH(3),'Xdata',CLnew(:,2),'Ydata',CLnew(:,1));
+% colormap hot
+% freezeColors
+%         else
+%     imH(3)=imagesc(fluorFrame);
+%         axis equal;colormap hot; hold on;axis off
+%     lineH(3)=plot(squeeze(CLnew(:,2)),squeeze(CLnew(:,1)),'g');
+%     hold off
+%     freezeColors(subplot(2,2,2));
+%         end
+%  %   title(num2str(fluorIdx));
+%     subplot(2,2,4);
+%     if  (ishandle(imH(4)) && ishandle(lineH(4)))
+%         unfreezeColors
+% set(imH(4),'Cdata',bfFrame);
+% set(lineH(4),'Xdata',CLcurrent(:,2),'Ydata',CLcurrent(:,1));
+% colormap gray
+% freezeColors
+%     else
+%     imH(4)=imagesc(bfFrame);
+%     
+%         axis off;axis equal;   hold on
+%     lineH(4)=plot(squeeze(CLcurrent(:,2)),squeeze(CLcurrent(:,1)),'g');
+% %plot(newY',newX','black')
+%     hold off
+%     colormap gray
+%     freezeColors(subplot(2,2,4))
+%     spaceplots
+ %    set(gcf,'color','black');
+%         drawnow;
+% 
+%     end
     
-    imH(1)=imagesc(hiResImage);
-     %   axis equal;axis off;
-axis off; axis equal
-    hold on
-   % lineH(1)=plot(CLHighRes(:,2),CLHighRes(:,1),'g');
-        hold off
-colormap hot
-    freezeColors(subplot(2,2,1))
-
-    end
-   % plot(newYHi',newXHi','black')
-    title([ num2str( hiResData.frameTime(iFrame),'%.2f ') ' s']...
-        ,'fontsize',20,'color','w');
-    subplot(2,2,3)
-        if ishandle(imH(2));
-unfreezeColors
-set(imH(2), 'Cdata',jointIm);
-   colormap(interp1([hot;circshift(hot,[0,1])],1:2:256));
-freezeColors
-
-        else
-            
-    imH(2)=imagesc(jointIm);
-   colormap(interp1([hot;circshift(hot,[0,1])],1:2:256));
-   freezeColors(subplot(2,2,3))
-    axis equal
-    axis off
-        end
-        
-        title([ num2str( round(25*(hiResData.Z(iFrame)+1))) ' um'] ...
-            ,'fontsize',20,'color','w')
-    subplot(2,2,2);
-        if (ishandle(imH(3)) && ishandle(lineH(3)));
-unfreezeColors
-set(imH(3),'Cdata',fluorFrame);
-set(lineH(3),'Xdata',CLnew(:,2),'Ydata',CLnew(:,1));
-colormap hot
-freezeColors
-        else
-    imH(3)=imagesc(fluorFrame);
-        axis equal;colormap hot; hold on;axis off
-    lineH(3)=plot(squeeze(CLnew(:,2)),squeeze(CLnew(:,1)),'g');
-    hold off
-    freezeColors(subplot(2,2,2));
-        end
- %   title(num2str(fluorIdx));
-    subplot(2,2,4);
-    if  (ishandle(imH(4)) && ishandle(lineH(4)))
-        unfreezeColors
-set(imH(4),'Cdata',bfFrame);
-set(lineH(4),'Xdata',CLcurrent(:,2),'Ydata',CLcurrent(:,1));
-colormap gray
-freezeColors
-    else
-    imH(4)=imagesc(bfFrame);
-    
-        axis off;axis equal;   hold on
-    lineH(4)=plot(squeeze(CLcurrent(:,2)),squeeze(CLcurrent(:,1)),'g');
-%plot(newY',newX','black')
-    hold off
-    colormap gray
-    freezeColors(subplot(2,2,4))
-    spaceplots
-    set(gcf,'color','black');
-        drawnow;
-
-    end
+    %%
     if movieFlag
     vidFrame=getframe(gcf);
     writeVideo(vidOut,vidFrame);
@@ -327,10 +345,10 @@ freezeColors
     %    title(num2str(bfIdx));
 
     fileName=['image' num2str(iFrame,'%3.5d') '.tif'];
-%     tiffwrite([lowResFolder filesep fileName],lowResFluorHiInterp,'tif',0);
-%     tiffwrite([hiResActivityFolder filesep fileName],highResActivityInterp,'tif',0);
-%     tiffwrite([hiResSegmentFolder filesep fileName],highResInterp,'tif',0);
-%     
+    tiffwrite([lowResFolder filesep fileName],lowResFluorHiInterp,'tif',0);
+    tiffwrite([hiResActivityFolder filesep fileName],highResActivityInterp,'tif',0);
+    tiffwrite([hiResSegmentFolder filesep fileName],highResInterp,'tif',0);
+    
     
 end
 close(vidOut);
