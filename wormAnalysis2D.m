@@ -45,8 +45,8 @@ imNameStack=[];
 movieLength=length(imNames);
 progressbar(0)
 
-%analyze all images
-for iImage=startPoint:movieLength;
+%% analyze all images
+for iImage=1:movieLength;
     progressbar(iImage/movieLength);
     tic
 

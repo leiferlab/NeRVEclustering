@@ -43,6 +43,7 @@ options.noise=12;
 options.show=0;
 options.maxSplit=1;
 options.minSphericity=.55;
+options.valleyRatio=.5;
 %%
 
 

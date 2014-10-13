@@ -56,44 +56,12 @@ end
 %%
 outputData=struct('imName',[]);
 outputData=repmat(outputData,length(imageFiles),1);
-parfor iImage=1:length(imageFiles);
-    iFrame=str2double(imageFiles{iImage}(6:11)); %pull out frame idx, must be in for image*****.tif
-    worm=imread([hiResSegmentFolder filesep imageFiles{iImage}],'tif');
-    activity=imread([hiResActivityFolder filesep imageFiles{iImage}],'tif');
 
-  wormMask=WormSegmentHessian2D_whole(worm);
-   wormMask= bwmorph(wormMask,'clean');
-   
-       %look up intensities on both channels
-wormLabelMask=bwlabeln(wormMask);
-wormcc=bwconncomp(wormMask);
-stats=regionprops(wormcc,'Centroid','Area');
-centroids=cell2mat({stats.Centroid}');
-Rintensities=cellfun(@(x) mean(worm(x)),[wormcc.PixelIdxList])';
-Gintensities=cellfun(@(x) mean(activity(x)),[wormcc.PixelIdxList])';
-Volume=[stats.Area]';
-
-
-outputFile=[dataFolder filesep 'stackData2D' filesep 'stack' num2str(iFrame,'%05d') 'data'];
- outputData(iImage).centroids=centroids;
- outputData(iImage).Rintensities=Rintensities;
-outputData(iImage).Gintensities=Gintensities;
- outputData(iImage).Volume=Volume;
- outputData(iImage).time=hiResData.frameTime(iFrame);
- outputData(iImage).wormMask=wormLabelMask;
- outputData(iImage).imName=imageFiles{iImage};
- 
-outputData(iImage)
-% parsavestruct(outputFile,outputData(iImage));
-end
-
-
-
-%%
+mkdir([dataFolder filesep 'stackData3D' ])
 parfor iImage=1:length(imageFiles);
 tic
     iFrame=str2double(imageFiles{iImage}(6:11)); %pull out frame idx, must be in for image*****.tif
- if iFrame<12865    % only going up to when Z scanning starts
+ if iFrame>12865    % only going up to when Z scanning starts
      
  
  
@@ -114,7 +82,7 @@ Rintensities=cellfun(@(x) mean(worm(x)),[wormcc.PixelIdxList])';
 Gintensities=cellfun(@(x) mean(activity(x)),[wormcc.PixelIdxList])';
 Volume=[stats.Area]';
 
-outputFile=[dataFolder filesep 'stackData2D' filesep 'stack' num2str(iFrame,'%05d') 'data'];
+outputFile=[dataFolder filesep 'stackData3D' filesep 'stack' num2str(iFrame,'%05d') 'data'];
 outputData(iImage).centroids=centroids;
 outputData(iImage).Rintensities=Rintensities;
 outputData(iImage).Gintensities=Gintensities;
