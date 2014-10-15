@@ -11,13 +11,14 @@ if nargin==0
     datFile=datFile{1};
 end
 
-if nargin<2
-    rowSearch=1024;
-end
 if nargin<4
     rows=1024;
     cols=1024;
 end
+if nargin<2
+    rowSearch=rows;
+end
+
 
 
 if strfind(datFile, '.dat');

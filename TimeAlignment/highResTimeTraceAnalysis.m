@@ -1,11 +1,16 @@
-function dataAll=highResTimeTraceAnalysis(imFolder)
+function dataAll=highResTimeTraceAnalysis(imFolder,row,col)
 %highResTimeTraceAnalysis takes folder with cameraframedata.txt,
 %labjackdata.txt, and sCMOS_Frames_U16_1024x1024.dat and finds alignments
 %for timing.
 
+if nargin<2
+row=1024;
+col=1024;
+end
 if nargin==0
 imFolder=uipickfiles;
 imFolder=imFolder{1};
+
 end
 
 %%
@@ -19,9 +24,9 @@ labJackData=labJackData.data;
 
 %load images to find flash, flashes have intensity above 10 sigma
 datFile=[imFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'];
-datFlash=findDatFlash(datFile,10);
-datFlash=datFlash-mean(datFlash);
-datFlash=datFlash>(std(datFlash)*10);
+datFlashRaw=findDatFlash(datFile,10,row,col);
+datFlash=datFlashRaw-nanmean(datFlashRaw);
+datFlash=datFlash>(nanstd(datFlash)*10);
 
 %% process labJackData
 imageWave=normalizeRange(labJackData(:,4));
@@ -47,14 +52,20 @@ photoFlash=photoDiode(imageSpikes);
 %% process camFrameData
 
 if nnz(photoFlash)~= nnz(datFlash)
+    keyboard
     error('Different number of flashes found in image and photoDiode')
 end
 photoFlashPos=find(photoFlash);
 imageIdx=camFrameData(:,1);
 
 imageFlashPos=imageIdx(datFlash);
-
+if length(photoFlashPos)==length(imageFlashPos)
 imageIdxOffset=median(imageFlashPos-photoFlashPos);
+else
+    imageIdxOffset=median(imageFlashPos(1)-photoFlashPos(1));
+end
+
+
 %a given imageIdx now corresponds to both the image z position and the
 %image in the imageIdx
 
