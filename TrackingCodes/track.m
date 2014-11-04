@@ -55,7 +55,8 @@ function tracks = track(xyzs,maxdisp,param)
 % ;             combinatorics to prompt a warning. Default is 5.e+4 
 % ;         param.excessive:  set this keyword to determine the behavior of 
 % ;              track when it encounters combinations > 4 * param.difficult 
-% ;              1- exit, 2- continue, 3- prompt user. The default is 1.
+% ;              1- exit, 2- continue, 3- prompt user. 4- output NaN;The default is 1.
+
 % ;         
 % ; OUTPUTS:
 % ; result:  a list containing the original data rows sorted 
@@ -176,6 +177,7 @@ function tracks = track(xyzs,maxdisp,param)
 % ;     defined. Changed from strcat to [...] to maintain white space in
 % ;     displayed output. Changed difficult/excessive combinatorics to
 % ;     warnings instead of just displayed warning text. 
+% ; 10/14 JN added option for 'excessive' to spit out a nan. 
 %
 % ; This code 'track.pro' is copyright 1999, by John C. Crocker. 
 % ; It should be considered 'freeware'- and may be distributed freely 
@@ -805,6 +807,9 @@ for i=istart:z
                                         otherwise
                                             return
                                     end
+                                case 4
+                                    tracks=NaN;
+                                    return
                             end
                         end
                     end

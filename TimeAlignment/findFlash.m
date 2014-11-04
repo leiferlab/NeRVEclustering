@@ -1,10 +1,12 @@
-function  imFlash=findFlash(imFolder,flag)
+function  imFlash=findFlash(imFolderIn,flag)
 % function takes folder of tif images and searches for the flashes in the
 % images by finding the average intensities in either the entire image or
 % some region of the image. 
+mostRecent=getappdata(0,'mostRecent');
 if nargin==0
-    imFolder=uipickfiles('FilterSpec','E:\');
-    imFolder=imFolder{1};
+    imFolderIn=uipickfiles('FilterSpec',mostRecent);
+    setappdata(0,'mostRecent',imFolderIn{1});
+  %  imFolder=imFolder{1};
         flag.customRoi=0;
     flag.sparsesearch=0;
     flag.parPool=0;
@@ -23,7 +25,8 @@ if ~isfield(flag, 'sparsesearch');
 end
 
 %% load images and find flash in images using user defined ROI
-
+for iFolder=1:length(imFolderIn)
+    imFolder=imFolderIn{iFolder};
 if isdir(imFolder)
 imFiles=dir([imFolder filesep '*.tif']);
 vidObj=[];
@@ -161,4 +164,5 @@ if aviFlag
     save(strrep(imFolder, '.avi','flashTrack'),'imFlash');
 else
 save([imFolder filesep 'flashTrack'],'imFlash');
+end
 end

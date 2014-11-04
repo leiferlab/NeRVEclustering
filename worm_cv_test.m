@@ -17,7 +17,7 @@ lastFrame = read(vidObj, iFrame);
 
 
 lastFrame=normalizeRange(sum(double(lastFrame),3));
-lastFramebp=bpass(lastFrame,.5,[30,30]);
+lastFramebp=bpass(lastFrame,.5,[10,10]);
 
 imStack(:,:,stackCounter)=lastFramebp;
 unFilteredStack(:,:,stackCounter)=lastFrame;

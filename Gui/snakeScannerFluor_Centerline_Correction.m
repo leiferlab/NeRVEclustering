@@ -22,7 +22,7 @@ function varargout = snakeScannerFluor_Centerline_Correction(varargin)
 
 % Edit the above text to modify the response to help snakeScannerFluor_Centerline_Correction
 
-% Last Modified by GUIDE v2.5 23-Sep-2014 20:16:57
+% Last Modified by GUIDE v2.5 19-Oct-2014 17:40:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -134,14 +134,25 @@ end
 
 
 
+
+
 [bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(currentData);
+
 bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
 fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
 
+[idxOut,bf2fluor]=flashTimeAlign2(bfFlashTime,fluorFlashTime);
+flashDiff=fluorFlashTime-bfFlashTime(bf2fluor);
 
-fluor2bfTimeOffset=fluorFlashTime-bfFlashTime;
-fluorAll.frameTime=fluorAll.frameTime-fluor2bfTimeOffset(1);
+f_fluorTime=fit(fluorFlashTime,bfFlashTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
+if f_fluorTime.p1<.1
+    f_fluorTime.p1=1;
+end
+
+
+fluorAll.frameTime=f_fluorTime(fluorAll.frameTime);
 fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
+
 
 % make lookup tables for indices
 bfIdxList=1:length(bfAll.frameTime);
@@ -176,30 +187,99 @@ setappdata(handles.figure1,'vidObj',behaviorVidObj);
 setappdata(handles.figure1,'fluorvidObj',fluorVidObj);
 setappdata(handles.figure1,'lowResFluor2BF',lowResFluor2BF);
 setappdata(handles.figure1,'fluorIdxLookup',fluorIdxLookup);
-showImage(hObject)
+setappdata(handles.figure1,'backgroundIm',0);
+setappdata(handles.figure1,'bacgroundBW',1);
+setappdata(handles.figure1,'bgIlevel',1);
 
-% --- Executes on button press in flashSelect.
-function flashSelect_Callback(hObject, eventdata, handles)
-% hObject    handle to flashSelect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-mostRecent=getappdata(0,'mostRecent');
+%also get background image
+backgroundName=dir([currentData filesep '*ackground*']);
+if ~isempty(backgroundName)
+backgroundName=[currentData filesep backgroundName(1).name];
+backgroundIm=imread(backgroundName,'tif');
+backgroundIm=backgroundIm(:,:,1);
+backgroundIm=double(backgroundIm)/256;
 
-flashFile=uipickfiles('FilterSpec',mostRecent);
+backgroundBW=backgroundIm>graythresh(backgroundIm);
+bgIlevel=median(backgroundIm(backgroundBW));
 
-imFlash=load(flashFile{1});
+setappdata(handles.figure1,'backgroundIm',backgroundIm);
+setappdata(handles.figure1,'bacgroundBW',backgroundBW);
+setappdata(handles.figure1,'bgIlevel',bgIlevel);
+end
+
+%also get flash tracks
+imFlashFile=strrep(behaviorMovie,'.avi','flashTrack.mat');
+if exist(imFlashFile,'file');
+imFlash=load(imFlashFile);
 imFlash=imFlash.imFlash;
 imFlash=imFlash-min(imFlash);
 imFlash=imFlash>(max(imFlash)/2);
 setappdata(handles.figure1,'imFlash',imFlash);
+end
 
-fluorFlash=load(flashFile{2});
+fluorFlashFile=strrep(fluorMovie,'.avi','flashTrack.mat');
+if exist(fluorFlashFile,'file')
+fluorFlash=load(fluorFlashFile);
 fluorFlash=fluorFlash.imFlash;
 fluorFlash=fluorFlash-min(fluorFlash);
 fluorFlash=fluorFlash>(max(fluorFlash)/2);
 setappdata(handles.figure1,'fluorFlash',fluorFlash);
+end
+
+showImage(hObject)
+
+% --- Executes on button press in initializeSnake.
+function initializeSnake_Callback(hObject, eventdata, handles)
+% hObject    handle to initializeSnake (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+centerline=getappdata(handles.figure1,'centerline');
+handles=guidata(get(hObject,'Parent'));
+
+backgroundIm=getappdata(handles.figure1,'backgroundIm');
+bgIlevel=getappdata(handles.figure1,'bgIlevel');
+backgroundBW=getappdata(handles.figure1,'backgroundBW');
+vidObj=getappdata(handles.figure1,'vidObj');
+centerline=getappdata(handles.figure1,'centerline');
+%if isempty(centerline)
+%frameNumber=1;
+%else
+    frameNumber=ceil(get(handles.slider1,'Value'));
+%end
+
+   fluorVidObj=getappdata(handles.figure1,'fluorvidObj');
+lowResFluor2BF=getappdata(handles.figure1,'lowResFluor2BF');
+fluorIdxLookup=getappdata(handles.figure1,'fluorIdxLookup');
+I1 = im2double((read(vidObj, frameNumber)));
+I1 = I1(:,:,1);
+    bgscale=median(I1(backgroundBW))/bgIlevel;
+bgscale=min(.9,bgscale);
+I1=I1-backgroundIm*bgscale;
+I1(I1<0)=0;
+I1=imtophat(I1,strel('disk',30));
 
 
+%Show image and select initial snake location with the mouse
+figure(1), imshow(I1,[]);imCon=imcontrast;uiwait(imCon);
+[y,x] = getpts;
+close
+P = [x(:) y(:)];
+P=[interp([P(:,1)],10),interp([P(:,2)],10)];
+nPoints = 100;
+dis=[0;cumsum(sqrt(sum((P(2:end,:)-P(1:end-1,:)).^2,2)))];
+
+% Resample to make uniform points
+P= [interp1(dis,P(:,1),linspace(0,dis(end),nPoints))' ...
+interp1(dis,P(:,2),linspace(0,dis(end),nPoints))'];
+%% save result
+ [CL,  Icirc, realnumtips(1,1)] = bettersnakeit(P,I1,I1, 14510000);
+centerline(:,:,frameNumber)=CL;
+ setappdata(handles.figure1,'centerline',centerline);
+ %move forward
+forward1_Callback(hObject, eventdata, handles)
+
+ 
+ 
 
 
 % --- Executes on button press in centerlineSelect.
@@ -291,14 +371,14 @@ end
 
 %colormap(handles.axes1,'jet');
 set(handles.currentFrame,'String',num2str(frameNumber));
+if ~isempty(centerline) && frameNumber<=size(centerline,3);
 CLcurrent=centerline(:,:,frameNumber);
-
 CLcurrent=[interp1(CLcurrent(:,1),-stretchSize+1:100+stretchSize,'*linear','extrap')',...
     interp1(CLcurrent(:,2),-stretchSize+1:100+stretchSize,'*linear','extrap')'];
 
 
     hold(handles.axes1,'on');
-    plot(handles.axes1,CLcurrent(:,2),CLcurrent(:,1),'black');
+    plot(handles.axes1,smooth(CLcurrent(:,2),5),smooth(CLcurrent(:,1),5),'black');
     hold(handles.axes1,'off');
 
 
@@ -442,6 +522,7 @@ else
         setappdata(handles.figure1,'CL2',CL2);
 
 end
+end
 
 
 
@@ -562,22 +643,27 @@ while get(handles.snakeIt,'Value')
     
     fluorFrameNumber=fluorIdxLookup(currentFrame);
 
-if fluorFrameNumber>1
+
+    centerline=getappdata(handles.figure1,'centerline');
+
+if ~imFlash(j) && ~fluorFlash(ceil(fluorFrameNumber)-1)
+    if fluorFrameNumber>1
 fluorFrame = im2double((read(fluorVidObj, fluorFrameNumber)));
 fluorFrame = fluorFrame(:,:,1);
 fluorFrame=normalizeRange(pedistalSubtract(fluorFrame));
-fluorThresh=imdilate(im2bw(fluorFrame,graythresh(fluorFrame(fluorFrame>0))),true(10));
+%fluorThresh=imdilate(im2bw(fluorFrame,graythresh(fluorFrame(fluorFrame>0))),true(10));
+fluorThresh=imdilate(im2bw(fluorFrame,max(fluorFrame(:))*.4),true(40));
 
   fluorFrame=imwarp(fluorFrame,lowResFluor2BF.t_concord,...
     'OutputView',lowResFluor2BF.Rsegment);
 fluorThresh=imwarp(fluorThresh,lowResFluor2BF.t_concord,...
     'OutputView',lowResFluor2BF.Rsegment);
-fluorThreshStats=regionprops(fluorThresh,fluorFrame,'Area','WeightedCentroid');
+fluorThreshStats=regionprops(fluorThresh,fluorFrame,'Area','WeightedCentroid','MaxIntensity');
 % fluorThreshStats=fluorThreshStats(find([fluorThreshStats.Area]==...
 %     max([fluorThreshStats.Area]),1,'first'));
 fluorThreshStats=fluorThreshStats([fluorThreshStats.Area]>500);
 [~,ib]=sort([fluorThreshStats.Area],'descend');
-ib=ib(1:min(length(ib),2)); %take no more than the 2 largest blobs, biggest is head
+ib=ib(1:min(length(ib),1)); %take take only brightest spot %%%%%%%%%%%%
 fluorThreshStats=fluorThreshStats(ib);
 
 fluorTip=cell2mat({fluorThreshStats.WeightedCentroid}');
@@ -589,9 +675,7 @@ else
 
 end
     
-    centerline=getappdata(handles.figure1,'centerline');
-
-if ~imFlash(j) && ~fluorFlash(ceil(fluorFrameNumber)-1)
+    
     I =im2double((read(vidObj, j)));
     I1 = I(:,:,1);
     bgscale=median(I1(backgroundBW))/bgIlevel;
@@ -658,6 +742,7 @@ hold(handles.axes1,'off');
 
 currentFrame=currentFrame+1;
         set(handles.slider1,'Value',currentFrame);
+         saveCenterline_Callback(hObject, eventdata, handles)
 end
 
 if get(handles.snakeIt,'Value')
@@ -868,12 +953,11 @@ fluorCM=sum((Xgrid.*lowResFluorInterpThresh))./sum(lowResFluorInterpThresh);
 ymax=ymax(ib);
 centroids=[imax fluorCM(imax)' ];
 CL2=CLcurrent;
-maxPos=imax(ymax==max(ymax));
-
+[~,maxPos]=max(max(lowResFluorInterpThresh2));
 if maxPos>length(lowResFluorInterp)/2;
-        centroids(imax<maxPos | imax>maxPos+50|isnan(fluorCM(imax))',:)=[];
+        centroids(imax<maxPos | imax>maxPos+100|isnan(fluorCM(imax))',:)=[];
 else
-        centroids(imax>maxPos | imax<maxPos-50|isnan(fluorCM(imax))',:)=[];
+        centroids(imax>maxPos | imax<maxPos-100|isnan(fluorCM(imax))',:)=[];
 end
 
 if length(centroids)<3
@@ -882,18 +966,21 @@ if length(centroids)<3
 
     lowResFluorInterpThresh2(:,round(min(centroids(:,1))):end)=0;
     [x,y]=find(lowResFluorInterpThresh2);
+    if ~isempty(centroids)
     if ~isempty(x) && abs(min(y)-min(centroids(:,1)))>5 && abs(min(y)-min(centroids(:,1)))<20
     newPt=[min(y),mean(x(y==min(y)))];
     centroids=[newPt;centroids]; 
     end
-    
+    end
     else
      
     lowResFluorInterpThresh2(:,1:round(min(centroids(:,1))))=0;
     [x,y]=find(lowResFluorInterpThresh2);
+    if ~isempty(centroids)
     if ~isempty(x) && abs(min(y)-max(centroids(:,1)))>5 && abs(min(y)-max(centroids(:,1)))<20
     newPt=[max(y),mean(x(y==min(y)))];
     centroids=[centroids;newPt];
+    end
     end
     end
     

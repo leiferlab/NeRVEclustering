@@ -155,7 +155,7 @@ set(handles.slider1,'Min',1)
 if isempty(matFiles)
     set(handles.slider1,'Max',2);
 else
-    set(handles.slider1,'Max',length(matFiles));
+    set(handles.slider1,'Max',length(imFiles{1}));
 end
 
 set(handles.slider1,'Value',1)
@@ -249,51 +249,69 @@ iImage=round(get(handles.slider1,'Value'));
 
 %load track data, and lists of mat and tif files
 trackData=getappdata(0,'trackOutput');
+
+
+
+
+
+
 matFiles=getappdata(0,'matFiles');
 imFiles=getappdata(0,'imFiles');
 rawImFolder=getappdata(0,'rawImFolder');
-matName= matFiles(iImage).name;
-wormData=load([imFolder filesep matName]);
+try
+    matName= matFiles(iImage).name;
+    wormData=load([imFolder filesep matName]);
+catch
+    wormData=[];
+    matName=['stack' num2str(iImage,'%04d') 'data'];
+end
+
 flag3d=0;
+
+
+
 %proceed only if mat file has wormMask
 if isfield(wormData,'wormMask')
-        wormMask=wormData.wormMask;
+    wormMask=wormData.wormMask;
+else
+    wormMask=ones(2,2,2); %if not fitted, assume matrix for now
+    
+end
 
-display(num2str(max(wormMask(:))))
-    if length(imFiles)==1
+if length(imFiles)==1
     R=getappdata(0,'registration');
-        
-        imFiles=imFiles{1};
-        %load image and correct pixels
-        temp=double(imread([rawImFolder filesep imFiles(iImage).name],'tif'));
-        temp=pixelIntensityCorrection(temp);
-        %crop left and right regions
-        rect1=R.rect1;
-        rect2=R.rect2;
-        t_concord=R.t_concord;
-        Rsegment=R.Rsegment;
-        padRegion=R.padRegion;
-        temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
-        worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-        
-        %align 2 halves
-        temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
-        temp_activity(padRegion)=median(temp_activity(~padRegion));
-        activity=(temp_activity);%bpass_jn(temp_activity,1,[40,40]);
-        hold(handles.axes1,'off')
-        %clear current axes
-        arrayfun(@(x) delete(x),get(handles.axes1,'children'))
-        
-        %chose which image to display, red or green
-        switch get(handles.channelSelect,'value')
-            case 1
-                baseImg=worm; %red
-            case 2
-                baseImg=activity; %green
-        end
-        
-    else %if imfolder has 2, then just lead the correct iage folder
-        if ismatrix(wormMask)
+    
+    imFiles=imFiles{1};
+    %load image and correct pixels
+    temp=double(imread([rawImFolder filesep imFiles(iImage).name],'tif'));
+    %     temp=pixelIntensityCorrection(temp);
+    %crop left and right regions
+    rect1=R.rect1;
+    rect2=R.rect2;
+    t_concord=R.t_concord;
+    Rsegment=R.Rsegment;
+    padRegion=R.padRegion;
+    temp_activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+    worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
+    
+    %align 2 halves
+    temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
+    temp_activity(padRegion)=median(temp_activity(~padRegion));
+    activity=(temp_activity);%bpass_jn(temp_activity,1,[40,40]);
+    hold(handles.axes1,'off')
+    %clear current axes
+    arrayfun(@(x) delete(x),get(handles.axes1,'children'))
+    
+    %chose which image to display, red or green
+    switch get(handles.channelSelect,'value')
+        case 1
+            baseImg=worm; %red
+        case 2
+            baseImg=activity; %green
+    end
+    
+else %if imfolder has 2, then just lead the correct iage folder
+    if ismatrix(wormMask)
         imFilesIdx=find(cellfun(@(x) ~isempty(x),strfind({imFiles{1}.name},matFiles(iImage).name(6:10))'));
         flag3d=0;
         
@@ -306,97 +324,114 @@ display(num2str(max(wormMask(:))))
                     ,'tif')); %green
                 
             otherwise
-            baseImg=0;
+                baseImg=0;
         end
         imName=imFiles{2}(imFilesIdx).name;
         zSlice=1;
+    else
+        stackName=(['image0' matName(6:9)]);
+        
+        metaData=load([rawImFolder{3} filesep stackName]);
+        metaData=metaData.metaData;
+        if isfield(metaData,'metaData');
+            metaData=metaData.metaData;
+        end
+        
+        zPos=metaData.zVoltage;
+        if isfield(metaData,'midPlane')
+            midPlane=metaData.midPlane;
         else
-stackName=(['image0' matName(6:9)]);
+            midPlane=round(length(zPos)/2);
+        end
+                     plot(handles.axes3,zPos);
+   %
+              % [ zPos(midPlane) midPlane]
 
-metaData=load([rawImFolder{3} filesep stackName]);
-metaData=metaData.metaData;
-if isfield(metaData,'metaData');
-    metaData=metaData.metaData;
-end
-midPlane=metaData.midPlane;
-            zPos=metaData.zVoltage;
-            zPos=zPos-interp1(zPos,midPlane);
-            set(handles.zSlider,'Max',max(zPos))
-            set(handles.zSlider,'Min',min(zPos))
-            zPosV=(get(handles.zSlider,'Value'));
-            if zPosV>max(zPos);
-                zPosV=max(zPos);
-                set(handles.zSlider,'Value',zPosV);
-            end
-            if zPosV<min(zPos)
-                 zPosV=min(zPos);
-                set(handles.zSlider,'Value',zPosV);
-            end
-            zPos=sort(zPos);
-            zPos=zPos+(1:length(zPos))'*.00001;
-            zSlice=interp1((zPos),1:length(zPos),zPosV,'nearest');
-            zSlice=max(zSlice,1);
-            flag3d=1;
-            labelMask=wormMask(:,:,zSlice);
-imName=['image' num2str(metaData.iFrame(zSlice),'%3.5d')];
-            switch get(handles.channelSelect,'value')
-                case 1
-                    baseImg= double(imread([rawImFolder{1} filesep stackName]...
-                        ,'tif','index',zSlice)); %red
-                case 2
-                    baseImg= double(imread([rawImFolder{2} filesep stackName]...
-                        ,'tif','index',zSlice)); %green
-                case 3
-                    baseImg=labelMask;
-                case 4
-                    baseImg=0;
-                    for iSlice=1:length(zPos)/2
-                     baseImg= baseImg+double(imread([rawImFolder{1} filesep stackName]...
+        zPos=zPos-interp1(zPos,midPlane);
+        set(handles.zSlider,'Max',max(zPos))
+        set(handles.zSlider,'Min',min(zPos))
+
+        zPosV=(get(handles.zSlider,'Value'));
+        if zPosV>max(zPos);
+            zPosV=max(zPos);
+            set(handles.zSlider,'Value',zPosV);
+        end
+        if zPosV<min(zPos)
+            zPosV=min(zPos);
+            set(handles.zSlider,'Value',zPosV);
+        end
+        zPos=sort(zPos);
+        zPos=zPos+(1:length(zPos))'*.00001;
+        zSlice=interp1((zPos),1:length(zPos),zPosV,'nearest');
+        zSlice=max(zSlice,1);
+        flag3d=1;
+        imName=['image' num2str(metaData.iFrame(zSlice),'%3.5d')];
+                        labelMask=wormMask(:,:,zSlice);
+
+        switch get(handles.channelSelect,'value')
+            case 1
+                baseImg= double(imread([rawImFolder{1} filesep stackName]...
+                    ,'tif','index',zSlice)); %red
+            case 2
+                baseImg= double(imread([rawImFolder{2} filesep stackName]...
+                    ,'tif','index',zSlice)); %green
+            case 3
+                baseImg=labelMask;
+            case 4
+                baseImg=0;
+                for iSlice=1:length(zPos)/2
+                    imSlice=double(imread([rawImFolder{1} filesep stackName]...
                         ,'tif','index',iSlice));
-                    end
-                    baseImg=baseImg/length(zPos);
-%                 case 5 
-%                     baseImg=0;
-%                     for iSlice=1:length(zPos)/2
-%                      imName=['image' num2str(iImage,'%3.5d') '.tif'];
-%                      baseImg= max(baseImg,double(imread([rawImFolder{1} filesep stackName]...
-%                         ,'tif','index',iSlice))); %green
-%                     end
-%                     baseImg=baseImg/length(zPos);
-                otherwise
-                    baseImg=[];
-                    centroids=wormData.centroids;
-                    centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+50;
-            end
-            
+                    imSlice(isnan(imSlice))=0;
+                    baseImg= baseImg+imSlice;
+                end
+                baseImg=baseImg/length(zPos);
+                baseImg=smooth2a(baseImg,10,10);
+                %                 case 5
+                %                     baseImg=0;
+                %                     for iSlice=1:length(zPos)/2
+                %                      imName=['image' num2str(iImage,'%3.5d') '.tif'];
+                %                      baseImg= max(baseImg,double(imread([rawImFolder{1} filesep stackName]...
+                %                         ,'tif','index',iSlice))); %green
+                %                     end
+                %                     baseImg=baseImg/length(zPos);
+            otherwise
+                baseImg=[];
+                centroids=wormData.centroids;
+                centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+50;
         end
         
     end
-    setappdata(0,'baseImg',baseImg)
+    
+end
+setappdata(0,'baseImg',baseImg)
 %     figure
 %     imagesc(smooth2a(baseImg,20,20)>5);
-        if ~isempty(baseImg(:))
-if get(handles.channelSelect,'value')~=3
-    baseImg=pedistalSubtract(baseImg);
-    baseImg(isnan(baseImg))=0;
-
-    setappdata(handles.figure1,'baseImg',baseImg);
-    %scale dynamic range
-    newContrast=getappdata(handles.figure1,'newContrast');
-    if isempty(newContrast)
-        newContrast=[min(baseImg(:)),max(baseImg(:))];
+if ~isempty(trackData);
+if ~isempty(baseImg(:))
+    if get(handles.channelSelect,'value')~=3
+        baseImg=pedistalSubtract(baseImg);
+        baseImg(isnan(baseImg))=0;
+        
+        setappdata(handles.figure1,'baseImg',baseImg);
+        %scale dynamic range
+        newContrast=getappdata(handles.figure1,'newContrast');
+        if isempty(newContrast)
+            newContrast=[min(baseImg(:)),max(baseImg(:))];
+        end
+        baseImg(baseImg<newContrast(1)) = newContrast(1);
+        baseImg(baseImg>newContrast(2)) = newContrast(2);
+        baseImg = (baseImg-newContrast(1))./diff(newContrast);
     end
-    baseImg(baseImg<newContrast(1)) = newContrast(1);
-    baseImg(baseImg>newContrast(2)) = newContrast(2);
-    baseImg = (baseImg-newContrast(1))./diff(newContrast);
- end   
     ax1=imagesc(baseImg,'parent',handles.axes1);
     
     
     plot(handles.axes3,smooth(max(smooth2a(baseImg,10,10),[],2),30));
+
     hold(handles.axes1,'on')
     
     %scatter centroids and label
+    
     tracks=trackData(trackData(:,end-1)==iImage,:);
     
     %only plot centroids that appear in the plane of interest
@@ -404,82 +439,82 @@ if get(handles.channelSelect,'value')~=3
     
     if flag3d
         
-    scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');    
+        scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');
     else
-    scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');
+        scat=scatter(handles.axes1,tracks(:,1),tracks(:,2),'rx');
     end
     currentCentroids=tracks(:,[1,2,size(tracks,2)]);
     setappdata(handles.figure1,'currentCentroids',currentCentroids);
     
     hold(handles.axes1,'on')
     axis(handles.axes1,'equal');
-  
+    
     text(tracks(:,1),tracks(:,2),cellstr(num2str(tracks(:,end))),'VerticalAlignment'...
         ,'bottom', 'HorizontalAlignment','right','color',[1 1 1],'parent',handles.axes1);
     set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's' ...
-   '  ' num2str(zPosV)]);
+        '  ' num2str(zPosV)]);
     
-     % plot boundaries
+    % plot boundaries
     B=bwboundaries(wormMask(:,:,zSlice));
     for i=1:length(B)
         b=B{i};
         plot(handles.axes1,b(:,2),b(:,1),'b')
-    end  
-        hold(handles.axes1,'off')
-
-    else
-            tracks=trackData(trackData(:,end-1)==iImage,:);
-scat3=getappdata(handles.figure1,'scat3');
-
-if ishandle(scat3)
-    startP=repmat(mean(centroids),3,1);
-    startP(:,2)=startP(:,2)+(-50:50:50)';
-
-     %idx=kmeans(centroids(:,1:3),3,'start',startP);
-     idx=3*ones(size(centroids,1),1);
-          idx(centroids(:,2)<300)=2;
-
-     idx(centroids(:,2)<200)=1;
-
-   c=lines(max(idx));
-   
-    c=c(idx,:);    
-%     c=c(idx==3);
-%     centroids=centroids(idx==3,:);
-    offset=-mean(centroids(idx==2,1:2))+[150,250];
-          centroids(idx==2,1:2)=bsxfun(@plus,centroids(idx==2,1:2),offset);
-          
-    set(scat3,'XData',centroids(:,2),'YData',centroids(:,1),...
-        'ZData',centroids(:,3),'CData',c);
-%     hold(handles.axes1,'on');
-%         scatter3(handles.axes1,mean(centroids(idx==2,2)),...
-%             mean(centroids(idx==2,1)),mean(centroids(idx==2,3)));
-   %          hold(handles.axes1,'off');
-
-        
-            ylim(handles.axes1,[0,size(wormMask,2)]);
-        xlim(handles.axes1,[0,size(wormMask,1)])
-        zlim(handles.axes1,[0,size(wormMask,3)*5])
+    end
+    hold(handles.axes1,'off')
+    
 else
-     idx=3*ones(size(centroids,1),1);
-          idx(centroids(:,1)<300)=2;
-
-     idx(centroids(:,1)<200)=1;
-
-   c=lines(max(idx));
-    c=c(idx,:);
-        scat3=scatter3(handles.axes1,centroids(:,2),centroids(:,1),centroids(:,3),[],c);
-       
+    tracks=trackData(trackData(:,end-1)==iImage,:);
+    scat3=getappdata(handles.figure1,'scat3');
+    
+    if ishandle(scat3)
+        startP=repmat(mean(centroids),3,1);
+        startP(:,2)=startP(:,2)+(-50:50:50)';
+        
+        %idx=kmeans(centroids(:,1:3),3,'start',startP);
+        idx=3*ones(size(centroids,1),1);
+        idx(centroids(:,2)<300)=2;
+        
+        idx(centroids(:,2)<200)=1;
+        
+        c=lines(max(idx));
+        
+        c=c(idx,:);
+        %     c=c(idx==3);
+        %     centroids=centroids(idx==3,:);
+        offset=-mean(centroids(idx==2,1:2))+[150,250];
+        centroids(idx==2,1:2)=bsxfun(@plus,centroids(idx==2,1:2),offset);
+        
+        set(scat3,'XData',centroids(:,2),'YData',centroids(:,1),...
+            'ZData',centroids(:,3),'CData',c);
+        %     hold(handles.axes1,'on');
+        %         scatter3(handles.axes1,mean(centroids(idx==2,2)),...
+        %             mean(centroids(idx==2,1)),mean(centroids(idx==2,3)));
+        %          hold(handles.axes1,'off');
+        
+        
         ylim(handles.axes1,[0,size(wormMask,2)]);
         xlim(handles.axes1,[0,size(wormMask,1)])
         zlim(handles.axes1,[0,size(wormMask,3)*5])
-
+    else
+        idx=3*ones(size(centroids,1),1);
+        idx(centroids(:,1)<300)=2;
+        
+        idx(centroids(:,1)<200)=1;
+        
+        c=lines(max(idx));
+        c=c(idx,:);
+        scat3=scatter3(handles.axes1,centroids(:,2),centroids(:,1),centroids(:,3),[],c);
+        
+        ylim(handles.axes1,[0,size(wormMask,2)]);
+        xlim(handles.axes1,[0,size(wormMask,1)])
+        zlim(handles.axes1,[0,size(wormMask,3)*5])
+        
         setappdata(handles.figure1,'scat3',scat3);
     end
 end
-    
-  %  meanB=mean(cell2mat(B));
-%   
+
+%  meanB=mean(cell2mat(B));
+%
 %     [meanBy,meanBx]=find(wormMask);
 %     scatter(handles.axes1,mean(meanBx),mean(meanBy),'g')
 %     yBase=sum(baseImg,2);
@@ -488,132 +523,133 @@ end
 %     xCM=dot(xBase,(1:length(xBase)))/sum(xBase);
 %         scatter(handles.axes1,xCM,yCM,'gx')
 %     hold(handles.axes1,'off')
-    
-    
-    if get(handles.showAll,'value')
-        %show heatmap of all tracks
-        activityMat=getappdata(handles.figure1,'activityMat');
-        imagesc(activityMat,'parent',handles.axes2);
-    else
-        
-        %display point on axis 2
-        displayIdx=get(handles.DisplayIdx,'data');
-        plotIdx=[displayIdx{:,1}];
-        plotIdx=plotIdx(~isnan(plotIdx) & plotIdx~=0);
-        hold(handles.axes2,'off');
-        
-        switch get(handles.plotChannel,'value')
-            case 1
-                output=trackData(:,5);
-            case 2
-                output=trackData(:,4);
-                
-            case 3
-                output=trackData(:,4)./trackData(:,5);
-        end
-        setappdata(handles.figure1,'output',output);
-        
-        switch get(handles.plotChannel2,'value')
-            case 1
-                output2= nan*ones(size(trackData(:,1)));
-            case 2
-                output2=trackData(:,5);
-            case 3
-                output2=trackData(:,4);
-            case 4
-                output2=trackData(:,4)./trackData(:,5);
-            case 5
-                output2=trackData(:,1);
-        end
-        setappdata(handles.figure1,'output',output);
-        
-        output(trackData(:,end-1)<startTime)=nan;
-        %output=normalizeRange(output);
-        %output=output/median(output);
-        
-        for i=1:length(plotIdx);
-            idx=plotIdx(i);
-            t=trackData((trackData(:,end)==idx),end-1);
-            a=output((trackData(:,end)==idx));
-            a2=output2((trackData(:,end)==idx));
-            a=a(t>startTime);
-            a2=a2(t>startTime);
-            t=t(t>startTime);
-            if normalizeFlag
-                a=normalizeRange(smooth(a,smoothWindow))+i-1;
-                 a2=normalizeRange(smooth(a2,smoothWindow))+i-1;
 
-            else
-                
-                a=(smooth(a,smoothWindow))+i-1;
-                a2=(smooth(a2,smoothWindow))+i-1;
-            end
-            t=t*timeStep;
-            plot(handles.axes2,t,a);
-            hold(handles.axes2,'on');
-            plot(handles.axes2,t,a2,'g');
+
+if get(handles.showAll,'value')
+    %show heatmap of all tracks
+    activityMat=getappdata(handles.figure1,'activityMat');
+    imagesc(activityMat,'parent',handles.axes2);
+else
+    
+    %display point on axis 2
+    displayIdx=get(handles.DisplayIdx,'data');
+    plotIdx=[displayIdx{:,1}];
+    plotIdx=plotIdx(~isnan(plotIdx) & plotIdx~=0);
+    hold(handles.axes2,'off');
+    
+    switch get(handles.plotChannel,'value')
+        case 1
+            output=trackData(:,5);
+        case 2
+            output=trackData(:,4);
+            
+        case 3
+            output=trackData(:,4)./trackData(:,5);
+    end
+    setappdata(handles.figure1,'output',output);
+    
+    switch get(handles.plotChannel2,'value')
+        case 1
+            output2= nan*ones(size(trackData(:,1)));
+        case 2
+            output2=trackData(:,5);
+        case 3
+            output2=trackData(:,4);
+        case 4
+            output2=trackData(:,4)./trackData(:,5);
+        case 5
+            output2=trackData(:,1);
+    end
+    setappdata(handles.figure1,'output',output);
+    
+    output(trackData(:,end-1)<startTime)=nan;
+    %output=normalizeRange(output);
+    %output=output/median(output);
+    
+    for i=1:length(plotIdx);
+        idx=plotIdx(i);
+        t=trackData((trackData(:,end)==idx),end-1);
+        a=output((trackData(:,end)==idx));
+        a2=output2((trackData(:,end)==idx));
+        a=a(t>startTime);
+        a2=a2(t>startTime);
+        t=t(t>startTime);
+        if normalizeFlag
+            a=normalizeRange(smooth(a,smoothWindow))+i-1;
+            a2=normalizeRange(smooth(a2,smoothWindow))+i-1;
+            
+        else
+            
+            a=(smooth(a,smoothWindow))+i-1;
+            a2=(smooth(a2,smoothWindow))+i-1;
+        end
+        t=t*timeStep;
+        plot(handles.axes2,t,a);
+        hold(handles.axes2,'on');
+        plot(handles.axes2,t,a2,'g');
+    end
+    
+    
+    
+    
+    subIdx=ismember(tracks(:,end),plotIdx);
+    text(tracks(subIdx,1),tracks(subIdx,2),cellstr(num2str(tracks(subIdx,end))),'VerticalAlignment'...
+        ,'bottom', 'HorizontalAlignment','right','color',[0 1 0],'parent',handles.axes1);
+    
+    
+    hold(handles.axes2,'on');
+    h=getappdata(0,'scatter');
+    for iPlot=1:length(plotIdx);
+        try
+            delete(h(iPlot));
+        catch
         end
         
+        idx=plotIdx(iPlot);
+        t=trackData((trackData(:,end)==idx),end-1);
+        a=output((trackData(:,end)==idx));
+        a=a(t>startTime);
+        t=t(t>startTime);
+        t=t*timeStep;
+        if normalizeFlag
+            a=normalizeRange(smooth(a,smoothWindow))+iPlot-1;
+        else
+            a=(smooth(a,smoothWindow))+iPlot-1;
+        end
+        a=a(t==(iImage*timeStep));
         
-        
-        
-        subIdx=ismember(tracks(:,end),plotIdx);
-        text(tracks(subIdx,1),tracks(subIdx,2),cellstr(num2str(tracks(subIdx,end))),'VerticalAlignment'...
-            ,'bottom', 'HorizontalAlignment','right','color',[0 1 0],'parent',handles.axes1);
-        
+        if sum(a)
+            a=a(1);
+            h(iPlot)=scatter(handles.axes2,(iImage*timeStep),a,'r','fill');
+        end
         
         hold(handles.axes2,'on');
-        h=getappdata(0,'scatter');
-        for iPlot=1:length(plotIdx);
-            try
-                delete(h(iPlot));
-            catch
-            end
-            
-            idx=plotIdx(iPlot);
-            t=trackData((trackData(:,end)==idx),end-1);
-            a=output((trackData(:,end)==idx));
-            a=a(t>startTime);
-            t=t(t>startTime);
-            t=t*timeStep;
-            if normalizeFlag
-                a=normalizeRange(smooth(a,smoothWindow))+iPlot-1;
-            else
-                a=(smooth(a,smoothWindow))+iPlot-1;
-            end
-            a=a(t==(iImage*timeStep));
-            
-            if sum(a)
-                a=a(1);
-                h(iPlot)=scatter(handles.axes2,(iImage*timeStep),a,'r','fill');
-            end
-            
-            hold(handles.axes2,'on');
-        end
-        setappdata(0,'scatter',h);
     end
-    set(handles.currentFolder,'String',imFolder);
-    
-    centerline=getappdata(handles.figure1,'centerline');
-    bfIdxLookup=getappdata(handles.figure1,'bfIdxLookup');
-    if ~isempty(centerline) && ~ isempty(bfIdxLookup)
-        frameIdx=str2double(imName(6:10));
-        bfIdx=bfIdxLookup(frameIdx);
-        CLcurrent=[interp2(squeeze(centerline(:,1,:))',1:100,repmat(bfIdx,1,100))',...
-interp2(squeeze(centerline(:,2,:))',1:100,repmat(bfIdx,1,100))'];
-plot(handles.axes3,CLcurrent(:,2),CLcurrent(:,1));
-hold(handles.axes3,'on')
-scatter(handles.axes3,CLcurrent(1,2),CLcurrent(1,1),'xr')
-hold(handles.axes3,'off');
-xlim(handles.axes3,[1,1024]);
-ylim(handles.axes3,[1,1024]);
-    end
-    
-    
-else
-    display('no data in this matfile');
+    setappdata(0,'scatter',h);
 end
+set(handles.currentFolder,'String',imFolder);
 
+
+else
+        ax1=imagesc(baseImg,'parent',handles.axes1);
+
+end
+centerline=getappdata(handles.figure1,'centerline');
+bfIdxLookup=getappdata(handles.figure1,'bfIdxLookup');
+
+if ~isempty(centerline) && ~ isempty(bfIdxLookup)
+    frameIdx=str2double(imName(6:10));
+    bfIdx=bfIdxLookup(frameIdx);
+    CLcurrent=[interp2(squeeze(centerline(:,1,:))',1:100,repmat(bfIdx,1,100))',...
+        interp2(squeeze(centerline(:,2,:))',1:100,repmat(bfIdx,1,100))'];
+    plot(handles.axes3,CLcurrent(:,2),CLcurrent(:,1));
+    hold(handles.axes3,'on')
+    scatter(handles.axes3,CLcurrent(1,2),CLcurrent(1,1),'xr')
+    hold(handles.axes3,'off');
+    xlim(handles.axes3,[1,1024]);
+    ylim(handles.axes3,[1,1024]);
+end
+    
 
 
 function smoothingWindow_Callback(hObject, eventdata, handles)
@@ -1331,17 +1367,25 @@ function centerlineSelect_Callback(hObject, eventdata, handles)
 dataFolder=uipickfiles;
 dataFolder=dataFolder{1};
 [bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
-hiResData=highResTimeTraceAnalysis(dataFolder);
 
+if exist([dataFolder filesep 'hiResData.mat'],'file')
+    hiResData=load([dataFolder filesep 'hiResData']);
+    hiResData=hiResData.dataAll;
+else
+hiResData=highResTimeTraceAnalysisTriangle3(dataFolder,imSize(1),imSize(2));
+end
 
 hiResFlashTime=(hiResData.frameTime(hiResData.flashLoc));
 bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
 fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
-hi2lowTimeOffset=hiResFlashTime-bfFlashTime;
+idxOut=flashTimeAlign(bfFlashTime,hiResFlashTime);
+hi2lowTimeOffset=hiResFlashTime(idxOut(2))-bfFlashTime(idxOut(1));
 hiResData.frameTime=hiResData.frameTime-hi2lowTimeOffset(1);
 hiResFlashTime=(hiResData.frameTime(hiResData.flashLoc));
 
-fluor2bfTimeOffset=fluorFlashTime-bfFlashTime;
+idxOut=flashTimeAlign(bfFlashTime,fluorFlashTime);
+
+fluor2bfTimeOffset=fluorFlashTime(idxOut(2))-bfFlashTime(idxOut(1));
 fluorAll.frameTime=fluorAll.frameTime-fluor2bfTimeOffset(1);
 fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
 
@@ -1359,7 +1403,7 @@ if length(centerLineFile)>1
     centerline=load(centerlineFile{1},'centerline');
     centerline=centerline.centerline;
 else
-centerline=load([dataFolder filesep centerLineFile],'centerline');
+centerline=load([dataFolder filesep centerLineFile{1}],'centerline');
 centerline=centerline.centerline;
 end
 setappdata(handles.figure1,'bfIdxLookup',bfIdxLookup);

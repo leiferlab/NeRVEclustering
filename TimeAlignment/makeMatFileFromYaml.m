@@ -1,7 +1,7 @@
 function makeMatFileFromYaml(yamlFile)
 
 if nargin==0
-    yamlFile=uipickfiles;
+    yamlFile=uipickfiles('filterspec','E:\');
 end
 for iYaml=1:length(yamlFile)
 mcdf=Mcd_Frame;

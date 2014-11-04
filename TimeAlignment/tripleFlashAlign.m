@@ -1,0 +1,71 @@
+function [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize)
+% take flash, yaml, and highRes data for low res fluor, behavior, and high
+% res images to global time of all movies
+
+if nargin==0
+    mostRecent=getappdata(0,'mostRecent');
+dataFolder=uipickfiles('FilterSpec',mostRecent);
+dataFolder=dataFolder{1};
+
+end
+[bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
+
+if exist([dataFolder filesep 'hiResData.mat'],'file')
+    hiResData=load([dataFolder filesep 'hiResData']);
+    hiResData=hiResData.dataAll;
+else
+    hiResData=highResTimeTraceAnalysisTriangle4(dataFolder,imSize(1),imSize(2));
+end
+
+hiResFlashTime=(hiResData.frameTime(hiResData.flashLoc));
+bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
+fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
+
+[~,most]=max([length(hiResFlashTime),length(bfFlashTime),length(fluorFlashTime)]);
+
+switch most
+    case 1
+        bestTime=hiResFlashTime;
+        bestAll=hiResData;
+    case 2
+        bestTime=bfFlashTime;
+        bestAll=bfAll;
+    case 3
+        bestTime=fluorFlashTime;
+        bestAll=fluorAll;
+end
+
+    
+
+[~,bf2fluor]=flashTimeAlign2(bestTime,bfFlashTime);
+flashDiff=bfFlashTime-bestTime(bf2fluor);
+flashDiff=flashDiff-min(flashDiff);
+f_bfTime=fit(bfFlashTime,bestTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
+if f_bfTime.p1<.1
+    f_bfTime.p1=1;
+end
+bfAll.frameTime=f_bfTime(bfAll.frameTime);
+bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
+bfAll.flashTime=bfFlashTime;
+
+[~,bf2fluor]=flashTimeAlign2(bestTime,fluorFlashTime);
+flashDiff=fluorFlashTime-bestTime(bf2fluor);
+flashDiff=flashDiff-min(flashDiff);
+f_fluorTime=fit(fluorFlashTime,bestTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
+if f_fluorTime.p1<.1
+    f_fluorTime.p1=1;
+end
+fluorAll.frameTime=f_fluorTime(fluorAll.frameTime);
+fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
+fluorAll.flashTime=fluorFlashTime;
+
+[~,bf2fluor]=flashTimeAlign2(bestTime,hiResFlashTime);
+flashDiff=hiResFlashTime-bestTime(bf2fluor);
+flashDiff=flashDiff-min(flashDiff);
+f_hiTime=fit(hiResFlashTime,bestTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
+if f_hiTime.p1<.1
+    f_hiTime.p1=1;
+end
+hiResData.frameTime=f_hiTime(hiResData.frameTime);
+hiResFlashTime=hiResData.frameTime(hiResData.flashLoc);
+hiResData.flashTime=hiResFlashTime;

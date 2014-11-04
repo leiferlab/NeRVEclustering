@@ -113,7 +113,7 @@ mkdir(hiResSegmentFolder);
 frames=1750:length(hiResData.frameTime); %start 1750, 12000 good too, 13000 for 3d
 frames(ismember(frames,hiResData.flashLoc))=[];
 movieFlag=0;
-plotFlag=0;
+plotFlag=1;
 saveFlag=0;
 imH=NaN(1,4);
 lineH=NaN(1,4);
@@ -136,9 +136,9 @@ fluorIdx=fluorIdxLookup(iFrame);
 hiResIdx=hiResLookup(iFrame);
   status=fseek(Fid,2*hiResIdx*1024^2,-1);
 
-  pixelValues=fread(Fid,1024^2,'uint16',0,'l');
+  pixelValues=fread(Fid,1200*600,'uint16',0,'l');
 
-hiResImage=(reshape(pixelValues,1024,1024)');
+hiResImage=(reshape(pixelValues,1200,600));
 hiResImage=hiResImage-backgroundImage;
 hiResImage(hiResImage<0)=0;
 

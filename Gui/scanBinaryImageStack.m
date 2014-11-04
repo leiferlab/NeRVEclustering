@@ -22,7 +22,7 @@ function varargout = scanBinaryImageStack(varargin)
 
 % Edit the above text to modify the response to help scanBinaryImageStack
 
-% Last Modified by GUIDE v2.5 09-Oct-2014 14:31:49
+% Last Modified by GUIDE v2.5 18-Oct-2014 19:29:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -108,6 +108,11 @@ function selectFolder_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 mostRecent=getappdata(0,'mostRecent');
+Fid=getappdata(handles.figure1,'Fid');
+try
+    fclose(Fid);
+catch
+end
 
 try
 currentData=uipickfiles('FilterSpec',mostRecent);
@@ -115,49 +120,79 @@ catch
     currentData=uipickfiles();
 end
 currentData=currentData{1};
+row=str2double(get(handles.imageRows,'String'));
+col=str2double(get(handles.imageCols,'String'));
 
 setappdata(0,'mostRecent',fileparts(currentData));
 set(handles.currentFolder,'String',currentData);
+if strfind(currentData,'.dat')
 Fid=fopen(currentData);
 status=fseek(Fid,0,1);
-nFrames=ftell(Fid)/(2*1024^2)-1;
+nFrames=ftell(Fid)/(2*row*col)-1;
+setappdata(handles.figure1,'Fid',Fid);
+setappdata(handles.figure1,'aviFlag',0);
+elseif strfind(currentData,'.avi')
+     Fid= VideoReader(currentData);
+     nFrames=Fid.NumberOfFrames;
+setappdata(handles.figure1,'Fid',Fid);
+setappdata(handles.figure1,'aviFlag',1);
+end
+setappdata(handles.figure1,'maxC',0);
 setappdata(handles.figure1,'nFrames',nFrames);
 set(handles.slider1,'Value',1);
 set(handles.slider1,'Max',nFrames);
 set(handles.maxSlider,'String',num2str(nFrames));
 set(handles.minSlider,'String','1');
 setappdata(handles.figure1,'MaxValue',nFrames);
-setappdata(0,'Fid',Fid);
 showImage(hObject)
 
 
 function showImage(hObject,eventdata)
 
 handles=guidata(get(hObject,'Parent'));
-Fid=getappdata(0,'Fid');
+frameNumber=get(handles.slider1,'Value');
+frameNumber=max(1,round(frameNumber));
+Fid=getappdata(handles.figure1,'Fid');
+
+if getappdata(handles.figure1,'aviFlag')
+    C=read(Fid,frameNumber);
+    C=C(:,:,1);
+else
+    
 row=str2double(get(handles.imageRows,'String'));
 col=str2double(get(handles.imageCols,'String'));
 nPix=row*col;
 
-frameNumber=get(handles.slider1,'Value');
-frameNumber=round(frameNumber);
+
 status=fseek(Fid,2*frameNumber*nPix,-1);
 if ~status
   frewind(Fid) 
   status=fseek(Fid,2*frameNumber*nPix,-1);
-
 end
 pixelValues=fread(Fid,nPix,'uint16',0,'l');
 C=reshape(pixelValues,row,col);
+end
+if 0
+C=pedistalSubtract(C);
+end
+maxC=getappdata(handles.figure1,'maxC');
+setappdata(handles.figure1,'maxC',max(max(C(:)),maxC));
+
 h=imagesc(C,'Parent',handles.axes1);
 set(handles.currentFrame,'String',num2str(frameNumber));
 switch get(handles.colorMap,'Value');
     case 1
-        colormap(handles.axes1,jet)
+        colormap(handles.axes1,jet(64))
+      %  caxis(handles.axes1,[0,maxC]); 
+
     case 2
-        colormap(handles.axes1,hot)
+        colormap(handles.axes1,hot(64))
+        caxis(handles.axes1,[0,maxC]); 
+
     case 3
-        colormap(handles.axes1,gray)
+        colormap(handles.axes1,gray(64))
+        caxis(handles.axes1,[0,maxC]); 
+
     case 4
         C(1:1:row/2,:)=normalizeRange(pedistalSubtract(C(1:1:row/2,:)))+1;
         C(round(row/2):end,:)=normalizeRange(pedistalSubtract(C(round(row/2):end,:)));
@@ -167,6 +202,7 @@ switch get(handles.colorMap,'Value');
         
     otherwise
 end
+setappdata(handles.figure1,'currentImage',C);
 
 
 % --------------------------------------------------------------------
@@ -232,7 +268,7 @@ function back1_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 currentFrame=get(handles.slider1,'Value');
-set(handles.slider1,'Value',currentFrame-1);
+set(handles.slider1,'Value',max(currentFrame-1,1));
 showImage(hObject)
 
 
@@ -244,7 +280,7 @@ function forward1_Callback(hObject, eventdata, handles)
 %get(handles.forward1)
 %while strcmp(get(handles.forward1,'Selected'),'on')
 currentFrame=get(handles.slider1,'Value');
-set(handles.slider1,'Value',currentFrame+1);
+set(handles.slider1,'Value',min(currentFrame+1,get(handles.slider1,'max')));
 showImage(hObject)
 %end
 
@@ -316,3 +352,53 @@ function colorMap_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+function snapShotName_Callback(hObject, eventdata, handles)
+% hObject    handle to snapShotName (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of snapShotName as text
+%        str2double(get(hObject,'String')) returns contents of snapShotName as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function snapShotName_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to snapShotName (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in snapshot.
+function snapshot_Callback(hObject, eventdata, handles)
+% hObject    handle to snapshot (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+currentImage=getappdata(handles.figure1,'currentImage');
+currentFolder=getappdata(0,'mostRecent');
+imageName=get(handles.snapShotName,'String');
+imageName=fullfile(currentFolder,imageName);
+ender=[];
+while exist([imageName,num2str(ender) '.tif'],'file');
+    
+if isempty(ender);
+    ender=1;
+else
+    ender=ender+1;
+end
+end
+imageName=[imageName,num2str(ender) '.tif'];
+
+tiffwrite(imageName,single(currentImage),'tif',0);
+
+currentFrame=get(handles.slider1,'Value');
+set(handles.slider1,'Value',min(currentFrame+1,get(handles.slider1,'max')));
+showImage(hObject)

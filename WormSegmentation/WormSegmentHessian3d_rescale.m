@@ -48,13 +48,13 @@ prePad=bsxfun(@times,repmat(worm(:,:,1),1,1,bpassPad),permute(hamWindow(1:end/2)
 postPad=bsxfun(@times,repmat(worm(:,:,end),1,1,bpassPad),permute(hamWindow(end/2+1:end),[2,3,1]));
 
 worm=cat(3,prePad,worm,postPad);
-wormtop=bpass3_jn(worm,noise,filterSize);
+wormtop=bpass3(worm,noise,filterSize);
 wormtop=normalizeRange(wormtop);
 worm=worm(:,:,bpassPad+1:end-bpassPad);
 wormtop=wormtop(:,:,bpassPad+1:end-bpassPad);
 %% initial threshold
 wormBW=wormtop>thresh1;
-wormBW=imclearborder(wormBW,6);
+%wormBW=imclearborder(wormBW,6);
 wormBW=AreaFilter(wormBW,minObjSize,[],6);
 
 %% find connected objects
@@ -67,8 +67,8 @@ blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
 
 %% use hessian to find nuclei in objects
 centerIm=zeros(size(wormBW));
-wormBW2=zeros(size(wormBW));
-wormSearch=ones(size(wormBW));
+wormBW2=false(size(wormBW));
+wormSearch=true(size(wormBW));
 for iblob=1:cc.NumObjects;
     %crop out object with pad
     BB=floor(blobStats(iblob).BoundingBox);
@@ -122,10 +122,11 @@ Htrace=max(Heig,[],4);
 % Jm= Heig(:,:,:,1)<-hthresh & Heig(:,:,:,2)<-hthresh & ...
 %    Heig(:,:,:,3)<-hthresh;
 Htrace(isnan(Htrace))=0;
+Htrace=real(Htrace);
 Jm=Htrace<hthresh;
 %Jm=Jm & pedMask;
-Jm=xyzConvHull(Jm,3); % ghetto way to try to fill holes in all directions
-
+%Jm=xyzConvHull(Jm,3); % ghetto way to try to fill holes in all directions
+Jm=Jm.*subBW;
 % watershed filter shapes
 
 if watershedFilter
@@ -240,7 +241,7 @@ end
 
 %compile results of all sub images into final segmented mask, becareful not
 %to overwrite/combine previous objects
-Jm=imclearborder(Jm);
+%Jm=imclearborder(Jm);
 wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=...
     and(or(Jm,wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))),...
     or(wormSearch(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))...
@@ -254,6 +255,9 @@ wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=...
 %         
         
 end
+wormBW2=imopen(double(wormBW2),strel('ball',10,10,10));
+wormBW2=wormBW2>.8;
+
 
 %% 
 %centerIm is binary image of all centroid positions. 

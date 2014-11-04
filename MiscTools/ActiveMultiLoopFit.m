@@ -152,8 +152,8 @@ fz=zeros(size(fx));
         distanceVector=normr(diff(loopCM,[],1));
         
         
-        loopDistance=sqrt(sum(diff(loopCM,[],1).^2));
-        loopDelta=loopDistance-cline_para.distance0;
+        loopDistance=sqrt(sum(diff(loopCM,[],1).^2,2));
+        loopDelta=loopDistance-cline_para.distance0';
         loopForce=loopDelta*cline_para.loopSpringForce;
         
         loopForce=bsxfun(@times,loopForce,distanceVector);

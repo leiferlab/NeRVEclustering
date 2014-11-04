@@ -1,4 +1,4 @@
-function  imFlash=findDatFlash(datFile,rowSearch,rows,cols)
+function  imFlash=findDatFlash(datFile,rows,cols,rowSearch)
 % function takes a .dat file for worm data and searches each of the images
 % for a flash. The images must be rowxcol matrix of uint16, works super
 % fast. Can also select input rows. This will find the flash signal by
@@ -11,21 +11,20 @@ if nargin==0
     datFile=datFile{1};
 end
 
-if nargin<4
+if nargin<3
     rows=1024;
     cols=1024;
 end
-if nargin<2
+if nargin<4
     rowSearch=rows;
 end
 
 
 
-if strfind(datFile, '.dat');
-    
+if strfind(datFile, '.dat');   
     Fid=fopen(datFile);
 status=fseek(Fid,0,1);
-stackSize=ftell(Fid)/(2*rows*cols)-1;
+stackSize=floor(ftell(Fid)/(2*rows*cols)-1);
 status=fseek(Fid,0,-1);
 else
     error('File must be a .dat binary file in uint16 form');
@@ -73,9 +72,12 @@ progressbar(0)
 for iFrame=1:stackSize
     progressbar(iFrame/stackSize)
     pixelValues=fread(Fid,rows*rowSearch,'uint16',0,'l');
-    status=fseek(Fid,2*cols*(rows-rowSearch),0);
+    status=fseek(Fid,2*cols*(rows)*iFrame,-1);
 
 imFlash(iFrame)=mean(pixelValues);
   %  status=fseek(Fid,2*frameNumber*1024^2,-1);
 
 end
+
+%%
+fclose(Fid);

@@ -82,6 +82,7 @@ clear cline_initial initialLoops
                h=imagesc(imStackSmooth(:,:,1));
             numLoops=inputdlg('How many loops?');
             numLoops=str2double(numLoops);
+            %%
             for iLoop=1:numLoops
 
             cline_initial=imfreehand('closed', true);
@@ -109,7 +110,7 @@ cline_para.CLbeta=0.00;
 cline_para.CLalpha=0.000001;
 cline_para.kappa=10;
 
-clineOutput = ActiveMultiLoopFit(imStackCrop(:,:,41:60), cline_para,initialLoops); %gets center line and end pts
+clineOutput = ActiveMultiLoopFit(imStackSmooth(:,:,:), cline_para,initialLoops); %gets center line and end pts
 
             
             

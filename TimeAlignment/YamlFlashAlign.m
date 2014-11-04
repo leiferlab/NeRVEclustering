@@ -76,6 +76,9 @@ fluorFrameTime=fluorFrameTime+timeDif;
 bf2fluorIdx=round(interp1(fluorFrameTime,1:length(fluorFrameTime),bfFrameTime));
 fluorAll.frameTime=fluorFrameTime;
 fluorAll.flashLoc=fluorFlashloc;
+fluorAll.flashTrack=fluorFlash;
 bfAll.frameTime=bfFrameTime;
+
 bfAll.flashLoc=bfFlashloc;
+bfAll.flashTrack=bfFlash;
 

@@ -16,8 +16,7 @@ end
 %%
 camFrameData=importdata([imFolder filesep 'CameraFrameData.txt']);
 camFrameData=camFrameData.data;
-%'Frame Number'  'DC Offset'  'Image StDev'
-
+%'Frame Number'  'imagesaved' 'DC Offset'  'Image StDev',
 labJackData=importdata([imFolder filesep 'LabJackData.txt']);
 labJackData=labJackData.data;
 %'FuncGen Voltage'  'Z Sensor'  'Photodiode'  'Camera Trigger'

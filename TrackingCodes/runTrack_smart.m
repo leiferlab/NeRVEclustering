@@ -4,6 +4,7 @@ function runTrack_smart(imFolder,metaDataFolder)
 % handles    structure with handles and user data (see GUIDATA)
 if nargin==1;
     metaDataFolder=[];
+    
 end
 %%
 minDist=15;
@@ -12,7 +13,7 @@ params.mem=10;
 %imFolder=getappdata(0,'imFolder');
 
 
-matFiles=dir([imFolder filesep 'stack*.mat']);
+matFiles=dir([imFolder filesep '*.mat']);
 %setappdata(0,'matFiles',matFiles);
 %imFiles=dir([imFolder filesep '*.tif']);
 %setappdata(0,'imFiles',imFiles);
@@ -24,13 +25,12 @@ trackData=[];
 idxAll=[];
 trackIdx=0;
 progressbar(0);
-endTime=155;%length(matFiles);
+endTime=length(matFiles);
 
-matData=load([imFolder filesep matFiles(1).name]);
-centroids1=matData.centroids;
-idx1=3*ones(size(centroids1,1),1);
-idx1(centroids1(:,2)<300)=2;
-idx1(centroids1(:,2)<200)=1;
+% centroids1=matData.centroids;
+% idx1=3*ones(size(centroids1,1),1);
+% idx1(centroids1(:,2)<300)=2;
+% idx1(centroids1(:,2)<200)=1;
 
  
  %%
@@ -61,9 +61,9 @@ for imat=2:1:endTime
           idx(centroids(:,2)<300)=2;
 
      idx(centroids(:,2)<200)=1;
-     
-     offset=-mean(centroids(idx==2,1:2))+[150,250];
-          centroids(idx==2,1:2)=bsxfun(@plus,centroids(idx==2,1:2),offset);
+%      
+%      offset=-mean(centroids(idx==2,1:2))+[150,250];
+%           centroids(idx==2,1:2)=bsxfun(@plus,centroids(idx==2,1:2),offset);
 
      %    c=lines(max(idx));
 %    
@@ -147,6 +147,6 @@ drawnow
 
 end
 %%
-save([imFolder filesep 'trackOutput2'],'trackOutput','cellOutput')
+save([imFolder filesep 'trackOutput'],'trackOutput','cellOutput')
 
 

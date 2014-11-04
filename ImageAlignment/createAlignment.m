@@ -1,4 +1,4 @@
-function createAlignment()
+function createAlignment(alignmentName)
 %createAlignment creates an alignment mapping out of images to be used with
 %worm segmentation and gcamp signal, only uses projective mapping
 
@@ -8,10 +8,25 @@ choice = menu('Image Setup','Split','Multiple');
 %pick files
 [fileName]=uipickfiles('FilterSpec','E:\');
 %name alignmentfiles
+if nargin==0;
 alignmentName = inputdlg('Name the alignment file:', 's');
+segmentPts=[];
+activityPts=[];
+else
+    alignment=load(alignmentName);
+    if choice==2
+
+    end
+segmentPts=alignment.Sall;
+activityPts=alignment.Aall;
+end
+
+        
 
 
 if choice==1
+    
+    if nargin==0
     initialIm=double(imread([fileName{1}],'tif'));
 
 %% Draw 2 rectangles for the shape and activity channels
@@ -19,16 +34,26 @@ fig=imagesc(initialIm);
 display('Get segmenting ROI')
 rect1=getrect(gcf);
 rect1=round(rect1);
-rectSize1=rect1(3:4);
-rect1=round(rect1 +[0,0 rect1(1:2)]);
 
 display('Get Activity ROI');
 rect2=getrect(gcf);
 rect2=round(rect2);
-rectSize2=rect2(3:4);
-rect2=round(rect2 +[0,0 rect2(1:2)]);
+    else
+rect1=alignment.rect1;
+rect2=alignment.rect2;
+    end
+
+rect1=round(rect1 +[0,0 rect1(1:2)]);
 rect1(rect1<1)=1;
+rect1(3)=min(rect1(3),size(initialIm,2));
+rect1(4)=min(rect1(4),size(initialIm,1));
+
+rect2=round(rect2 +[0,0 rect2(1:2)]);
 rect2(rect2<1)=1;
+rect2(3)=min(rect2(3),size(initialIm,2));
+rect2(4)=min(rect2(4),size(initialIm,1));
+
+
 
 nImage=length(fileName);
 else
@@ -36,9 +61,7 @@ else
     nImage=length(fileName)/2;
 end
 
-
-Aall=[];
-Sall=[];
+%%
 for iImage=1:nImage
     if choice==1
 
@@ -78,19 +101,19 @@ channelActivity(channelActivity>cRange(2))=cRange(2);
 channelActivity=normalizeRange(channelActivity);
 close all
 %% Select control points and create transform
-if ~isempty(Aall)
+if ~isempty(segmentPts)
 [activityPts,segmentPts]=cpselect(channelActivity,channelSegment,...
-                Aall,Sall,'Wait',true);
+                activityPts,segmentPts,'Wait',true);
 else
     [activityPts,segmentPts]=cpselect(channelActivity,channelSegment,...
                 'Wait',true);
 end
- Aall=cat(1,Aall,activityPts);
- Sall=cat(1,Sall,segmentPts);
+
             
 end
 %%
-
+Aall=activityPts;
+Sall=segmentPts;
 t_concord = fitgeotrans(Aall,Sall,'projective');
 Rsegment = imref2d(size(channelSegment));
 activityRegistered = imwarp(channelActivity,t_concord,'OutputView',Rsegment);
