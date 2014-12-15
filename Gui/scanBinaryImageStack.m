@@ -22,7 +22,7 @@ function varargout = scanBinaryImageStack(varargin)
 
 % Edit the above text to modify the response to help scanBinaryImageStack
 
-% Last Modified by GUIDE v2.5 18-Oct-2014 19:29:20
+% Last Modified by GUIDE v2.5 08-Dec-2014 12:58:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -268,7 +268,8 @@ function back1_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 currentFrame=get(handles.slider1,'Value');
-set(handles.slider1,'Value',max(currentFrame-1,1));
+stepSize=str2double(get(handles.stepSize,'String'));
+set(handles.slider1,'Value',max(currentFrame-stepSize,1));
 showImage(hObject)
 
 
@@ -280,7 +281,8 @@ function forward1_Callback(hObject, eventdata, handles)
 %get(handles.forward1)
 %while strcmp(get(handles.forward1,'Selected'),'on')
 currentFrame=get(handles.slider1,'Value');
-set(handles.slider1,'Value',min(currentFrame+1,get(handles.slider1,'max')));
+stepSize=str2double(get(handles.stepSize,'String'));
+set(handles.slider1,'Value',min(currentFrame+stepSize,get(handles.slider1,'max')));
 showImage(hObject)
 %end
 
@@ -362,7 +364,7 @@ function snapShotName_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of snapShotName as text
 %        str2double(get(hObject,'String')) returns contents of snapShotName as a double
-
+setappdata(handles.figure1,'ender',1);
 
 % --- Executes during object creation, after setting all properties.
 function snapShotName_CreateFcn(hObject, eventdata, handles)
@@ -386,19 +388,69 @@ currentImage=getappdata(handles.figure1,'currentImage');
 currentFolder=getappdata(0,'mostRecent');
 imageName=get(handles.snapShotName,'String');
 imageName=fullfile(currentFolder,imageName);
-ender=[];
-while exist([imageName,num2str(ender) '.tif'],'file');
-    
+ender=getappdata(handles.figure1,'ender');
+
+imageName=[imageName,num2str(ender,'%3.5d') '.tif'];
+
+
 if isempty(ender);
     ender=1;
 else
     ender=ender+1;
 end
-end
-imageName=[imageName,num2str(ender) '.tif'];
+
+setappdata(handles.figure1,'ender',ender);
+
 
 tiffwrite(imageName,single(currentImage),'tif',0);
 
 currentFrame=get(handles.slider1,'Value');
 set(handles.slider1,'Value',min(currentFrame+1,get(handles.slider1,'max')));
 showImage(hObject)
+
+% --- Executes on key press with focus on figure1 and none of its controls.
+function figure1_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+        if strcmp(eventdata.Key,'rightarrow')%strcmp(evnt.Key,'space') || 
+            forward1_Callback(handles.slider1,eventdata,handles);
+            
+        %Backward
+        elseif strcmp(eventdata.Key,'leftarrow')
+            back1_Callback(handles.slider1,eventdata,handles);
+        %Up
+        
+        elseif  strcmp(eventdata.Key,'space')
+            snapshot_Callback(handles.slider1,eventdata,handles);
+             forward1_Callback(handles.slider1,eventdata,handles);
+   
+        end
+
+
+
+function stepSize_Callback(hObject, eventdata, handles)
+% hObject    handle to stepSize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of stepSize as text
+%        str2double(get(hObject,'String')) returns contents of stepSize as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function stepSize_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to stepSize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

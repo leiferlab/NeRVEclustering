@@ -7,7 +7,7 @@ if nargin==1;
 end
 %%
 minDist=30;
-
+zScale=5;
 %imFolder=getappdata(0,'imFolder');
 
 
@@ -21,17 +21,21 @@ trackData1=[];
 trackData=[];
 idxAll=[];
 trackIdx=0;
+start=12;
+minV=80;
 endTime=length(matFiles);
 
-load([imFolder filesep matFiles(2).name]);
+load([imFolder filesep matFiles(start).name]);
 centroids1=centroids;
+pSelect=Volume>minV;
 % idx1=3*ones(size(centroids1,1),1);
 % idx1(centroids1(:,2)<300)=2;
 % idx1(centroids1(:,2)<200)=1;
-centroids1(:,3)=centroids(:,3)-median(centroids(:,3))+100;
+centroids1(:,3)=zPlaneIdx*zScale;
 
 tracks1=[centroids1,Gintensities,Rintensities,(1:size(centroids1,1))',ones(size(Gintensities))];
-
+tracks1=tracks1(pSelect,:);
+centroids1=centroids1(pSelect,:);
 params.dim=size(centroids1,2);
 params.good=2;
 params.mem=2;
@@ -40,7 +44,7 @@ params1.mem=10;
 params.quiet=1;
 params.difficult=3e4;
 params.excessive=4;
-params1.good=4;
+params1.good=2;
 params1.excessive=4;
 
 
@@ -48,9 +52,9 @@ params1.excessive=4;
 %% track each data set to first one (or 10 in this case)
 trackOutput1=repmat({0},endTime,1);
 trackData=tracks1;
-initialNum=5;
-if initialNum>1
-for imat=3:initialNum;
+initialNum=3;
+if start>2+initialNum-1
+for imat=1:initialNum;
     try
     matName=matFiles(imat).name;
     load([imFolder filesep matName]);
@@ -68,7 +72,7 @@ for imat=3:initialNum;
               coffset=median(centroids(:,3));
             end
             
-         centroids(:,3)=centroids(:,3)-coffset+100;
+         centroids(:,3)=zPlaneIdx*zScale;
   %       centroids(:,3)=centroids(:,3)-50*(1+zVoltage(midPlane));
                %   zPlaneIdx=zPlaneIdx-metaData.midPlane;
          %  [ metaData.zVoltage(metaData.midPlane),interp1(metaData.zVoltage,metaData.midPlane)]
@@ -79,7 +83,7 @@ for imat=3:initialNum;
             
        %     centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+100;
 Transformed_M=centroids;
-[Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel(centroids, centroids1, 3, [4, 0.2, 0.01], [0.0000008, 0.0000008, 0.0000008], [0 0 0], 1);
+[Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel(centroids, centroids1, 3, [4, 0.2, 0.01], [0.0000008, 0.0000008, 0.0000008], [0 0 0], 1,0);
     tracks=[Transformed_M,Gintensities,Rintensities,(1:size(centroids,1))',imat*ones(size(Gintensities))];
     params.dim=size(centroids,2);
     trackData=[trackData;tracks];
@@ -95,6 +99,7 @@ end
 %%
 trackOutput=nan;
 counter=minDist;
+
 while isnan(trackOutput)
     
         trackOutput=trackJN(trackData,counter,params1);
@@ -112,6 +117,8 @@ params.excessive=4;
 centroids1=initialC(:,1:3);
 else 
     initialC=tracks1;
+    params.excessive=4;
+
 end
 
 
@@ -119,12 +126,16 @@ end
 parfor imat=1:endTime
     try
     tic
+    %%
     matName=matFiles(imat).name;
     stackData=load([imFolder filesep matName]);
     if isfield(stackData,'centroids')
         centroids=stackData.centroids;
         Rintensities=stackData.Rintensities;
         Gintensities=stackData.Gintensities;
+        zPlaneIdx=stackData.zPlaneIdx;
+        Volume=stackData.Volume;
+
     else
         centroids=[];
     end
@@ -143,23 +154,26 @@ parfor imat=1:endTime
               coffset=nanmedian(centroids(centroids(:,2)>300,3));
             end
             
-         centroids(:,3)=centroids(:,3)-coffset+100;
+         centroids(:,3)=zPlaneIdx*zScale;
 
-        
+        centroids=centroids(Volume>minV,:);
 %         
       %  centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+100;
 
-        [Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel(centroids, centroids1, 3, [5, 0.3, 0.01], [0.8, 0.8, 0.8]*1e-8, [0 0 0], 1);
-        T1=toc;
-        tracks=[Transformed_M,Gintensities,Rintensities,(1:size(centroids,1))',2*ones(size(Gintensities))];
+[Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel(centroids, centroids1, 3, [1, 0.2, 0.01], [0.0000008, 0.0000008, 0.0000008], [0 0 0], 1 ,0);
+%Transformed_M=centroids;   
+T1=toc;
+        tracks=[Gintensities,Rintensities,(1:length(Gintensities))',2*ones(size(Gintensities))];
+ tracks=tracks(Volume>minV,:);
+ tracks=[Transformed_M tracks];
         trackInput=cat(1,initialC,tracks);
         tempOut=NaN;
-        counter=20;
+        counter=28;
         while isnan(tempOut)    
             tempOut=trackJN(trackInput,counter,params);
             if isnan(tempOut)
             counter=counter-1;
-            display('lowering dist to counter');
+            display(['lowering dist to ' num2str(counter)]);
 
             if counter==1;
                 break
@@ -167,6 +181,7 @@ parfor imat=1:endTime
             end
             
         end
+        tempOut(3,:)=tempOut(3,:)/zScale;
         trackOutput1{imat}=tempOut;
         trackOutput1{imat}(trackOutput1{imat}(:,end-1)==1,end-1)=0;
         trackOutput1{imat}(trackOutput1{imat}(:,end-1)==2,end-1)=imat;
@@ -177,7 +192,8 @@ parfor imat=1:endTime
         display(['Error stack: ' num2str(imat) ' in ' num2str(toc) 's']);
         
     end
-    catch
+    catch me
+        me
                 trackOutput1{imat}=[];
         display(['Error stack: ' num2str(imat) ' in ' num2str(toc) 's']);
         
@@ -185,6 +201,7 @@ parfor imat=1:endTime
     
     
 end
+
 
 %% combine all tracks,
 
@@ -231,7 +248,7 @@ trackOutput=sortrows(trackOutput,8);
 %params.dim=size(centroids,2);
 %%
 centroids=[];
-
+cellOutput=[];
 %%
 
 
@@ -267,10 +284,14 @@ for iTrack=1:nTracks
     plot(t,cellOutput(iTrack).red)
     
     drawnow
-       pause(.01)
+ %      pause(1)
     
     
 end
+minLength=endTime*.7;
+trackLength=cell2mat(cellfun(@(x) length(x), {cellOutput.time},'uniformoutput',false)');
+cellOutput=cellOutput(trackLength>minLength);
+
 %%
 save([imFolder filesep 'trackOutput'],'trackOutput','cellOutput')
 

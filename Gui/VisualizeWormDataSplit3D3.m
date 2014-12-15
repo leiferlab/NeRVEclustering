@@ -172,12 +172,17 @@ else
 end
 
 set(handles.slider1,'Value',1)
+trackFiles=dir([imFolder filesep '*track*.mat']);
 
-if ~exist([imFolder filesep 'trackOutput.mat'],'file')
-    runTrack_Callback(hObject, eventdata, handles)
+if length(trackFiles)~=1
+    trackFiles=uipickfiles('filterSpec',imFolder);
+    trackFiles=trackFiles{1};
+else
     
+    trackFiles=[imFolder filesep trackFiles(1).name];
 end
-load([imFolder filesep 'trackOutput']);
+
+load(trackFiles);
 
 
 
@@ -193,6 +198,7 @@ set(handles.slider1,'value',1);
 set(handles.slider2,'min',1);
 set(handles.slider2,'max',max(trackOutput(:,end)));
 set(handles.slider2,'value',1);
+set(handles.zSlider,'value',1);
 
 plotter(handles.slider1,eventdata);
 
@@ -276,13 +282,15 @@ trackData(trackData(:,7)<minFrame|trackData(:,7)>maxFrame,:)=[];
 matFiles=getappdata(0,'matFiles');
 imFiles=getappdata(0,'imFiles');
 rawImFolder=getappdata(0,'rawImFolder');
-try
-    matName= matFiles(iImage).name;
-    wormData=load([imFolder filesep matName]);
-catch
+% try
+%     matName= matFiles(iImage).name;
+%     wormData=load([imFolder filesep matName]);
+% catch
     wormData=[];
     matName=['stack' num2str(iImage,'%04d') 'data'];
-end
+        wormData=load([imFolder filesep matName]);
+
+%end
 iImage=matName(strfind(matName,'k')+1:strfind(matName,'d')-1);
 iImage=str2double(iImage);
 flag3d=0;
@@ -403,6 +411,7 @@ else %if imfolder has 2, then just lead the correct iage folder
             metaData=metaData.metaData;
         end
         
+        if 0
         zPos=metaData.zVoltage;
         if isfield(metaData,'midPlane')
             midPlane=metaData.midPlane;
@@ -430,8 +439,16 @@ else %if imfolder has 2, then just lead the correct iage folder
         zPos=zPos+(1:length(zPos))'*.00001;
         zSlice=interp1((zPos),1:length(zPos),zPosV,'nearest');
         zSlice=max(zSlice,1);
-        centroids=wormData.centroids;
+                centroids=wormData.centroids;
 
+        else
+        set(handles.zSlider,'Max',size(wormData.wormMask,3))
+        set(handles.zSlider,'Min',1)
+            zSlice=round(get(handles.zSlider,'Value'));
+            zPos=1:size(wormData.wormMask,3);
+                            centroids=wormData.centroids;
+centroids(:,3)=wormData.zPlaneIdx*5-50;
+        end
         flag3d=1;
         imName=['image' num2str(metaData.iFrame(zSlice),'%3.5d')];
         try
@@ -460,7 +477,7 @@ else %if imfolder has 2, then just lead the correct iage folder
                 baseImg=baseImg;
             otherwise
                 baseImg=[];
-                centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+50;
+           %     centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+50;
         end
         
     end
@@ -470,8 +487,9 @@ setappdata(0,'baseImg',baseImg)
 %     figure
 %     imagesc(smooth2a(baseImg,20,20)>5);
    set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's' ...
-         '  ' num2str(zPosV)]);
+         '  ' num2str(zSlice)]);
  %    set(handles.FrameIdx,'string',stackName);
+wormData.Gintensities(5)
 
 if ~isempty(trackData);
 if ~isempty(baseImg(:))
@@ -481,18 +499,18 @@ if ~isempty(baseImg(:))
         
         setappdata(handles.figure1,'baseImg',baseImg);
         %scale dynamic range
-        newContrast=getappdata(handles.figure1,'newContrast');
-        if isempty(newContrast)
-            newContrast=[min(baseImg(:)),max(baseImg(:))];
-        end
-        baseImg(baseImg<newContrast(1)) = newContrast(1);
-        baseImg(baseImg>newContrast(2)) = newContrast(2);
-        baseImg = (baseImg-newContrast(1))./diff(newContrast);
+%         newContrast=getappdata(handles.figure1,'newContrast');
+%         if isempty(newContrast)
+%             newContrast=[min(baseImg(:)),max(baseImg(:))];
+%         end
+%         baseImg(baseImg<newContrast(1)) = newContrast(1);
+%         baseImg(baseImg>newContrast(2)) = newContrast(2);
+%         baseImg = (baseImg-newContrast(1))./diff(newContrast);
     end
         hold(handles.axes1,'off')
 
     ax1=imagesc(baseImg,'parent',handles.axes1);
-    
+    caxis(handles.axes1,[0,200]);
     
     plot(handles.axes3,smooth(max(smooth2a(baseImg,10,10),[],2),30));
     hold(handles.axes1,'on')
@@ -589,7 +607,7 @@ end
 %     xBase=sum(baseImg,1);
 %     yCM=dot(yBase,(1:length(yBase)))/sum(yBase);
 %     xCM=dot(xBase,(1:length(xBase)))/sum(xBase);
-%         scatter(handles.axes1,xCM,yCM,'gx')
+%         scatter(handles.axes1,xCM,yCM,'gx')label
 %     hold(handles.axes1,'off')
 
 
@@ -597,7 +615,6 @@ if get(handles.showAll,'value')
     %show heatmap of all tracks
     activityMat=getappdata(handles.figure1,'activityMat');
     imagesc(activityMat,'parent',handles.axes2);
-    colormap hot
     
 else
     
@@ -644,6 +661,7 @@ else
         a=a(t>startTime);
         a2=a2(t>startTime);
         t=t(t>startTime);
+        a(a==0|a>1000)=nan;
 
         if ~get(handles.interpMissing,'Value')
             tnew=min(t):max(t);
@@ -1123,8 +1141,21 @@ function runTrack_Callback(hObject, eventdata, handles)
 % hObject    handle to runTrack (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-display('runTrack no longer functional, run the code seperately');
 
+imFolder=getappdata(0,'imFolder');
+trackFiles=dir([imFolder filesep 'track*.mat']);
+
+if numel(trackFiles)~=1
+    trackFiles=uipickfiles('filterSpec',imFolder);
+    trackFiles=trackFiles{1};
+else
+    
+    trackFiles=[imFolder filesep trackFiles(1).name];
+end
+
+load(trackFiles);
+
+setappdata(handles.figure1,'trackOutput',trackOutput);
 
 
 

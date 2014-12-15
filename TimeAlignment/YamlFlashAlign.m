@@ -27,9 +27,11 @@ for iMat=1:length(matName)
         case 4
             bfFlash=load([dataFolder filesep matName{iMat}]);
             bfFlash=bfFlash.imFlash;
+            bfFlash=bfFlash-smooth(bfFlash,200)';
         case 6
             fluorFlash=load([dataFolder filesep matName{iMat}]);
             fluorFlash=fluorFlash.imFlash;
+            fluorFlash=fluorFlash-smooth(fluorFlash,200)';
 
         case 3
             fluorYaml=load([dataFolder filesep matName{iMat}]);
@@ -55,7 +57,7 @@ fluorFrameTime=fluorFrameTime-min(fluorFrameTime);
 bfFlash=bfFlash-min(bfFlash);
 bfFlashloc=find(bfFlash>(max(bfFlash)/2));
 fluorFlash=fluorFlash-min(fluorFlash);
-fluorFlashloc=find(fluorFlash>(max(fluorFlash)/2));
+fluorFlashloc=find(fluorFlash>(std(fluorFlash)*10));
 
 bfFlashTime=bfFrameTime(bfFlashloc);
 fluorFlashTime=fluorFrameTime(fluorFlashloc);
