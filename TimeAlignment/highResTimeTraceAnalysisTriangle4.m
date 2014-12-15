@@ -1,4 +1,4 @@
-function dataAll=highResTimeTraceAnalysisTriangle3(imFolder,row,col)
+function dataAll=highResTimeTraceAnalysisTriangle4(imFolder,row,col)
 %highResTimeTraceAnalysis takes folder with cameraframedata.txt,
 %labjackdata.txt, and sCMOS_Frames_U16_1024x1024.dat and finds alignments
 %for timing.

@@ -22,12 +22,8 @@ behavior=load([dataFolder filesep 'ManualBehavior']);
 behavior=behavior.behavior;
 
 hiResBehavior=behavior(diff(BF2stackIdx)>0);
+area(hiResBehavior)
 
 %%
-
-xPos=hiResData.xPos(diff(hiResData.stackIdx)==1);
-yPos=hiResData.yPos(diff(hiResData.stackIdx)==1);
-xPos=xPos(hasPoints);
-yPos=yPos(hasPoints);
 
 

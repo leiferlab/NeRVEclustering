@@ -494,6 +494,10 @@ end
 setappdata(handles.figure1,'behavior',behavior);
 showImage(hObject);
 
+currentFolder=getappdata(0,'mostRecent');
+behavior=getappdata(handles.figure1,'behavior');
+save([currentFolder filesep 'manualBehavior'], 'behavior');
+
 
 % --- Executes on button press in wormPause.
 function wormPause_Callback(hObject, eventdata, handles)
@@ -511,6 +515,10 @@ else
 end
 setappdata(handles.figure1,'behavior',behavior);
 showImage(hObject);
+
+currentFolder=getappdata(0,'mostRecent');
+behavior=getappdata(handles.figure1,'behavior');
+save([currentFolder filesep 'manualBehavior'], 'behavior');
 
 
 % --- Executes on button press in wormReverse.
@@ -532,3 +540,7 @@ end
 setappdata(handles.figure1,'behavior',behavior);
 showImage(hObject);
 
+currentFolder=getappdata(0,'mostRecent');
+behavior=getappdata(handles.figure1,'behavior');
+save([currentFolder filesep 'manualBehavior'], 'behavior');
+% 

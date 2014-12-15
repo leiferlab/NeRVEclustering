@@ -10,7 +10,30 @@ if nargin==0;
 end
 
 dd=dir([dataFolder filesep '*.mat']);
+matName={dd.name}';
 
+yamls=regexpi(matName','yaml');
+yamls=cellfun(@(x) ~isempty(x), yamls)';
+fluors=regexpi(matName','fluor');
+fluors=cellfun(@(x) ~isempty(x), fluors)';
+flashes=regexpi(matName','flash');
+flashes=cellfun(@(x) ~isempty(x), flashes)';
+
+if length(yamls)<2 ||length(flashes)<2
+   if length( yamls)<2
+    display('Select Yaml Files');
+yamlFiles=uipickfiles('filterspec', dataFolder);
+   end
+   
+if length(flashes)<2
+display('Select avi files');
+aviFiles=uipickfiles('filterspec', dataFolder);
+end
+
+findFlash(aviFiles);
+makeMatFileFromYaml(yamlFiles);
+
+dd=dir([dataFolder filesep '*.mat']);
 matName={dd.name}';
 yamls=regexpi(matName','yaml');
 yamls=cellfun(@(x) ~isempty(x), yamls)';
@@ -19,12 +42,17 @@ fluors=cellfun(@(x) ~isempty(x), fluors)';
 flashes=regexpi(matName','flash');
 flashes=cellfun(@(x) ~isempty(x), flashes)';
 
+end
+
+
+
 bits=[flashes,fluors,yamls];
 caseNumber=bi2de(fliplr(bits));
 
 for iMat=1:length(matName)
     switch caseNumber(iMat);
         case 4
+            
             bfFlash=load([dataFolder filesep matName{iMat}]);
             bfFlash=bfFlash.imFlash;
         case 6

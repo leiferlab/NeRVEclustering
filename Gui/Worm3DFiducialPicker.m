@@ -821,8 +821,10 @@ function loadFiducials_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 imfiles=getappdata(handles.figure1,'imfiles');
+
 parent=fileparts(imfiles);
 fiducialFile=uipickfiles('filterspec',parent);
+
 fiducialFile=fiducialFile{1};
 fiducialData=load(fiducialFile);
 setappdata(handles.figure1,'fiducials', fiducialData.fiducials)
