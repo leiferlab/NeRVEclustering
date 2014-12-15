@@ -4,6 +4,9 @@ function stackIn=colNanFill(stackIn)
 
  imSize=size(stackIn);
  nanMap=isnan(stackIn);
+if ismatrix(stackIn);
+    imSize(3)=1;
+end
 
 for i=1:imSize(2)
     for j=1:imSize(3)
