@@ -122,7 +122,7 @@ padRegion=imdilate(padRegion,true(3));
 %% save 
 if choice==1
 save(['Y:\CommunalCode\3dbrain\registration\' alignmentName{1}],'rect1','rect2','t_concord'...
-    ,'Rsegment','rectSize1','rectSize2','padRegion','initialIm','Sall','Aall','fileName')
+    ,'Rsegment','padRegion','initialIm','Sall','Aall','fileName')
 else
 save(['Y:\CommunalCode\3dbrain\registration\' alignmentName{1}],'t_concord'...
     ,'Rsegment','Sall','Aall','fileName')

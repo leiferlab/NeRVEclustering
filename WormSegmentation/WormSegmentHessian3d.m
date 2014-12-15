@@ -118,7 +118,7 @@ Jm=Htrace<hthresh;
 Jm=xyzConvHull(Jm,3); % ghetto way to try to fill holes in all directions
 
 % watershed filter shapes
-
+%%
 if watershedFilter
 Jd=-bwdist(~Jm);  %make distance map
 %Jd=smooth3(Jd,'gaussian',5,2);
@@ -128,34 +128,33 @@ Jw=watershed(Jd);
 Jm=Jm.*(Jw>0);
 end
 
-
+%%
 %Jm=imclearborder(Jm);
 
 
 %watershed splitting based on local maxima locations
 if maxSplit
-%find regionalmaxima and threshold around that intensity
-subImaxPnts=imregionalmax(subIm.*Jm);
+    %find regionalmaxima and threshold around that intensity
+    subImaxPnts=imregionalmax(subIm.*Jm);
 
-subImaxReg=subIm>(max(subIm(subImaxPnts)))*valleyRatio; 
-%subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
-% subImax=imregionalmax(subIm);
-% 
-% subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
+    subImaxReg=subIm>(max(subIm(subImaxPnts)))*valleyRatio;
+    %subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
+    % subImax=imregionalmax(subIm);
+    % 
+    % subImax=imdilate(subImax.*Jm,true(minObjDim,minObjDim,minObjDim));
 
-JmLabel=bwlabeln(Jm,6);
-for iLabel=1:max(JmLabel(:));
-    subJm=JmLabel==iLabel;
-    subsubImax=subImaxReg & subJm;
-    subsubcc=bwconncomp(subsubImax);
-    if subsubcc.NumObjects>1
-maxBW=watershed(bwdist(subsubImax));
-        
-Jm(maxBW==0 & subJm)=0;
-    
+    JmLabel=bwlabeln(Jm,6);
+    for iLabel=1:max(JmLabel(:));
+        subJm=JmLabel==iLabel;
+        subsubImax=subImaxReg & subJm;
+        subsubcc=bwconncomp(subsubImax);
+        if subsubcc.NumObjects>1
+            maxBW=watershed(bwdist(subsubImax));
+
+            Jm(maxBW==0 & subJm)=0;
+        end
+
     end
-    
-end
 
 end
 

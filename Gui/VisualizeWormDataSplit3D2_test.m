@@ -153,7 +153,7 @@ setappdata(0,'rawImFolder',rawImFolder);
 %setting slider parameters
 set(handles.slider1,'Min',1)
 if isempty(matFiles)
-    set(handles.slider1,'Max',2);
+    set(handles.slider1,'Max',length(imFiles{1}));
 else
     set(handles.slider1,'Max',length(imFiles{1}));
 end
@@ -392,7 +392,7 @@ else %if imfolder has 2, then just lead the correct iage folder
             otherwise
                 baseImg=[];
                 centroids=wormData.centroids;
-                centroids(:,3)=centroids(:,3)-mean(centroids(:,3))+50;
+                centroids(:,3)=wormData.zPlaneIdx;
         end
         
     end
@@ -629,9 +629,17 @@ set(handles.currentFolder,'String',imFolder);
 
 
 else
-    
+    if ~isempty(baseImg)
         ax1=imagesc(baseImg,'parent',handles.axes1);
+        axis(handles.axes1,'equal')
 
+    else
+        scat3=scatter3(handles.axes1,centroids(:,2),centroids(:,1),centroids(:,3));
+zlim(handles.axes1,[0,40])
+ylim(handles.axes1,[0,600])
+xlim(handles.axes1,[0,600])
+
+    end
 end
 centerline=getappdata(handles.figure1,'centerline');
 bfIdxLookup=getappdata(handles.figure1,'bfIdxLookup');

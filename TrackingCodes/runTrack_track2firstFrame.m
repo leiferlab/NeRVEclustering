@@ -24,8 +24,9 @@ idxAll=[];
 trackIdx=0;
 endTime=length(matFiles);
 
-load([imFolder filesep matFiles(1).name]);
+load([imFolder filesep matFiles(5).name]);
 centroids1=centroids;
+centroids1(:,3)=(centroids1(:,3)-median(centroids1(:,3))+100);
 % idx1=3*ones(size(centroids1,1),1);
 % idx1(centroids1(:,2)<300)=2;
 % idx1(centroids1(:,2)<200)=1;
@@ -37,16 +38,20 @@ centroids1=centroids;
  trackOutput1=repmat({0},endTime,1);
  progressbar(0);
 
-parfor imat=2:endTime
+parfor imat=4:endTime
     try
     
+
     matName=matFiles(imat).name;
     stackData=load([imFolder filesep matName]);
 
 centroids=stackData.centroids;
+centroids(:,3)=(centroids(:,3)-median(centroids(:,3))+100);
+
 Rintensities=stackData.Rintensities;
-Gintensities=stackData.Gintensities;
-%[Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel(centroids, centroids1, 3, [1, 0.1, 0.01], [0.00008, 0.00008, 0.00008], [0 0 0], 10);
+Gintensities=stackData.Gintensities;%
+[Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel(centroids1, centroids, 3, [1, 0.1, 0.01], [0.00008, 0.00008, 0.00008], [0 0 0], 10,0);
+
 Transformed_M=centroids;
 tracks=[Transformed_M,Gintensities,Rintensities,(1:length(centroids))',2*ones(size(Gintensities))];
     trackInput=cat(1,tracks1,tracks);
@@ -69,7 +74,7 @@ end
 %%
 
 trackOutput2=trackOutput1;
-firstTrack=trackOutput1{2};
+firstTrack=trackOutput1{5};
 trackTime=firstTrack(:,end-1);
 particleIdx=firstTrack(:,end-2);
 trackIdx=firstTrack(:,end);

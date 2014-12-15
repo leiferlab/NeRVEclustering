@@ -257,6 +257,7 @@ wormBW2(BB(2):BB(5),BB(1):BB(4),BB(3):BB(6))=...
 end
 wormBW2=imopen(double(wormBW2),strel('ball',10,10,10));
 wormBW2=wormBW2>.8;
+wormBW2=AreaFilter(wormBW2,minObjSize,[],6);
 
 
 %% 

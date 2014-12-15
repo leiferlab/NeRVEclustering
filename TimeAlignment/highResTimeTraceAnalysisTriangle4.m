@@ -22,7 +22,7 @@ saveIdx=camFrameData(:,2);
 
 labJackData=importdata([imFolder filesep 'LabJackData.txt']);
 labJackData=labJackData.data;
-%FuncGen Voltage	Z Sensor	FxnGen Sync	Camera Trigger	Frame Count
+%FuncGen Voltage ZSensor FxnGenSync CameraTrigger savedFrameCount FrameCount {x y}
 
 
 %load images to find flash, flashes have intensity above 10 sigma
@@ -106,6 +106,19 @@ dataAll.imageIdx=imageIdx;
 dataAll.frameTime=timeAll;
 dataAll.stackIdx=stackIdx;
 dataAll.imSTD=imSTD;
+
+if size(labJackData,2)>7
+    xPos=labJackData(:,7);
+    yPos=labJackData(:,8);
+    dataAll.xPos=xPos(saveSpikes);
+    dataAll.yPos=yPos(saveSpikes);
+else
+    dataAll.xPos=[];
+    dataAll.yPos=[];
+    
+end
+
+
 save([imFolder filesep 'hiResData'],'dataAll');
 
 
