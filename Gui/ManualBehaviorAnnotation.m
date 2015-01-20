@@ -408,7 +408,7 @@ imageName=get(handles.snapShotName,'String');
 imageName=fullfile(currentFolder,imageName);
 ender=getappdata(handles.figure1,'ender');
 behavior=getappdata(handles.figure1,'behavior');
-save([currentFolder filesep 'manualBehavior'], 'behavior');
+save([imageName], 'behavior');
 % 
 % imageName=[imageName,num2str(ender,'%3.5d') '.tif'];
 % 
@@ -496,7 +496,9 @@ showImage(hObject);
 
 currentFolder=getappdata(0,'mostRecent');
 behavior=getappdata(handles.figure1,'behavior');
-save([currentFolder filesep 'manualBehavior'], 'behavior');
+imageName=get(handles.snapShotName,'String');
+imageName=fullfile(currentFolder,imageName);
+save(imageName, 'behavior');
 
 
 % --- Executes on button press in wormPause.

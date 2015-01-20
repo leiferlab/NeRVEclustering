@@ -418,11 +418,11 @@ function figure1_KeyPressFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-        if strcmp(eventdata.Key,'rightarrow')%strcmp(evnt.Key,'space') || 
+        if strcmp(eventdata.Key,'rightarrow')||strcmp(eventdata.Key,'d')%strcmp(evnt.Key,'space') || 
             forward1_Callback(handles.slider1,eventdata,handles);
             
         %Backward
-        elseif strcmp(eventdata.Key,'leftarrow')
+        elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
             back1_Callback(handles.slider1,eventdata,handles);
         %Up
         

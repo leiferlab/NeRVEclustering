@@ -58,8 +58,8 @@ end
 %%
 display('Select Hi Res Alignment')
 
-S2AHiRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
-S2AHiRes=load(S2AHiRes{1});
+S2AHiResFile=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
+S2AHiRes=load(S2AHiResFile{1});
 rect1=S2AHiRes.rect1;
 rect2=S2AHiRes.rect2;
 
@@ -116,13 +116,17 @@ groupSize=100;
 
 annotated=find(cell2mat(cellfun(@(x) ~isempty(cell2mat(x(1))),fiducialPoints,'uniformOutput',0)));
 %%
-progressbar(0,0);
-boxR=[10,10,3];
+progressbar(0);
+boxR=[10,10,2];
 [boxX,boxY,boxZ]=meshgrid(-boxR(1):boxR(1),-boxR(2):boxR(2),-boxR(3):boxR(3));
+Rcrop=zeros([size( boxX) length(annotated) 72]);
+Gcrop=Rcrop;
 
-for iStack=(annotated')
-      currentFiducials=fiducialPoints{iStack};
-        Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
+for iStack=1:length(annotated)
+  %  progressbar(iStack/length(annotated));
+
+      currentFiducials=fiducialPoints{annotated(iStack)};
+       Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
 
         fiducialIdx=find(cell2mat((cellfun(@(x)( ~isempty(x)),currentFiducials(:,1),'uniformoutput',0))));
         fiducialIdx(isnan(cell2mat(currentFiducials(fiducialIdx,1))))=[];
@@ -137,10 +141,9 @@ for iStack=(annotated')
         rFiducialPoints=round(currentFiducials(:,[1,2,4]));
         
 %%
-
 for i=1:size(rFiducialPoints,1)
     
-progressbar(iStack/max(annotated),i/size(rFiducialPoints,1));
+progressbar(iStack/length(annotated),i/size(rFiducialPoints,1));
 
         hiResIdx=(fiducialZ(i)-boxR(3));
 
@@ -178,7 +181,6 @@ RBW=(normalizeRange(Rtemp)>graythresh(normalizeRange(Rtemp)));
 
 Rcrop(:,:,:,iStack,fiducialIdx(i))=Rtemp;
 Gcrop(:,:,:,iStack,fiducialIdx(i))=Gtemp;
-
 
 end
 fclose(Fid)

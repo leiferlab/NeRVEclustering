@@ -13,7 +13,6 @@ dataFolder=dataFolder{1};
 
 %% algin all videos,    CHECK Z2IMAGEIDXOFFSET
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
-z2ImageIdxOffset=-9;
 
 
 %% load centerline data

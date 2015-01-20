@@ -55,7 +55,7 @@ stackIdx=[0;cumsum(abs(diff(zgrad)))];
 stackAccum=((accumarray(stackIdx+1,ones(size(stackIdx)))));
 % get rid of stacks with less than 10 images more than 200 (possibly
 % turning off of the zwave);
-badIdx=find(stackAccum<10 |stackAccum>200)-1;
+badIdx=find(stackAccum<30 |stackAccum>200)-1;
 sOld=stackIdx;
 stackIdx(ismember(sOld,badIdx))=0;
 dstackIdx=diff(stackIdx);

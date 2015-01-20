@@ -1,5 +1,5 @@
 xAll=[];tAll=[];
-nFiducials=17;
+nFiducials=60;
 
 hasPoints=cellfun(@(x) ~isempty(x{1}), fiducialPoints,'uniformoutput',0);
 hasPoints=find(cell2mat(hasPoints));
@@ -45,16 +45,23 @@ coeff2=bsxfun(@plus, coeff2,xmeans');
 vols=size(Rcrop,5);
 RvalsAll=zeros(vols,nTimes);
 GvalsAll=RvalsAll;
+center=ceil(size(Rcrop)/2);
+center=center(1:3);
 
 progressbar(0,0);
 for iVol=1:vols
     for i=1:nTimes
-        iTime=hasPoints(i);
+      %  iTime=hasPoints(i);
+      iTime=i;
         progressbar(iVol/vols,iTime/nTimes);
-        subVolumeR=pedistalSubtract(Rcrop(:,:,:,iTime,iVol));
-        subVolumeG=(Gcrop(:,:,:,iTime,iVol))-90;
-        subVolumeG(subVolumeG<0)=0;
-        subBW=normalizeRange(subVolumeR)>.5;
+        subVolumeR=(Rcrop(:,:,center(3),iTime,iVol))-90;
+     %           subVolumeR=pedistalSubtract(Rcrop(:,:,:,iTime,iVol));
+
+        subVolumeG=(Gcrop(:,:,center(3),iTime,iVol))-90;
+        subVolumeG((subVolumeG)<=0)=nan;
+        subVolumeR(subVolumeR<0)=nan;
+
+        subBW=(subVolumeR)>.5*subVolumeR(center(1),center(2));
         cc=bwconncomp(subBW,6);
         nPixRegions=cell2mat(cellfun(@(x) length(x), cc.PixelIdxList,'uniformOutput',0));
         [~,areaIdx]=max(nPixRegions);
@@ -65,6 +72,7 @@ for iVol=1:vols
         GvalsAll(iVol,i)=nanmean(Gvals);
     end
 end
+       RvalsAll(RvalsAll==0)=nan;
 
 %%
 RvalsAll(RvalsAll==0)=nan;
@@ -72,12 +80,16 @@ GvalsAll(GvalsAll==0)=nan;
 
 R2=bsxfun(@rdivide,RvalsAll,nanmedian(RvalsAll,2));
 G2=bsxfun(@rdivide,GvalsAll,nanmedian(GvalsAll,2));
+R2=medfilt2(R2,[1,3]);
+G2=medfilt2(G2,[1,3]);
 % R2=RvalsAll;
 % G2=GvalsAll;
 R2smooth=smooth2a(R2(:,1:nTimes),0,1);%-smooth2a(R2(:,1:nTimes),0,80);
-G2smooth=smooth2a(G2(:,1:nTimes),0,1)-smooth2a(G2(:,1:nTimes),0,80);
+G2smooth=smooth2a(G2(:,1:nTimes),0,1);%-smooth2a(G2(:,1:nTimes),0,80);
 
-A=(G2smooth./R2smooth)';
+%A=(G2smooth./R2smooth)';
+A=G2smooth';
+A(R2smooth<.1)=nan;
 %A=[A score(1:size(A,1),1:3)];
 %A=G2smooth';
 
@@ -94,7 +106,7 @@ cgIdx=str2double(get(cg,'RowLabels'));
 A=A';
 figure
 
-imagesc(linspace(0,Ntimes*.2,Ntimes),1:length(cgIdx),A(cgIdx,:));
+imagesc(hasPoints,1:length(cgIdx),A(cgIdx,:));
 figure
 subplot(2,1,1);imagesc(R2smooth(cgIdx,:));subplot(2,1,2);imagesc(G2smooth(cgIdx,:));
 
@@ -105,6 +117,14 @@ subplot(2,1,1);imagesc(R2smooth(cgIdx,:));subplot(2,1,2);imagesc(G2smooth(cgIdx,
 behaviorTrack=hiResBehavior(hasPoints);
 reversalTimes=find(behaviorTrack<1);
 notReversalTimes=(behaviorTrack>0);
+
+
+    Rz=bsxfun(@minus, R2smooth,quantile(R2smooth,.2,2));
+Rz=bsxfun(@rdivide,Rz,nanstd(Rz,[],2));
+
+    Gz=bsxfun(@minus, G2smooth,quantile(G2smooth,.2,2));
+Gz=bsxfun(@rdivide,Gz,nanstd(Gz,[],2));
+
 Ar=A(:,reversalTimes);
 ANr=A(:,notReversalTimes);
 ARmean=mean(Ar,2);
@@ -112,23 +132,30 @@ ARstd=nanstd(Ar,[],2);
 ARCI=ARstd./length(reversalTimes)*4*1.28;
 ANRmean=nanmean(ANr,2);
 ANRstd=nanstd(ANr,[],2);
-ANRCI=ANRstd./length(notReversalTimes)*4*1.28;
-meanDiff=[nanmean(Ar,2) - nanmean(ANr,2)];
+ANRCI=ANRstd./length(notReversalTimes)*4*0.28;
 
-possibleR=find((meanDiff)>.2);
+
+
+meanDiffR=[nanmean(Rz(:,reversalTimes),2) - nanmean(Rz(:,notReversalTimes),2)];
+meanDiffG=[nanmean(Gz(:,reversalTimes),2) - nanmean(Gz(:,notReversalTimes),2)];
+
+possibleR=find((meanDiffR<0 & meanDiffG>0));
+[~,ia]=sort(meanDiffG(possibleR));
+possibleR=possibleR(ia);
 
 %%
 figure
+space=5;
+
 for i=1:length(possibleR)
-plot(A(possibleR(i),:)'+5*i)
+plot(A(possibleR(i),:)'+space*i)
 hold on
 end
- area(hiResBehavior(hasPoints))
+ area(.3*space.*hiResBehavior(hasPoints))
 
 %plot(reversalTimes,repmat(0,1,length(reversalTimes)),'x')
 %%
 figure
-space=5;
 for i=1:length(possibleR)
     Rz=bsxfun(@minus, R2smooth,quantile(R2smooth,.2,2));
 Rz=bsxfun(@rdivide,Rz,nanstd(Rz,[],2));
@@ -138,10 +165,10 @@ Gz=bsxfun(@rdivide,Gz,nanstd(Gz,[],2));
 % nanmap=(Rz<-1 | Gz<-1);
 % Gz(Gz<-1)=nan;
 % Rz(Rz<-1)=nan;
-plot(Rz(possibleR(i),:)'+(i-1)*space,'r')
+plot(Rz(possibleR(i),:)'+(i)*space,'r')
 
 hold on
-plot(Gz(possibleR(i),:)'+(i-1)*space,'black')
+plot(Gz(possibleR(i),:)'+(i)*space,'black')
 
 end
 % plot(behavior>0,repmat(0,1,length(behavior)),'gx')

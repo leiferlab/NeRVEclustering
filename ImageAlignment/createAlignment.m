@@ -14,20 +14,22 @@ segmentPts=[];
 activityPts=[];
 else
     alignment=load(alignmentName);
+    alignmentName = inputdlg('Name the alignment file:', 's');
+
     if choice==2
 
     end
 segmentPts=alignment.Sall;
 activityPts=alignment.Aall;
 end
-
+%%
         
 
 
 if choice==1
-    
+        initialIm=double(imread([fileName{1}],'tif'));
+
     if nargin==0
-    initialIm=double(imread([fileName{1}],'tif'));
 
 %% Draw 2 rectangles for the shape and activity channels
 fig=imagesc(initialIm);

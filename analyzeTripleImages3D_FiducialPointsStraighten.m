@@ -13,46 +13,9 @@ dataFolder=dataFolder{1};
 
 %% algin all videos,    CHECK Z2IMAGEIDXOFFSET
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
-z2ImageIdxOffset=-9;
 
 
-%% load centerline data
-centerLineFile=dir([dataFolder filesep '*centerline*']);
-centerLineFile={centerLineFile.name}';
-if length(centerLineFile)>1
-            display('Select centerLine file');
 
-    centerlineFile=uipickfiles('FilterSpec',dataFolder);
-    centerline=load(centerlineFile{1},'centerline');
-    centerline=centerline.centerline;
-else
-    centerline=load([dataFolder filesep centerLineFile{1}],'centerline');
-    centerline=centerline.centerline;
-end
-%% load contour file
-contourFile=dir([dataFolder filesep '*ontours*']);
-contourFile={contourFile.name}';
-if length(contourFile)~=1
-    display('Select contour file');
-    contourFile=uipickfiles('FilterSpec',dataFolder);
-    contours=load(contourFile{1});
-%    contours=contours.contours;
-else
-    contours=load([dataFolder filesep contourFile{1}]);
-  %  contours=contours.contours;
-end
-%% load model image
-modelFile=dir([dataFolder filesep '*model*']);
-modelFile={modelFile.name}';
-if length(modelFile)~=1
-        display('Select model file');
-
-    modelFile=uipickfiles('FilterSpec',dataFolder);
-    cModel=load(contourFile{1});
-else
-    cModel=load([dataFolder filesep modelFile{1}]);
-    cModel=cModel.cModel;
-end
 
 %% load Fiducials file
 fiducialFile=dir([dataFolder filesep '*iducial*']);
@@ -63,9 +26,13 @@ if length(fiducialFile)~=1
     fiducialFile=uipickfiles('FilterSpec',dataFolder);
     fiducialFile=load(fiducialFile{1});
     fiducialPoints=fiducialFile.fiducialPoints;
+    z2ImageIdxOffset=fiducialFile.timeOffset;
 else
     fiducialFile=load([dataFolder filesep fiducialFile{1}]);
     fiducialPoints=fiducialFile.fiducialPoints;
+        z2ImageIdxOffset=fiducialFile.timeOffset;
+    z2ImageIdxOffset=fiducialFile.timeOffset;
+
 end
 
 %% load alignment data
@@ -81,12 +48,12 @@ Hi2LowResF=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
 Hi2LowResF=load(Hi2LowResF{1});
 
 
-display('Select Hi to Low Res Alignment')
-
-Hi2LowRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
-Hi2LowRes=load(Hi2LowRes{1});
-t_concord = fitgeotrans(Hi2LowRes.Sall,Hi2LowRes.Aall,'projective');
-display('Select Hi Res Alignment')
+% display('Select Hi to Low Res Alignment')
+% 
+% Hi2LowRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
+% Hi2LowRes=load(Hi2LowRes{1});
+% t_concord = fitgeotrans(Hi2LowRes.Sall,Hi2LowRes.Aall,'projective');
+ display('Select Hi Res Alignment')
 
 S2AHiRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
 S2AHiRes=load(S2AHiRes{1});
@@ -109,7 +76,7 @@ catch
     backgroundImage=0;
 end
 %%
-load([dataFolder filesep 'RefStack.mat'])
+load([dataFolder filesep 'refStackStraight.mat'])
 
 refstack=normalizeRange(refstack);
 maxRef=max(pedistalSubtract(refstack),[],3);
@@ -234,18 +201,21 @@ groupSize=80;% best to use factor of 8
 % masterFiducials=masterFiducials(fiducialIdx,:);
 
 %%
-for iGroup=1:max(stackIdx)/groupSize
+hasPoints=cellfun(@(x) ~isempty(x{1}), fiducialPoints,'uniformoutput',0);
+hasPoints=find(cell2mat(hasPoints));
+
+for iGroup=1:ceil(length(hasPoints)/groupSize)
 metaData=[];
 metaData.metaData=[];
 group=groupSize*(iGroup-1):groupSize*(iGroup);
 
-group=group(group<max(stackIdx));
-group=group(group>1);
+group=group(group<length(hasPoints));
+group=group(group>0);
 
 metaData=repmat(metaData,1,length(group));
 
 parfor i=1:length(group);
-    iStack=group(i);
+    iStack=hasPoints(group(i));
     
     try
         %%
@@ -267,7 +237,7 @@ parfor i=1:length(group);
         highResInterpStack=[];
         hiResMean=[];
         newYHiFout=[];
-        lowResBFStack=[];
+        lowResFluorStack=[];
         highResActivityInterpStack=[];
         newXHiFout=[];
         segmentStack=[];
@@ -277,19 +247,19 @@ parfor i=1:length(group);
         Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
         
         %%
-        CLIdx=round(bfIdxLookup(imageIdx));
-        [xCLsearch,yCLsearch]=meshgrid(1:100,CLIdx);
-               CLcurrent=cat(3,interp2(squeeze(centerline(:,1,:))',xCLsearch,yCLsearch),...
-                interp2(squeeze(centerline(:,2,:))',xCLsearch,yCLsearch));
-            CLcurrent=squeeze(trimmean(CLcurrent,20,1));
-           CLcurrent=[interp1(CLcurrent(:,1),-stretchSize+1:100+stretchSize,'*PCHIP','extrap')',...
-                interp1(CLcurrent(:,2),-stretchSize+1:100+stretchSize,'*PCHIP','extrap')'];
-                  CLcurrent=[smooth(CLcurrent(:,1),5), smooth(CLcurrent(:,2),5)];
-                        CLdistance=[0;cumsum(sqrt(sum(diff(CLcurrent).^2,2)))];
-          %  CLdistance=1+CLdistance/CLdistance(end)*99;
-            CLcurrent=[interp1(CLdistance,CLcurrent(:,1),1:max(CLdistance),'*PCHIP','extrap')',...
-                interp1(CLdistance,CLcurrent(:,2),1:max(CLdistance),'*PCHIP','extrap')'];
-      
+%         CLIdx=round(bfIdxLookup(imageIdx));
+%         [xCLsearch,yCLsearch]=meshgrid(1:100,CLIdx);
+%                CLcurrent=cat(3,interp2(squeeze(centerline(:,1,:))',xCLsearch,yCLsearch),...
+%                 interp2(squeeze(centerline(:,2,:))',xCLsearch,yCLsearch));
+%             CLcurrent=squeeze(trimmean(CLcurrent,20,1));
+%            CLcurrent=[interp1(CLcurrent(:,1),-stretchSize+1:100+stretchSize,'*PCHIP','extrap')',...
+%                 interp1(CLcurrent(:,2),-stretchSize+1:100+stretchSize,'*PCHIP','extrap')'];
+%                   CLcurrent=[smooth(CLcurrent(:,1),5), smooth(CLcurrent(:,2),5)];
+%                         CLdistance=[0;cumsum(sqrt(sum(diff(CLcurrent).^2,2)))];
+%           %  CLdistance=1+CLdistance/CLdistance(end)*99;
+%             CLcurrent=[interp1(CLdistance,CLcurrent(:,1),1:max(CLdistance),'*PCHIP','extrap')',...
+%                 interp1(CLdistance,CLcurrent(:,2),1:max(CLdistance),'*PCHIP','extrap')'];
+%       
             %%
         for iSlice=1:length(imageIdx)
             %  progressbar(iStack/max(stackIdx),iSlice/length(imageIdx))
@@ -323,110 +293,8 @@ parfor i=1:length(group);
             fluorFrame2=imwarp(fluorFrame,Hi2LowResF.t_concord,...
                 'OutputView',Hi2LowResF.Rsegment);
             fluorFrame2=fluorFrame2((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-           %  bfFrame=1
-%                    fluorbfFrame=imwarp(fluorFrame,lowResFluor2BF.t_concord,...
-%                     'OutputView',lowResFluor2BF.Rsegment);
-%                bfFrame=imwarp(bfFrame,Hi2LowRes.t_concord,...
-%                    'OutputView',Hi2LowRes.Rsegment);
-%                bfFrame=bfFrame((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-%%
+            lowResFluorStack(:,:,iSlice)=fluorFrame2;
 
-
-            %CLcurrent in BF reference
-            
-            [~,newX,newY]=wormStraightening(CLcurrent,[],80,10);
-            [~,newXHi,newYHi]=wormStraightening(CLcurrent(1:min(Inf,length(CLcurrent)),:),[],80,10);
-            [Xgrid, Ygrid]=meshgrid(1:.02:size(newXHi,2),1:.02:size(newXHi,1));
-            newXHi=interp2(newXHi,Xgrid,Ygrid);
-            newYHi=interp2(newYHi,Xgrid,Ygrid);
-            
-            %transform CL coordinates into fluorFrame
-            [CLnewY,CLnewX]=transformPointsInverse(lowResFluor2BF.t_concord...
-                , CLcurrent(:,2),CLcurrent(:,1));
-            CLnew=[CLnewX CLnewY];
-           [newYHi,newXHi]=transformPointsInverse(lowResFluor2BF.t_concord...
-                , newYHi,newXHi);           
-            
-            
-            %transform CL coordinates into HiRes Image
-            [CLHighResY,CLHighResX]=transformPointsForward(Hi2LowResF.t_concord...
-                ,CLnewY,CLnewX);
-            CLHighRes=[CLHighResX, CLHighResY];
-            %optional correction to hi res coordinates and cropping
-            CLHighRes=bsxfun(@plus,CLHighRes,hiResCorrection-rect1([2,1])-1);
-
-            
-            %% transform cooridnate system
-            [ newYHiF,newXHiF]=transformPointsForward(Hi2LowResF.t_concord...
-                ,newYHi,newXHi);
-            [ newYHiFlo,newXHiFlo]=transformPointsInverse(Hi2LowResF.t_concord...
-                , newYHiF,newXHiF);  
-            
-            newYHiF=newYHiF-rect1(1)+hiResCorrection(2)-1;
-            newXHiF=newXHiF-rect1(2)+hiResCorrection(1)-1;
-    
-            %       [ newYHiA,newXHiA]=transformPointsInverse(S2AHiRes.t_concord...
-            %        , newYHi,newXHi);
-            %%
-%             highResInterp=interp2(segmentChannel,newYHiF,newXHiF);
-%             highResActivityInterp=interp2(activityChannel,newYHiF,newXHiF);
-
-%             bfHiInterp=interp2(double(bfFrame),newYHi,newXHi);
-%             bfHiInterp=pedistalSubtract(bfHiInterp,5);
-%             bfHiInterp(isnan(bfHiInterp))=0;
-%      
-            
-            lowResFluorHiInterp=interp2(double(fluorFrame),newYHiFlo,newXHiFlo);
-            lowResFluorHiInterp=pedistalSubtract(lowResFluorHiInterp,5);
-            lowResFluorHiInterp(isnan(lowResFluorHiInterp))=0;
-            
-            fluorThresh=lowResFluorHiInterp>(max(lowResFluorHiInterp(:))/2);
-            if any(fluorThresh(:)) 
-                stats=regionprops(fluorThresh,lowResFluorHiInterp,'Area','WeightedCentroid');
-                centroid=stats([stats.Area]==max([stats.Area])).WeightedCentroid;
-              %  if iSlice==1
-               %   maxX=round(centroid(1));
-               % end
-               maxX=400;
-                maxY=round(centroid(2));
-                maxXAll(iSlice)=maxX;
-                maxYAll(iSlice)=maxY;
-            end
-            % maxY=find(sum(lowResFluorHiInterp,2)==max(sum(lowResFluorHiInterp,2)));
-            %  maxX=find(sum(lowResFluorHiInterp,1)==max(sum(lowResFluorHiInterp,1)));
-            
-    %        lowResFluorHiInterp=rectCrop(lowResFluorHiInterp,[maxX-xWindow,maxY-yWindow,maxX+xWindow, maxY+yWindow]);
-    %        highResInterp=rectCrop(highResInterp,[maxX-xWindow,maxY-yWindow,maxX+xWindow, maxY+yWindow]);
-    %        highResActivityInterp=rectCrop(highResActivityInterp,[maxX-xWindow,maxY-yWindow,maxX+xWindow, maxY+yWindow]);
-   %         bfHiInterp=rectCrop(bfHiInterp,[maxX-xWindow,maxY-yWindow,maxX+xWindow, maxY+yWindow]);
-
-            %%
-            newYHiF=rectCrop(newYHiF,[maxX-xWindow,maxY-yWindow,maxX+xWindow, maxY+yWindow],nan);
-            newXHiF=rectCrop(newXHiF,[maxX-xWindow,maxY-yWindow,maxX+xWindow, maxY+yWindow],nan);
-
-% 
-%   [Ireg,Bx,By,Fx,Fy] = register_images(lowResFluorHiInterp,refImage,Options);
-%   Ireg2=movepixels(highResInterp,Fx,Fy);
-
-% %%
-% subSamp=randsample(length(Ctemp),length(Ctemp)/3);
-% Transformed_M=Ctemp;
-% %Transformed_M=bsxfun(@minus, Transformed_M,mean(Ctemp)-mean(cModel));
-% [Transformed_M, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel( Transformed_M(subSamp,:),cModel, 3, [2, 0.01,.001], [0.0008, 0.00008, 0.0000008], [0 0 0],1,1);
-
-%%
-%[imgw, imgwr, map] = tpswarp(lowResFluorHiInterp, size(lowResFluorHiInterp), Ctemp(subSamp,:), Transformed_M, interpMethod)
- 
- 
-%compile data for each image
-            newYHiFout(:,:,iSlice)=newYHiF;
-            newXHiFout(:,:,iSlice)=newXHiF;
-            lowResBFStack(:,:,iSlice)=fluorFrame2;
-          %  highResInterp=pedistalSubtract(highResInterp);
-          %  lowResFluorHiInterpStack(:,:,iSlice)=pedistalSubtract(lowResFluorHiInterp);
-          %  highResInterpStack(:,:,iSlice)=highResInterp;
-          %  highResActivityInterpStack(:,:,iSlice)=pedistalSubtract(highResActivityInterp);
-           % hiResMean(iSlice)=nanmean((highResInterp(:)));
             
                         activityStack(:,:,iSlice)=activityChannel;
                         segmentStack(:,:,iSlice)=segmentChannel;
@@ -447,7 +315,7 @@ parfor i=1:length(group);
 
         %%
         
-        tempMid=lowResBFStack(:,:,20);
+        tempMid=lowResFluorStack(:,:,20);
         im=[]; Bx=[]; By=[]; Fx=[]; Fy=[];segmentStack3=[];activtyStack3=[];
  Rsegment = imref2d(size(tempMid));
 [fluorIdxStackUnique,ib,ia]=unique(round(fluorIdxStack));
@@ -455,28 +323,31 @@ parfor i=1:length(group);
             
 %         contourMoving=Cout{iSlice};
 %        subSamp=randsample(length(contourMoving),60);
-       tempFirst=lowResBFStack(:,:,ib(iSlice));
+       tempFirst=lowResFluorStack(:,:,ib(iSlice));
       [~,Bx(:,:,iSlice),By(:,:,iSlice),Fx(:,:,iSlice),Fy(:,:,iSlice)] = register_images(tempFirst,tempMid,Options);
         end
   %      [Xgrid,Ygrid,Zgrid]=ndgird(1:size(Fx,1),1:size(Fx,2),fluorIdxStackUnique);
  
   %%
         currentFiducials=fiducialPoints{iStack};
-         fiducialZ=round(interp1(z2ImageIdxOffset+imageIdx+(1:length(imageIdx))'*.0001,1:length(imageIdx),cell2mat(currentFiducials(:,4))));
 
         fiducialIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
-        currentFiducials=[cell2mat(currentFiducials(:,1:2)) fiducialZ];        
+        [fiducialIdx,~,ib]=intersect(fiducialIdx,masterFiducialIdx);
+                 fiducialZ=round(interp1(z2ImageIdxOffset+imageIdx+(1:length(imageIdx))'*.0001,1:length(imageIdx),cell2mat(currentFiducials(fiducialIdx,4))));
+
+        currentFiducials=[cell2mat(currentFiducials(fiducialIdx,1:2)) fiducialZ];        
 
         %% transform all stacks and fiducials
         
-   segmentStack2=[];   activityStack2=[];  lowResBFStack2=[];
+   segmentStack2=[];   activityStack2=[];  lowResFluorStack2=[];
+   newFiducials=currentFiducials;
   for iSlice=1:stackSize
 segmentStack2(:,:,iSlice)=movepixels(segmentStack(:,:,iSlice),Bx(:,:,ia(iSlice)),By(:,:,ia(iSlice)));
 activityStack2(:,:,iSlice)=movepixels(activityStack(:,:,iSlice),Bx(:,:,ia(iSlice)),By(:,:,ia(iSlice)));
-lowResBFStack2(:,:,iSlice)=movepixels(lowResBFStack(:,:,iSlice),Bx(:,:,ia(iSlice)),By(:,:,ia(iSlice)));
+lowResFluorStack2(:,:,iSlice)=movepixels(lowResFluorStack(:,:,iSlice),Bx(:,:,ia(iSlice)),By(:,:,ia(iSlice)));
 inSliceFiducials=currentFiducials(currentFiducials(:,3)==iSlice,1:2);
-newFiducials=movecoordinates(inSliceFiducials,-Fy(:,:,ia(iSlice)),-Fx(:,:,ia(iSlice)));
-currentFiducials(currentFiducials(:,3)==iSlice,1:2)=newFiducials;
+newFiducials(currentFiducials(:,3)==iSlice,1:2)=...
+    movecoordinates(inSliceFiducials,Fy(:,:,ia(iSlice)),Fx(:,:,ia(iSlice)));
         
   end
   
@@ -485,22 +356,26 @@ currentFiducials(currentFiducials(:,3)==iSlice,1:2)=newFiducials;
         
   
   %% straighten via centerline, move control points
-      [X,Y,stackGrid]=meshgrid(1:size(newYHiFout,2),1:size(newYHiFout,1),1:stackSize);
-       segmentStack3=interp3(segmentStack2,newYHiFout,newXHiFout,stackGrid,'*linear',0);
-        activityStack3=interp3(activityStack2,newYHiFout,newXHiFout,stackGrid,'*linear',0);
+%       [X,Y,stackGrid]=meshgrid(1:size(newYHiFout,2),1:size(newYHiFout,1),1:stackSize);
+%        segmentStack3=interp3(segmentStack2,newYHiFout,newXHiFout,stackGrid,'*linear',0);
+%         activityStack3=interp3(activityStack2,newYHiFout,newXHiFout,stackGrid,'*linear',0);
+%         segmentStack3(isnan(segmentStack3))=0;
+%         activityStack3(isnan(activityStack3))=0;
+%         
+%         newFiducials=currentFiducials;
+%         for iFiducials=1:size(currentFiducials,1);
+%             zSlice=currentFiducials(iFiducials,3);
+%             subX=newXHiFout(:,:,zSlice);
+%             subY=newYHiFout(:,:,zSlice);
+%             k=dsearchn([subX(:) subY(:)],currentFiducials(iFiducials,[2,1]));
+%             [newXpt, newYpt]=ind2sub(size(subX),k);
+%             newFiducials(iFiducials,1:2)=[newXpt newYpt];
+%         end
+segmentStack3=segmentStack2;
+activityStack3=activityStack2;
+currentFiducials=newFiducials;
         segmentStack3(isnan(segmentStack3))=0;
-        activityStack3(isnan(activityStack3))=0;
-        
-        newFiducials=currentFiducials;
-        for iFiducials=1:size(currentFiducials,1);
-            zSlice=currentFiducials(iFiducials,3);
-            subX=newXHiFout(:,:,zSlice);
-            subY=newYHiFout(:,:,zSlice);
-            k=dsearchn([subX(:) subY(:)],currentFiducials(iFiducials,[2,1]));
-            [newXpt, newYpt]=ind2sub(size(subX),k);
-            newFiducials(iFiducials,1:2)=[newXpt newYpt];
-        end
-        currentFiducials=newFiducials;
+         activityStack3(isnan(activityStack3))=0;
         
   %% move contol points
         
@@ -511,17 +386,21 @@ currentFiducials(currentFiducials(:,3)==iSlice,1:2)=newFiducials;
         %% fiducial alignment
   
         %affine transformation
-        tform = makeAffine3d(currentFiducials(:,[2 1 3]), masterFiducials(fiducialIdx,[2 1 ,3]));
-Rsegment2 = imref3d(size(segmentStack3));
+  %      tform = makeAffine3d(currentFiducials(:,[2 1 3]), masterFiducials(fiducialIdx,[2 1 ,3]));
+        tform = makeAffine3d(currentFiducials, masterFiducials(ib,:));
+
+  Rsegment2 = imref3d(size(segmentStack3));
         segmentStack4=imwarp(segmentStack3,tform,'OutputView',Rsegment2);
          activityStack4=imwarp(activityStack3,tform,'OutputView',Rsegment2);
 affineFiducials=[];
-           [affineFiducials(:,2),affineFiducials(:,1),affineFiducials(:,3)]...
-               =transformPointsForward(tform,currentFiducials(:,2),...
-               currentFiducials(:,1),currentFiducials(:,3));   
+           [affineFiducials(:,1),affineFiducials(:,2),affineFiducials(:,3)]...
+               =transformPointsForward(tform,currentFiducials(:,1),...
+               currentFiducials(:,2),currentFiducials(:,3));   
            
            
-[segmentStack5,xlookup,ylookup,zlookup]= tpswarp3(segmentStack4, size(refstack), masterFiducials(fiducialIdx,[1 2 3]),affineFiducials(:,[1 2 3]));  
+%[segmentStack5,xlookup,ylookup,zlookup]= tpswarp3(segmentStack4, size(refstack), masterFiducials(fiducialIdx,[1 2 3]),affineFiducials(:,[1 2 3]));  
+[segmentStack5,xlookup,ylookup,zlookup]= tpswarp3(segmentStack4, size(refstack), masterFiducials(ib,[2 1 3]),affineFiducials(:,[2 1 3]));  
+
 activityStack5=interp3(activityStack4,ylookup,xlookup,zlookup,'*linear');
 segmentStack5(isnan(segmentStack5))=0;
 activityStack5(isnan(activityStack5))=0;
@@ -545,6 +424,9 @@ activityStack5(isnan(activityStack5))=0;
         metaData(i).metaData.zVoltage=zPos;
         metaData(i).metaData.iFrame=imageIdx;
         metaData(i).metaData.midPlane=20;
+        metaData(i).imageIdx=imageIdx+z2ImageIdxOffset;
+        metaData(i).fluorIdx=round(fluorIdxLookup(imageIdx));
+        metaData(i).bfIdx=round(bfIdxLookup(imageIdx));
         fileName=['image' num2str(iStack,'%3.5d') '.tif'];
         if saveFlag
             
@@ -572,10 +454,11 @@ activityStack5(isnan(activityStack5))=0;
     
 end
 
-for iStack=1:length(metaData);
-    
-    matName=['image' num2str(group(iStack),'%3.5d')];
-    parsave([metaFolder filesep matName],metaData(iStack),'metaData');
+for i=1:length(metaData);
+        iStack=hasPoints(group(i));
+
+    matName=['image' num2str((iStack),'%3.5d')];
+    parsave([metaFolder filesep matName],metaData(i),'metaData');
     display(['Saving ' matName]);
 
 end
