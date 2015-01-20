@@ -1,0 +1,47 @@
+Matlab Worm3dFiducialPickerNetwork instructions:
+
+Keyboard Controls:
+
+Navigation
+
+A, left arrow,backspace	-	Go back
+D, right arrow -	Go Forward
+W, up arrow 	-	Go Up
+S, down arrow	-	Go Down
+
+Neuron Selection
+
+Return, space, Rmouseclick -	Select current neuron
+1 2 3 4 5 6	-	change current neuron and select neuron
+E		-	Go Forward and autoselect current neuron
+C		-	Select current neuron and force exact location
+Q		-	Click the previously clicked location again for current neuron
+
+Display
+
+H			Toggle hide/show labeled neurons
+Shift			Toggle Gcamp/RFP
+
+Button Controls:
+
+Select Folder 	-	Select current folder with images, txt files, will also ask for alignment
+Initialize	-		Select location to create folder for fiducial Points
+
+Time Offset	-		Value of offset between image displayed and perceived z position
+xy search	-		Square area to search around click
+z search	-		Z range to search around click plane
+Time		-		Time step for each stack 
+Saving		-	Toggle on and off saving. if saving is off, saving will be in a temp location.
+Next Annotated	-	Finds next stack with annotated neurons by current user
+Previous Annotated	-	Finds last stack with annotated neurons by current user
+Load fiducials	-	Select folder with fiducial files
+
+Other Controls:
+Filter Size 	-	STD of gaussian or LOG filter
+autoclick history -	amount of frames back to compare with when looking for match for autoclick
+Filter type -		filter kernel, either Gaussian or Laplacian of gaussian with FilterSize std
+minTime -		set lower limit for time slider
+maxTime - 		set upper limit for time slider
+
+
+

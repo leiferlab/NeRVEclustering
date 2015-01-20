@@ -1,35 +1,35 @@
-function varargout = Worm3DFiducialPicker(varargin)
-% WORM3DFIDUCIALPICKER MATLAB code for Worm3DFiducialPicker.fig
-%      WORM3DFIDUCIALPICKER, by itself, creates a new WORM3DFIDUCIALPICKER or raises the existing
+function varargout = Worm3DFiducialPickerNetwork(varargin)
+% WORM3DFIDUCIALPICKERNETWORK MATLAB code for Worm3DFiducialPickerNetwork.fig
+%      WORM3DFIDUCIALPICKERNETWORK, by itself, creates a new WORM3DFIDUCIALPICKERNETWORK or raises the existing
 %      singleton*.
 %
-%      H = WORM3DFIDUCIALPICKER returns the handle to a new WORM3DFIDUCIALPICKER or the handle to
+%      H = WORM3DFIDUCIALPICKERNETWORK returns the handle to a new WORM3DFIDUCIALPICKERNETWORK or the handle to
 %      the existing singleton*.
 %
-%      WORM3DFIDUCIALPICKER('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in WORM3DFIDUCIALPICKER.M with the given input arguments.
+%      WORM3DFIDUCIALPICKERNETWORK('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in WORM3DFIDUCIALPICKERNETWORK.neuron6 with the given input arguments.
 %
-%      WORM3DFIDUCIALPICKER('Property','Value',...) creates a new WORM3DFIDUCIALPICKER or raises the
+%      WORM3DFIDUCIALPICKERNETWORK('Property','Value',...) creates a new WORM3DFIDUCIALPICKERNETWORK or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before Worm3DFiducialPicker_OpeningFcn gets called.  An
+%      applied to the GUI before Worm3DFiducialPickerNetwork_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to Worm3DFiducialPicker_OpeningFcn via varargin.
+%      stop.  All inputs are passed to Worm3DFiducialPickerNetwork_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help Worm3DFiducialPicker
+% Edit the above text to modify the response to help Worm3DFiducialPickerNetwork
 
-% Last Modified by GUIDE v2.5 21-Dec-2014 20:11:52
+% Last Modified by GUIDE v2.5 20-Jan-2015 13:32:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
-    'gui_OpeningFcn', @Worm3DFiducialPicker_OpeningFcn, ...
-    'gui_OutputFcn',  @Worm3DFiducialPicker_OutputFcn, ...
+    'gui_OpeningFcn', @Worm3DFiducialPickerNetwork_OpeningFcn, ...
+    'gui_OutputFcn',  @Worm3DFiducialPickerNetwork_OutputFcn, ...
     'gui_LayoutFcn',  [] , ...
     'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,15 +44,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before Worm3DFiducialPicker is made visible.
-function Worm3DFiducialPicker_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before Worm3DFiducialPickerNetwork is made visible.
+function Worm3DFiducialPickerNetwork_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to Worm3DFiducialPicker (see VARARGIN)
+% varargin   command line arguments to Worm3DFiducialPickerNetwork (see VARARGIN)
 
-% Choose default command line output for Worm3DFiducialPicker
+% Choose default command line output for Worm3DFiducialPickerNetwork
 
 %set up slider
 handles.output = hObject;
@@ -62,6 +62,10 @@ hlistenerz=addlistener(handles.zSlider,'ContinuousValueChange',...
     @plotter);
 setappdata(handles.zSlider,'hlistener',hlistenerz);
 set(handles.zSlider,'SliderStep',[1,1]);
+handles.timer = timer(...
+    'ExecutionMode', 'fixedRate', ...       % Run timer repeatedly
+    'Period', 60, ...                        % Initial period is 10 sec.
+    'TimerFcn', {@updateData,hObject}); % Specify callback function
 
 setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'SliderStep',[1,1]);
@@ -69,12 +73,12 @@ setappdata(handles.figure1,'points',0)
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes Worm3DFiducialPicker wait for user response (see UIRESUME)
+% UIWAIT makes Worm3DFiducialPickerNetwork wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = Worm3DFiducialPicker_OutputFcn(hObject, eventdata, handles)
+function varargout = Worm3DFiducialPickerNetwork_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -106,7 +110,7 @@ end
         mostRecent=fileparts(mostRecent);
     end
     setappdata(0,'mostRecent',mostRecent);
-
+set(handles.currentFolder,'String',mostRecent);
 %load registration file if needed for split
 [rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\registration','Select Registration File');
 registration=load([parent filesep rpath]);
@@ -138,13 +142,40 @@ set(handles.slider1,'value',1);
 set(handles.zSlider,'min',minZ);
 set(handles.zSlider,'max', maxZ);
 set(handles.zSlider,'value',(maxZ+minZ)/2);
-fiducialPoints=cell(50,1);
+
+
+
+%function initialize(handles)
+
+% --- Executes on button press in initialize.
+function initialize_Callback(hObject, eventdata, handles)
+% hObject    handle to initialize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+mostRecent=getappdata(0,'mostRecent');
+hiResData=getappdata(handles.figure1,'hiResData');
+fiducialPoints=cell(6,5);
 fiducialPoints=repmat({fiducialPoints},max(hiResData.stackIdx),1);
 setappdata(handles.figure1,'fiducials',fiducialPoints);
-set(handles.currentFiducialFile,'String',...
-    [mostRecent filesep datestr(now,'yyyymmddTHHMMSS') 'Fiducials']);
 
+contents = cellstr(get(handles.usersDropdown,'String'));
+folderParent=uigetdir(mostRecent);
+fiduicialFileName=[folderParent filesep datestr(now,'yyyymmddTHHMMSS') 'Fiducials' filesep];
+set(handles.currentFiducialFile,'String',fiduicialFileName);
+mkdir(fiduicialFileName);
+
+for i=1:length(contents);
+    save([fiduicialFileName filesep contents{i}],'fiducialPoints','-v6');
+end
+timeOffset=str2double(get(handles.timeOffset,'String'));
+    save([fiduicialFileName filesep 'timeOffset'],'timeOffset','-v6');
+
+start(handles.timer);
 plotter(handles.slider1,eventdata);
+
+
+
+
 
 
 
@@ -277,7 +308,7 @@ timeStep=str2double(get(handles.timeStep,'String'));
 
     ax1=imagesc(baseImg,'parent',handles.axes1);
     set(ax1,'ButtonDownFcn',...
-'Worm3DFiducialPicker(''axes1_ButtonDownFcn'',gcbo,[],guidata(gcbo))')
+'Worm3DFiducialPickerNetwork(''axes1_ButtonDownFcn'',gcbo,[],guidata(gcbo))')
 caxis(handles.axes1, [newContrast]);
     hold(handles.axes1,'on')
     axis(handles.axes1,'equal');
@@ -289,29 +320,60 @@ caxis(handles.axes1, [newContrast]);
 %         b=B{i};
 %         plot(handles.axes1,b(:,2),b(:,1),'b')
 %     end
-    plotCircle(handles)
     plot(handles.axes4,stdPlot,zVoltages);
     ylim(handles.axes4,[get(handles.zSlider,'Min'),get(handles.zSlider,'Max')]);
 
-    fiducialPoints=getappdata(handles.figure1,'fiducials');
-    currentFiducials=fiducialPoints{iImage};
+    
+    
+%    fiducialData=getappdata(handles.figure1,'fiducialdata');
+
+%fiducialFile=get(handles.currentFiducialFile,'String');
+ %   fiducialData=load(fiducialFile);
+  %  if isfield(fiducialData,'timeOffset');
+%fiducialData = rmfield(fiducialData,'timeOffset');
+ %   end
+  %  fiducialData=structfun(@(x) x(iImage),fiducialData);
+    contents = cellstr(get(handles.usersDropdown,'String'));
+fiducialFileName=get(handles.currentFiducialFile,'String');
+colorOrder=get(gca,'colorOrder');
+fiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
+    for iUser=1:length(contents);
+        user=contents{iUser};
+        if iUser==get(handles.usersDropdown,'Value')
+       textColor=[1 1 1] ;%textColor=colorOrder(iUser,:);
+        textColor2=[0 0 0];
+        else
+            textColor=colorOrder(iUser,:);
+            textColor2=textColor;
+        end
+            
+currentFiducialsAll=fiducialsAllUsers.(user);
+%currentFiducialsAll=currentFiducialsAll.fiducialPoints;
+   currentFiducials=currentFiducialsAll{iImage};
+   
+   if iUser==get(handles.usersDropdown,'Value');
     set(handles.DisplayIdx,'data',currentFiducials);
+    setappdata(handles.figure1,'fiducials',currentFiducialsAll);
+
+   end
+    
     plotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
 currentPoints=cell2mat(currentFiducials);
 circleScatter=getappdata(handles.figure1,'circleScatter');
-if ishandle(circleScatter); delete(circleScatter);end
-circleLabel=getappdata(handles.figure1,'circleLabel');
-if ishandle(circleLabel); delete(circleLabel);end
-
+if iUser==1
+    delete(findobj(handles.axes2,'type','scatter'))
+    delete(findobj(handles.axes2,'type','text'))
+cla(handles.axes2,'reset')
+end
 
 if ~isempty(currentPoints)
-hold(handles.axes2,'on')
-randPos=(mod(plotIdx.^(1.4),5)-2)/2;
-circleScatter=scatter(handles.axes2,randPos,currentPoints(:,3),'xr');
+    hold(handles.axes2,'on')
 
+randPos=(mod(10*sin(plotIdx.^(1.4)+iUser),5)-2)/2;
+circleScatter=scatter(handles.axes2,randPos,currentPoints(:,3),'x','MarkerEdgeColor',colorOrder(iUser,:));
+ylim(handles.axes2,ylim(handles.axes4))
 
 setappdata(handles.figure1,'circleScatter',circleScatter);
-hold(handles.axes2,'off');
 
 
 %inSlice=interp1(zVoltages,1:length(zVoltages),currentPoints(:,4),'nearest','extrap');
@@ -320,18 +382,24 @@ perfectSlice=currentPoints(:,4)==hiResIdx;
 if getappdata(handles.figure1,'show')
 scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
 scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
-
-    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),cellstr(num2str(plotIdx(closeSlice))),'VerticalAlignment'...
-        ,'bottom', 'HorizontalAlignment','right','color',[1 1 1],...
+    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),[cellstr(num2str(plotIdx(closeSlice)))],'VerticalAlignment'...
+        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
         'fontsize',10,'parent',handles.axes1);
 end
     
     circleLabel=text( randPos, currentPoints(:,3),cellstr(num2str(plotIdx)),'VerticalAlignment'...
-        ,'bottom', 'HorizontalAlignment','right','color',[0 0 0],...
+        ,'bottom', 'HorizontalAlignment','right','color',textColor2,...
         'fontsize',10,'parent',handles.axes2);
     setappdata(handles.figure1,'circleLabel',circleLabel);
-
 end
+
+%allPoints=cat(2,allPoints,currentPoints);
+    end
+        plotCircle(handles)
+
+%setappdata(handles.figure1,'allPoints',allPoints)
+hold(handles.axes2,'off');
+
     hold(handles.axes1,'off')
 
    %     scat3=scatter3(handles.axes1,centroids(:,2),centroids(:,1),centroids(:,3),[],c);
@@ -404,46 +472,76 @@ function goBack_Callback(hObject, eventdata, handles)
 % hObject    handle to goBack (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-FPS=1;%getappdata(handles.figure1,'FPS');
-set(handles.slider1,'value',get(handles.slider1,'value')-FPS);
+moveFrame(hObject,eventdata,handles,-1)
+
+
+function moveFrame(hObject,eventdata,handles,move)
+set(handles.slider1,'value',get(handles.slider1,'value')+move);
 currentSlide=get(handles.zSlider,'value');
 currentFrame=round(get(handles.slider1,'value'));
-if 1
-        fiducialPoints=getappdata(handles.figure1,'fiducials');
-        currentFiducials=fiducialPoints{currentFrame};
-        currentTarget=getappdata(handles.figure1,'cursorTarget');
-       currentPlotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
+        contents = cellstr(get(handles.usersDropdown,'String'));
+previousFiducials=[];
+currentFiducials=[];
+tempFiducials=getappdata(handles.figure1,'fiducialsAllUsers');
+steps=getappdata(handles.figure1,'stepCounter');
+if  currentFrame>0
+    
+    for iUser=1:length(contents);
+        user=contents{iUser};
+            fiducialsAll=tempFiducials.(user);                    
+ oldPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),fiducialsAll{currentFrame-move},'uniformoutput',0))),2));
+ currentPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),fiducialsAll{currentFrame},'uniformoutput',0))),2));
 
-if size(currentFiducials,1)>=currentTarget && size(currentFiducials,2)>1
-    newZ=currentFiducials{currentTarget,3};
-else
-    newZ=[];
-end
+ overlap=intersect(currentPlotIdx,oldPlotIdx);
+
+currentFiducials=cat(1,currentFiducials,fiducialsAll{currentFrame}(overlap,:));
+
+
+previousFiducials=cat(1,previousFiducials,fiducialsAll{currentFrame-move}(overlap,:));
+ 
+ 
+ if iUser==get(handles.usersDropdown,'Value')
+     currentTarget=getappdata(handles.figure1,'cursorTarget');
+    % should always be true
+     if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
+         newZ=fiducialsAll{currentFrame}{currentTarget,3};
+     else
+         newZ=[];
+     end
+ end
+ 
+    end
+    
+ %   fiducialPoints=getappdata(handles.figure1,'fiducials');
+%    currentFiducials=fiducialPoints{currentFrame};
+
 
 if isempty(newZ)
     try
-        oldFiducialPoints=fiducialPoints{currentFrame+1};
-            oldPlotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),oldFiducialPoints(:,1),'uniformoutput',0))));
-overlap=intersect(currentPlotIdx,oldPlotIdx);
-        oldzVoltages=sort([oldFiducialPoints{overlap,3}])+(1:length(overlap))/100;
-        currentzVoltages=sort([currentFiducials{overlap,3}])+(1:length(overlap))/100;
-newZ=interp1(oldzVoltages,currentzVoltages,currentSlide,'linear',1);
-
-
+        if size(previousFiducials,1)>4
+        oldzVoltages=(cell2mat(previousFiducials(:,3)));
+        currentzVoltages=(cell2mat(currentFiducials(:,3)));
+        p=polyfit(oldzVoltages,currentzVoltages,1);
+        newZ=p(2)+p(1)*currentSlide;
+        else
+        newZ=currentSlide;
+        end
     catch
         newZ=currentSlide;
     end
     
 end
-    
 set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
     
 end
+if steps>10
+    steps=1;
+else
+    steps=steps+1;
+end
 
 plotter(handles.slider1,eventdata)
-if get(handles.Continuous,'Value')
-    cursorNeuronSelect(handles.slider1,eventdata)
-end
+
 
 
 
@@ -453,75 +551,8 @@ function goForward_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %FPS=getappdata(handles.figure1,'FPS');
-FPS=1;
 
-set(handles.slider1,'value',get(handles.slider1,'value')+FPS);
-currentSlide=get(handles.zSlider,'value');
-currentFrame=round(get(handles.slider1,'value'));
-%setappdata(handles.figure1,'currentFrame',get(handles.slider1,'value'));
-        fiducialPoints=getappdata(handles.figure1,'fiducials');
-
-if ~isempty(fiducialPoints)
-        currentFiducials=fiducialPoints{currentFrame};
-        currentTarget=getappdata(handles.figure1,'cursorTarget');
-       currentPlotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
-oldFiducials=fiducialPoints{max(currentFrame-2,1)};
-if size(currentFiducials,1)>=currentTarget && size(currentFiducials,2)>1 && ~strcmp(eventdata.Key, 'e')
-
-    newZ=currentFiducials{currentTarget,3};
-else
-    newZ=[];
-end
-if isnan(newZ)
-    newZ=[];
-end
-        oldFiducialPoints=fiducialPoints{currentFrame-1};
-
-if isempty(newZ)
-    try
-    if ~isempty(oldFiducialPoints{currentTarget,3})
-            oldPlotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),oldFiducialPoints(:,1),'uniformoutput',0))));
-overlap=intersect(currentPlotIdx,oldPlotIdx);
-
-        oldzVoltages=([oldFiducialPoints{overlap,3}])+(1:length(overlap))/100;
-        currentzVoltages=([currentFiducials{overlap,3}])+(1:length(overlap))/100;
-        nans=any(isnan([oldzVoltages currentzVoltages]),1);
-        oldzVoltages=oldzVoltages(~nans(overlap));
-        currentzVoltages=currentzVoltages(~nans(overlap));
-        if isempty(oldFiducialPoints(currentTarget,1))
-              f=polyfit(oldzVoltages,currentzVoltages,1);
-newZ=f(2)+f(1)*(oldFiducialPoints{currentTarget,3});
-  %  newZ=interp1(oldzVoltages,currentzVoltages,currentSlide,'linear','extrap');
-
-else
-    oldFiducialPoints(currentTarget,3);
-    f=polyfit(oldzVoltages,currentzVoltages,1);
-newZ=f(2)+f(1)*(oldFiducialPoints{currentTarget,3});
-     %   newZ=interp1(oldzVoltages,currentzVoltages,oldFiducialPoints{currentTarget,3},'linear','extrap');
-
-end
-
-
-    else
-        newZ=currentSlide;
-    end
-    catch
-        newZ=currentSlide;
-    end
-    
-    
-end
-    
-set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
-    
-end
-
-plotter(handles.slider1,eventdata)
-if get(handles.Continuous,'Value')
-    cursorNeuronSelect(handles.slider1,eventdata)
-end
-
-
+moveFrame(hObject,eventdata,handles,1)
 
 
 % --- Executes on selection change in plotChannel.
@@ -552,49 +583,66 @@ function selectNeuron1_Callback(hObject, eventdata, handles)
 % hObject    handle to selectNeuron1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',1);
 %cursorNeuronSelect(hObject,eventdata)
 %displayIdx=get(handles.DisplayIdx,'data');
+cursorValue=str2double(get(hObject,'String'));
+setappdata(handles.figure1,'cursorTarget',cursorValue);
+buttonClear(handles)
+set(hObject,'BackgroundColor',[1 0 0 ]);
 
 % --- Executes on button press in selectNeuron2.
 function selectNeuron2_Callback(hObject, eventdata, handles)
 % hObject    handle to selectNeuron2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',2);
-%cursorNeuronSelect(hObject,eventdata)
+cursorValue=str2double(get(hObject,'String'));
+setappdata(handles.figure1,'cursorTarget',cursorValue);
+buttonClear(handles)
+set(hObject,'BackgroundColor',[1 0 0 ]);
 
 % --- Executes on button press in selectNeuron3.
 function selectNeuron3_Callback(hObject, eventdata, handles)
 % hObject    handle to selectNeuron3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',3);
-%cursorNeuronSelect(hObject,eventdata)
+cursorValue=str2double(get(hObject,'String'));
+setappdata(handles.figure1,'cursorTarget',cursorValue);
+buttonClear(handles)
+set(hObject,'BackgroundColor',[1 0 0 ]);
+
 
 % --- Executes on button press in selectNeuron4.
 function selectNeuron4_Callback(hObject, eventdata, handles)
 % hObject    handle to selectNeuron4 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',4);
-%cursorNeuronSelect(hObject,eventdata)
+cursorValue=str2double(get(hObject,'String'));
+setappdata(handles.figure1,'cursorTarget',cursorValue);
+buttonClear(handles)
+set(hObject,'BackgroundColor',[1 0 0 ]);
+
 
 % --- Executes on button press in selectNeuron5.
 function selectNeuron5_Callback(hObject, eventdata, handles)
 % hObject    handle to selectNeuron5 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',5);
-%cursorNeuronSelect(hObject,eventdata)
+cursorValue=str2double(get(hObject,'String'));
+setappdata(handles.figure1,'cursorTarget',cursorValue);
+buttonClear(handles)
+set(hObject,'BackgroundColor',[1 0 0 ]);
+
 
 % --- Executes on button press in selectNeuron6.
 function selectNeuron6_Callback(hObject, eventdata, handles)
 % hObject    handle to selectNeuron6 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',6);
-%cursorNeuronSelect(hObject,eventdata)
+cursorValue=str2double(get(hObject,'String'));
+setappdata(handles.figure1,'cursorTarget',cursorValue);
+buttonClear(handles)
+set(hObject,'BackgroundColor',[1 0 0 ]);
+
 
 % --- Executes on button press in selectNeuron7.
 function selectNeuron7_Callback(hObject, eventdata, handles)
@@ -611,58 +659,6 @@ function selectNeuron8_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 setappdata(handles.figure1,'cursorTarget',8);
 %cursorNeuronSelect(hObject,eventdata)
-
-
-% --- Executes on button press in selectNeuron9.
-function selectNeuron9_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron9 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',9);
-%cursorNeuronSelect(hObject,eventdata)
-
-
-% --- Executes on button press in selectNeuron10.
-function selectNeuron10_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron10 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',10);
-%cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron11.
-function selectNeuron11_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron11 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',11);
-%cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron12.
-function selectNeuron12_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron12 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',12);
-%cursorNeuronSelect(hObject,eventdata)
-% --- Executes on button press in selectNeuronN.
-function selectNeuronN_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuronN (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-N=str2double(get(handles.N,'String'));
-setappdata(handles.figure1,'cursorTarget',N);
-
-%cursorNeuronSelect(hObject,eventdata)
-
-
-% --- Executes on button press in selectNeuronM.
-function selectNeuronM_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuronM (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-M=str2double(get(handles.M,'String'));
-setappdata(handles.figure1,'cursorTarget',M);
 
 
 function cursorNeuronSelect(hObject,eventdata)
@@ -704,47 +700,67 @@ hold(handles.axes1,'off');
 function autoSelect(hObject,eventdata)
 handles=guidata(get(hObject,'Parent'));
 iFrame=getappdata(handles.figure1,'currentFrame');
-fiducialPoints=getappdata(handles.figure1,'fiducials');
-currentFiducials=fiducialPoints{iFrame};
 
 oldFrameIdx=str2double(get(handles.refIdx,'String'));
-if isnan(oldFrameIdx)
-    oldFrameIdx=iFrame-1;
-elseif oldFrameIdx<0
-    oldFrameIdx=iFrame+(-1:-1:oldFrameIdx);
-end
-%search for previous data with similar distance matrix
+    oldFrameIdx=iFrame+(-1:-1:-oldFrameIdx);
+    oldFrameIdx=oldFrameIdx(oldFrameIdx>0);
+    
+            contents = cellstr(get(handles.usersDropdown,'String'));
+fiducialFileName=get(handles.currentFiducialFile,'String');
 plotIdx=getappdata(handles.figure1,'cursorTarget');
-currentFiducialIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
-currentFiducialIdx=currentFiducialIdx(~isnan(cell2mat(currentFiducials(currentFiducialIdx,1))));
+userIdx=get(handles.usersDropdown,'Value');
+%find best match frame for all users and all points
 
-maxOverlap=0; bestDistance=Inf;
-for iRefFrame=oldFrameIdx
-oldFiducials=fiducialPoints{iRefFrame};
-oldFiducialIdx=find(cell2mat((cellfun(@(x) ~isempty(x),oldFiducials(:,1),'uniformoutput',0))));
-oldFiducialIdx=oldFiducialIdx(~isnan(cell2mat(oldFiducials(oldFiducialIdx,1))));
-overlapIdx=intersect(oldFiducialIdx,currentFiducialIdx);
-if ~isempty(overlapIdx) && any(oldFiducialIdx==plotIdx)
-    overlapIdx(overlapIdx==plotIdx)=[];
-movingPointstemp=cell2mat(oldFiducials(overlapIdx,[1:2 4]));
-masterPointstemp=cell2mat(currentFiducials(overlapIdx,[1:2 4]));
-if length(overlapIdx)>=maxOverlap
+
+tempFiducials=getappdata(handles.figure1,'fiducialsAllUsers'); 
+            
+            
+%search for previous data with similar distance matrix
+bestOverlap=0;bestDistance=Inf;
+  currentAll=structfun(@(x) x{iFrame},tempFiducials,'uniform',0);
+    currentAll=struct2cell(currentAll);
+    %cellfun inside a cell fun to find index of fiducials... trust me it
+    %works
+  currentFiducialsIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y,...
+      'uniformoutput',0)),2))),currentAll,'uniformOutput',0)  ;
+
+  currentFiducialsIdx{userIdx}(currentFiducialsIdx{userIdx}==plotIdx)=[];
+
+  for iCounter=1:length(oldFrameIdx)
+    iRefFrame=oldFrameIdx(iCounter);
+    
+  oldFiducials=structfun(@(x) x{iRefFrame},tempFiducials,'uniform',0);
+    oldFiducials=struct2cell(oldFiducials);
+        oldFiducialIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y,...
+      'uniformoutput',0)),2))),oldFiducials,'uniformOutput',0)  ;  
+overlapIdx=cellfun(@(a,b) intersect(a,b)',oldFiducialIdx,currentFiducialsIdx,'uniform',0);
+
+
+if ~isempty(overlapIdx) && any(oldFiducialIdx{userIdx}==plotIdx) 
+movingPointstemp=cell2mat(cellfun(@(a,b) cell2mat(a(b,:)),oldFiducials,overlapIdx,'uniform',0));
+masterPointstemp=cell2mat(cellfun(@(a,b) cell2mat(a(b,:)),currentAll,overlapIdx,'uniform',0));
+
+    
     movingDmat=pdist(movingPointstemp(:,1:2));
     masterDmat=pdist(masterPointstemp(:,1:2));
+    overlap=sum(cell2mat(cellfun(@(x) nnz(x), overlapIdx,'uniformoutput',0)));
+    dist=sum(sqrt((movingDmat-masterDmat).^2));
+ 
     
-    tempDistance=sum((movingDmat-masterDmat).^2);
-    if length(overlapIdx)>maxOverlap || tempDistance<bestDistance
-    bestDistance=tempDistance;
-    movingPoints=movingPointstemp;
-    masterPoints=masterPointstemp;
- plotIdxPoint=cell2mat(oldFiducials(plotIdx,[1:2 4]));
+    if overlap>=bestOverlap  && dist<=bestDistance && any(oldFiducialIdx{userIdx}==plotIdx)
+
+    bestOverlap=overlap;
+    bestDistance=dist;
+    movingPoints=movingPointstemp(:,[1 2 4]);
+    masterPoints=masterPointstemp(:,[1 2 4]);
+    plotIdxPoint=oldFiducials{userIdx}(plotIdx,:);
     end
-    maxOverlap=length(overlapIdx);
+    
 end
+  end
 
-end
-end
 
+plotIdxPoint=cell2mat(plotIdxPoint([1 2 4]));
 movingFloor=min(movingPoints(:,3))-5;
 masterFloor=min(masterPoints(:,3))-5;
 movingPoints(:,end)=movingPoints(:,end)-movingFloor;
@@ -760,10 +776,12 @@ plotIdxPoint(:,end)=plotIdxPoint(:,end)-movingFloor;
 
 Fx=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),masterPoints(:,1));
 Fy=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),masterPoints(:,2));
-%Fz=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),movingPoints(:,3),masterPoints(:,3));
+%Fz=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),movingPoints(:,3));,masterPoints(:,3));
 
 newEstimatePoint=[Fx(plotIdxPoint(1),plotIdxPoint(2))...
     Fy(plotIdxPoint(1),plotIdxPoint(2))];
+
+%newZestimate=Fz(plotIdxPoint(1),plotIdxPoint(2))
 
 % newEstimatePoint(1)=Fx(plotIdxPoint(1),plotIdxPoint(2),plotIdxPoint(3));
 %newEstimatePoint(2)=Fy(plotIdxPoint(1),plotIdxPoint(2),plotIdxPoint(3));
@@ -807,9 +825,22 @@ hold(handles.axes1,'off');
 
 function inputData(hObject,xselect,yselect,windowSearch,zSearch)
 handles=guidata(get(hObject,'Parent'));
+fiducialFile=get(handles.currentFiducialFile,'String');
+iUser=get(handles.usersDropdown,'Value');
+contents = cellstr(get(handles.usersDropdown,'String'));
+user=contents{iUser};
 iFrame=getappdata(handles.figure1,'currentFrame');
-fiducialPoints=getappdata(handles.figure1,'fiducials');
-currentFiducials=fiducialPoints{iFrame};
+    
+userFiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
+  
+
+
+userFiducialsAll=userFiducialsAllUsers.(user);
+userFiducials=userFiducialsAll{iFrame};
+%     if isfield(fiducialData,'timeOffset');
+% fiducialData = rmfield(fiducialData,'timeOffset');
+%     end
+%currentFiducials=(cellfun(@(x) cell2mat(x),fiducialData,'uniformOutput',0));
 zPos=get(handles.zSlider,'Value');
 zPos=zPos(1);
 timeOffset=str2double(get(handles.timeOffset,'String'));
@@ -902,10 +933,15 @@ yselect=yselect-windowSearch+maxPosY-1;
 zselect=subZVoltages(maxPosZ);
 
 if length(xselect)>1
- if size(currentFiducials,2)<3
+ if size(userFiducials,2)<3
     currentXY=[0 0 0];
 else
-    currentXY=cell2mat(currentFiducials(:,1:3));
+    currentXY=cell2mat(userFiducials(:,1:3));
+    
+    if isempty(currentXY)
+            currentXY=[0 0 0];
+    end
+    
  end
     
     %get only points that are further than 10 from all current points in the plane
@@ -927,15 +963,25 @@ end
 set(handles.zSlider,'Value',zselect)
 
     ctrlPnt=[xselect,yselect,zselect];
-    currentFiducials{plotIdx,4}=getappdata(handles.figure1,'currentHiResIdx')-(zSearch+1)+maxPosZ(1);
-currentFiducials{plotIdx,1}=ctrlPnt(1);
-currentFiducials{plotIdx,2}=ctrlPnt(2);
-currentFiducials{plotIdx,3}=ctrlPnt(3);
+        userFiducials{plotIdx,4}=getappdata(handles.figure1,'currentHiResIdx')-(zSearch+1)+maxPosZ(1);
+
+    if isempty(userFiducials{plotIdx,1})
+         clickPoints=pointUpdate(handles);
+    else
+        clickPoints=getappdata(handles.figure1,'points');
+    end
+% you only get points if you are replacing an empty point
+
+    userFiducials{plotIdx,1}=ctrlPnt(1);
+userFiducials{plotIdx,2}=ctrlPnt(2);
+userFiducials{plotIdx,3}=ctrlPnt(3);
 else
-    currentFiducials{plotIdx,1}=[];
-currentFiducials{plotIdx,2}=[];
-currentFiducials{plotIdx,3}=[];
-        currentFiducials{plotIdx,4}=[];
+            clickPoints=getappdata(handles.figure1,'points');
+
+    userFiducials{plotIdx,1}=[];
+userFiducials{plotIdx,2}=[];
+userFiducials{plotIdx,3}=[];
+        userFiducials{plotIdx,4}=[];
 
 end
 
@@ -944,19 +990,35 @@ end
 
 
 
-fiducialPoints{iFrame}=currentFiducials;
-set(handles.DisplayIdx,'data',currentFiducials);
+userFiducialsAll{iFrame}=userFiducials;
+set(handles.DisplayIdx,'data',userFiducials);
+userFiducialsAllUsers.(user)=userFiducialsAll;
 
-setappdata(handles.figure1,'fiducials',fiducialPoints);
+setappdata(handles.figure1,'fiducialsAllUsers',userFiducialsAllUsers);
+
+setappdata(handles.figure1,'fiducials',userFiducialsAll);
+fiducialPoints=userFiducialsAll;
+
 if get(handles.savingFiducials,'Value')
     timeOffset=str2double(get(handles.timeOffset,'String'));
-    
-    save(get(handles.currentFiducialFile,'String'), 'timeOffset','fiducialPoints')
+    save([fiducialFile filesep user],'fiducialPoints','clickPoints','-v6')
+    save([fiducialFile filesep 'timeOffset'],'timeOffset','-v6')
 end
 
 
-pointUpdate(handles)
 plotter(handles.slider1,'eventdata');
+
+
+if getappdata(handles.figure1,'updateFlag')
+    updataData2(handles)
+end
+setappdata(handles.figure1,'updateFlag',0);
+
+if strcmp(get(handles.timer, 'Running'), 'on')
+else               % If timer is stopped, reset its period only.
+    start(handles.timer)
+end
+
 
 
 % --- Executes on button press in clearPlots.
@@ -1219,44 +1281,23 @@ function figure1_KeyPressFcn(hObject, evnt, handles)
             goForward_Callback(handles.slider1,evnt,handles);
             autoSelect(handles.slider1,evnt)
         elseif strcmp(evnt.Key,'1') 
-            selectNeuron1_Callback(handles.slider1,evnt,handles);
+            selectNeuron1_Callback(handles.selectNeuron1,evnt,handles);
             cursorNeuronSelect(handles.slider1,evnt)
 
         elseif strcmp(evnt.Key,'2') 
-            selectNeuron2_Callback(handles.slider1,evnt,handles);
+            selectNeuron2_Callback(handles.selectNeuron2,evnt,handles);
             cursorNeuronSelect(handles.slider1,evnt);
         elseif strcmp(evnt.Key,'3')
-            selectNeuron3_Callback(handles.slider1,evnt,handles);
+            selectNeuron3_Callback(handles.selectNeuron3,evnt,handles);
             cursorNeuronSelect(handles.slider1,evnt)
         elseif strcmp(evnt.Key,'4') 
-            selectNeuron4_Callback(handles.slider1,evnt,handles);
+            selectNeuron4_Callback(handles.selectNeuron4,evnt,handles);
             cursorNeuronSelect(handles.slider1,evnt);
         elseif strcmp(evnt.Key,'5') 
-            selectNeuron5_Callback(handles.slider1,evnt,handles);
+            selectNeuron5_Callback(handles.selectNeuron5,evnt,handles);
             cursorNeuronSelect(handles.slider1,evnt);
         elseif strcmp(evnt.Key,'6') 
-            selectNeuron6_Callback(handles.slider1,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'7')
-            selectNeuron7_Callback(handles.slider1,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'8') 
-            selectNeuron8_Callback(handles.slider1,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'9');
-            selectNeuron9_Callback(handles.slider1,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'0');
-            selectNeuron10_Callback(handles.slider1,evnt,handles);
-        elseif strcmp(evnt.Key,'-');
-            selectNeuron11_Callback(handles.slider1,evnt,handles);
-        elseif strcmp(evnt.Key,'=');
-            selectNeuron12_Callback(handles.slider1,evnt,handles);
-        elseif strcmp(evnt.Key,'z');
-            selectNeuronN_Callback(handles.slider1,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'x')
-           selectNeuronM_Callback(handles.slider1,evnt,handles);
+            selectNeuron6_Callback(handles.selectNeuron6,evnt,handles);
             cursorNeuronSelect(handles.slider1,evnt);
         elseif strcmp(evnt.Key,'return');
             cursorNeuronSelect(handles.slider1,evnt);
@@ -1305,11 +1346,23 @@ end
 fiducialFile=uipickfiles('filterspec',parent);
 
 fiducialFile=fiducialFile{1};
-fiducialData=load(fiducialFile);
+%fiducialData=load(fiducialFile);
+timeOffset=load([fiducialFile filesep 'timeOffset']);
+timeOffset=timeOffset.timeOffset;
 
-setappdata(handles.figure1,'fiducials', fiducialData.fiducialPoints)
-set(handles.timeOffset,'String',num2str(fiducialData.timeOffset))
+set(handles.timeOffset,'String',timeOffset)
+
+%setappdata(handles.figure1,'fiducialsData', fiducialData2)
 set(handles.currentFiducialFile,'String',fiducialFile)
+pointUpdate(handles);
+updataData2(handles)
+if get(handles.savingFiducials,'Value')==0
+set(handles.savingFiducials,'Value',1);
+savingFiducials_Callback(handles.savingFiducials, eventdata, handles)
+end
+
+
+start(handles.timer);
 
 
 function currentFiducialFile_Callback(hObject, eventdata, handles)
@@ -1494,38 +1547,8 @@ end
 
 
 
-function N_Callback(hObject, eventdata, handles)
-% hObject    handle to N (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of N as text
-%        str2double(get(hObject,'String')) returns contents of N as a double
-
-N=str2double(get(hObject,'String'));
-NString=num2str(N);
-set(handles.selectNeuronN,'String',NString);
-setappdata(handles.figure1,'cursorTarget',N);
-
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function N_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to N (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function pointUpdate(handles)
+function points=pointUpdate(handles)
 currentClick=datevec(now);
 history=getappdata(handles.figure1,'history');
 points=getappdata(handles.figure1,'points');
@@ -1549,7 +1572,7 @@ longTimeHistory=mean(timeIntervalHistory);
 else
   longTimeHistory=inf;
 end
-
+%multiplier can be up to 10. 
 if shortTimeHistory<10
     multiplier=multiplier+1;
 end
@@ -1558,18 +1581,56 @@ if shortTimeHistory<5
 end
 
 if longTimeHistory<10
-    multiplier=multiplier+5;
+    multiplier=multiplier+4;
 end
 if longTimeHistory<5
-    multiplier=multiplier+1;
+    multiplier=multiplier+6;
 end
-[shortTimeHistory multiplier]
+
+if longTimeHistory<3.5
+    multiplier=multiplier+5;
+end
+%[shortTimeHistory multiplier]
 
 end
+
+switch multiplier
+    case {2 5}
+        Etext='Keep it up!';
+    case {6 9}
+        Etext='You''re on a roll!';
+    case {15}
+        Etext='Amazing!!';
+    case {20}
+        Etext='You''re on FIRE!!!';
+    otherwise
+        Etext='Click the Neurons!';
+end
+
+set(handles.encouragingText,'string',Etext);
 
 points=points+multiplier;
 setappdata(handles.figure1,'points',points);
-set(handles.Points,'String',[num2str(points) ' points']);
+level=floor(log(points/10000)/log(1.3))+1;
+level=max(level,0);
+if isempty(getappdata(handles.figure1,'level'));
+    setappdata(handles.figure1,'level','level');
+    oldLevel=level;
+else
+oldLevel=getappdata(handles.figure1,'level');
+end
+
+if level>=oldLevel;
+    msgbox(['Congratulations! You have just reached level: ' ...
+        num2str(level)]);
+end
+
+
+
+points2nextLevel=round(10000*(1.3)^(level)-points);
+
+set(handles.Points,'String',['Level:' num2str(level) ...
+    '| Points to next level: ' num2str(points2nextLevel)]);
 
 
 
@@ -1688,23 +1749,123 @@ end
 
 
 
-function M_Callback(hObject, eventdata, handles)
-% hObject    handle to M (see GCBO)
+function neuron1_Callback(hObject, eventdata, handles)
+% hObject    handle to neuron1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of M as text
-%        str2double(get(hObject,'String')) returns contents of M as a double
-M=str2double(get(hObject,'String'));
-MString=num2str(M);
-set(handles.selectNeuronM,'String',MString);
-setappdata(handles.figure1,'cursorTarget',M);
+% Hints: get(hObject,'String') returns contents of neuron1 as text
+%        str2double(get(hObject,'String')) returns contents of neuron1 as a double
+ currentNeuron=str2double(get(hObject,'String'));
+currentNeuronString=num2str(currentNeuron);
+set(handles.selectNeuron1,'String',currentNeuronString);
+setappdata(handles.figure1,'cursorTarget',currentNeuron);
+buttonClear(handles)
+set(handles.selectNeuron1,'BackgroundColor',[1 0 0 ]);
+
+
+
+function neuron2_Callback(hObject, eventdata, handles)
+% hObject    handle to neuron2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of neuron2 as text
+%        str2double(get(hObject,'String')) returns contents of neuron2 as a double
+ currentNeuron=str2double(get(hObject,'String'));
+currentNeuronString=num2str(currentNeuron);
+set(handles.selectNeuron2,'String',currentNeuronString);
+setappdata(handles.figure1,'cursorTarget',currentNeuron);
+buttonClear(handles)
+set(handles.selectNeuron2,'BackgroundColor',[1 0 0 ]);
+
+
+
+function neuron3_Callback(hObject, eventdata, handles)
+% hObject    handle to neuron3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of neuron3 as text
+%        str2double(get(hObject,'String')) returns contents of neuron3 as a double
+ currentNeuron=str2double(get(hObject,'String'));
+currentNeuronString=num2str(currentNeuron);
+set(handles.selectNeuron3,'String',currentNeuronString);
+setappdata(handles.figure1,'cursorTarget',currentNeuron);
+buttonClear(handles)
+set(handles.selectNeuron3,'BackgroundColor',[1 0 0 ]);
+
+
+
+function neuron4_Callback(hObject, eventdata, handles)
+% hObject    handle to neuron4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of neuron4 as text
+%        str2double(get(hObject,'String')) returns contents of neuron4 as a double
+ currentNeuron=str2double(get(hObject,'String'));
+currentNeuronString=num2str(currentNeuron);
+set(handles.selectNeuron4,'String',currentNeuronString);
+setappdata(handles.figure1,'cursorTarget',currentNeuron);
+buttonClear(handles)
+set(handles.selectNeuron4,'BackgroundColor',[1 0 0 ]);
+
+
+
+function neuron5_Callback(hObject, eventdata, handles)
+% hObject    handle to neuron5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of neuron5 as text
+%        str2double(get(hObject,'String')) returns contents of neuron5 as a double
+ currentNeuron=str2double(get(hObject,'String'));
+currentNeuronString=num2str(currentNeuron);
+set(handles.selectNeuron5,'String',currentNeuronString);
+setappdata(handles.figure1,'cursorTarget',currentNeuron);
+buttonClear(handles)
+set(handles.selectNeuron5,'BackgroundColor',[1 0 0 ]);
+
+
+
+
+function neuron6_Callback(hObject, eventdata, handles)
+% hObject    handle to neuron6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of neuron6 as text
+%        str2double(get(hObject,'String')) returns contents of neuron6 as a double
+ currentNeuron=str2double(get(hObject,'String'));
+currentNeuronString=num2str(currentNeuron);
+set(handles.selectNeuron6,'String',currentNeuronString);
+setappdata(handles.figure1,'cursorTarget',currentNeuron);
+buttonClear(handles)
+set(handles.selectNeuron6,'BackgroundColor',[1 0 0 ]);
+
+
+function buttonClear(handles)
+%sets all buttons for neuron selection to 0 state
+set(handles.selectNeuron1,'Value',0);
+set(handles.selectNeuron2,'Value',0);
+set(handles.selectNeuron3,'Value',0);
+set(handles.selectNeuron4,'Value',0);
+set(handles.selectNeuron5,'Value',0);
+set(handles.selectNeuron6,'Value',0);
+set(handles.selectNeuron1,'BackgroundColor',[.9 .9 .9 ]);
+set(handles.selectNeuron2,'BackgroundColor',[.9 .9 .9 ]);
+set(handles.selectNeuron3,'BackgroundColor',[.9 .9 .9 ]);
+set(handles.selectNeuron4,'BackgroundColor',[.9 .9 .9 ]);
+set(handles.selectNeuron5,'BackgroundColor',[.9 .9 .9 ]);
+set(handles.selectNeuron6,'BackgroundColor',[.9 .9 .9 ]);
+
 
 
 
 % --- Executes during object creation, after setting all properties.
-function M_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to M (see GCBO)
+function neuron5_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neuron5 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1715,3 +1876,197 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes during object creation, after setting all properties.
+function neuron6_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neuron6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function neuron1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neuron1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+% --- Executes during object creation, after setting all properties.
+function neuron2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neuron2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function neuron3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neuron3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function neuron4_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to neuron4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in usersDropdown.
+function usersDropdown_Callback(hObject, eventdata, handles)
+% hObject    handle to usersDropdown (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns usersDropdown contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from usersDropdown
+contents = cellstr(get(hObject,'String'));
+user=contents{get(hObject,'Value')};
+fiducialFile=get(handles.currentFiducialFile,'String');
+updataData2(handles);
+points=load([fiducialFile filesep user ]);
+if isfield(points,'clickPoints')
+points=points.clickPoints;
+else
+    points=0;
+end
+setappdata(handles.figure1,'points',points);
+
+
+% --- Executes during object creation, after setting all properties.
+function usersDropdown_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to usersDropdown (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in helpButton.
+function helpButton_Callback(hObject, eventdata, handles)
+% hObject    handle to helpButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+pop=[fileparts(which('Worm3dFiducialPickerNetwork.m')) filesep 'worm3dFiducialPickerNetworkHelp.txt'];
+popupmessage(pop,'Worm3dFiducialPickerNetwork Controls')
+
+function updateData(hObject,eventdata,hfigure)
+%periodically update data from selected fiducial folder
+handles = guidata(hfigure);
+
+setappdata(handles.figure1,'updateFlag',1);
+
+
+
+
+function updataData2(handles)
+        contents = cellstr(get(handles.usersDropdown,'String'));
+fiducialFileName=get(handles.currentFiducialFile,'String');
+successFlag=false;
+
+        contents = cellstr(get(handles.usersDropdown,'String'));
+
+while ~successFlag
+    try
+
+    for iUser=1:length(contents);
+        
+        
+        user=contents{iUser};
+fiducialsAll=load([fiducialFileName filesep user]);
+points=fiducialsAll.clickPoints;
+if iUser==get(handles.usersDropdown,'Value')
+    setappdata(handles.figure1,'points',points);
+end
+
+
+fiducialsAll=fiducialsAll.fiducialPoints;            
+fiducialsAllUsers.(user)=fiducialsAll;
+successFlag=true;
+    end
+    catch ME
+successFlag=false;
+display('Loading Conflict, trying again');
+    end
+end
+    
+    setappdata(handles.figure1,'fiducialsAllUsers',fiducialsAllUsers);
+ %   display('Updating Data');
+
+
+
+function refreshRate_Callback(hObject, eventdata, handles)
+% hObject    handle to refreshRate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of refreshRate as text
+%        str2double(get(hObject,'String')) returns contents of refreshRate as a double
+period= str2double(get(hObject,'String')) ;
+if strcmp(get(handles.timer, 'Running'), 'on')
+    stop(handles.timer);
+    set(handles.timer,'Period',period)
+    start(handles.timer)
+else               % If timer is stopped, reset its period only.
+    set(handles.timer,'Period',period)
+        start(handles.timer)
+end
+
+% --- Executes during object creation, after setting all properties.
+function refreshRate_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to refreshRate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in updateButton.
+function updateButton_Callback(hObject, eventdata, handles)
+% hObject    handle to updateButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+updataData2(handles)
