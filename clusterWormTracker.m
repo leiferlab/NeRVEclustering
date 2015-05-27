@@ -15,9 +15,7 @@ for iIdx=iIdxList%length(TrackData)
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
     TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(outRange));
-    progressbar(0)
     for j=presentIdx%outRange; 
-        progressbar(j/max(presentIdx))
             T1=[pointStats(i).straightPoints pointStats(i).pointIdx];
             T2=[pointStats(j).straightPoints pointStats(j).pointIdx];
             T1length=size(pointStats(i).straightPoints ,1);
