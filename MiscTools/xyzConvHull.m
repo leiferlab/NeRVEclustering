@@ -8,17 +8,17 @@ end
 for runs=1:2
     if any(dims==1)
         for imSlice=1:size(I,1);
-            I(imSlice,:,:)=imfill(squeeze(I(imSlice,:,:)),'holes');
+            I(imSlice,:,:)=bwconvhull(squeeze(I(imSlice,:,:)),'objects',4);
         end
     end
     if any(dims==3)
         for imSlice=1:size(I,3);
-            I(:,:,imSlice)=imfill(I(:,:,imSlice),'holes');
+            I(:,:,imSlice)=bwconvhull(I(:,:,imSlice),'objects',4);
         end
     end
     if any(dims==2)
         for imSlice=1:size(I,2);
-            I(:,imSlice,:)=imfill(squeeze(I(:,imSlice,:)),'holes');
+            I(:,imSlice,:)=bwconvhull(squeeze(I(:,imSlice,:)),'objects',4);
         end
     end
     

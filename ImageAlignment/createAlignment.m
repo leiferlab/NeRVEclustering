@@ -24,7 +24,10 @@ activityPts=alignment.Aall;
 end
 %%
         
-
+display(['Normal convention is:'  char(10) ...
+ 'Red channel 2 green channel,' char(10)...
+ 'low mag behavior to low mag fluor,' char(10)...
+ 'and hiRes Red to low Res fluor'])
 
 if choice==1
         initialIm=double(imread([fileName{1}],'tif'));

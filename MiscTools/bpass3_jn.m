@@ -36,7 +36,7 @@ function res = bpass3_jn(image_array,lnoise,lobject,threshold, isForcedDouble)
 %                       performed at all.
 %
 % OUTPUTS:
-%               res:    filtered image.
+%               res:    filtered image.f
 % PROCEDURE:
 %               simple convolution yields spatial bandpass filtering.
 % NOTES:

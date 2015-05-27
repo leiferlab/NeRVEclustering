@@ -137,6 +137,8 @@ elseif strfind(currentData,'.avi')
 setappdata(handles.figure1,'Fid',Fid);
 setappdata(handles.figure1,'aviFlag',1);
 end
+
+
 setappdata(handles.figure1,'maxC',0);
 setappdata(handles.figure1,'nFrames',nFrames);
 set(handles.slider1,'Value',1);
@@ -202,6 +204,7 @@ switch get(handles.colorMap,'Value');
         
     otherwise
 end
+drawnow
 setappdata(handles.figure1,'currentImage',C);
 
 

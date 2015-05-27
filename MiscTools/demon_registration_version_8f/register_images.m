@@ -116,16 +116,16 @@ function [Ireg,Bx,By,Fx,Fy] = register_images(Imoving,Istatic,Options)
 
 
 % add all needed function paths
-%try
-%     functionname='register_images.m';
-%     functiondir=which(functionname);
-%     functiondir=functiondir(1:end-length(functionname));
-%     addpath([functiondir '/functions'])
-%     addpath([functiondir '/functions_affine'])
-% 	addpath([functiondir '/functions_nonrigid'])%
-% catch me
-%     disp(me.message);
-% end
+try
+    functionname='register_images.m';
+    functiondir=which(functionname);
+    functiondir=functiondir(1:end-length(functionname));
+    addpath([functiondir '/functions'])
+    addpath([functiondir '/functions_affine'])
+	addpath([functiondir '/functions_nonrigid'])
+catch me
+    disp(me.message);
+end
 
 % Disable warning
 warning('off', 'MATLAB:maxNumCompThreads:Deprecated')

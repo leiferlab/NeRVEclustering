@@ -49,8 +49,10 @@ if isnan(polyOrder);
     warning('pedestalSubtract:wrongType','''Border'' input is not of the correct form');
     polyOrder = 0;
 end
+
+pedSelect=find(~isnan(pedestal));
 % fit to a polynomial
-pedestalCoefs = polyfit(1:size(inputImage,3),pedestal,polyOrder);
+pedestalCoefs = polyfit(pedSelect,pedestal(pedSelect),polyOrder);
 % evalutate the polynomial
 pedestalVals = polyval(pedestalCoefs,1:size(inputImage,3));
 % shape it along the third dimension

@@ -22,8 +22,8 @@ function Iout=movepixels_2d_double(Iin,Tx,Ty,mode)
 [x,y]=ndgrid(0:size(Iin,1)-1,0:size(Iin,2)-1);
 
 % Calculate the Transformed coordinates
-Tlocalx = x+Tx;
-Tlocaly = y+Ty;
+Tlocalx = bsxfun(@plus,x,Tx);
+Tlocaly = bsxfun(@plus,y,Ty);
 
 % All the neighborh pixels involved in linear interpolation.
 xBas0=floor(Tlocalx); 

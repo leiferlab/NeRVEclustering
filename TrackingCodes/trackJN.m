@@ -782,14 +782,19 @@ for i=istart:z
                         rnsteps = rnsteps * length( find(bonds(:,2) == ...
                             unew(ii)));
                         if rnsteps > difficult
+                            if ~quiet
                             warning('Track:combinatorics:difficult',...
                                 ['This many combinatorics may be slow. ',...
                                 'Consider reducing maxdisp and running again.']);
+                            end
+                            
                         end
                         if rnsteps > 4*difficult
+                            if ~quiet
                             warning('Track:combinatorics:excessive',...
                                 ['This many combinatorics may be extremly slow. ',...
                                 'Recommend reducing maxdisp and running again.']);
+                            end
                             switch excessive
                                 case 1 % automatically exit
                                     return

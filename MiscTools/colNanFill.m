@@ -1,7 +1,9 @@
-function stackIn=colNanFill(stackIn)
+function stackIn=colNanFill(stackIn,options)
 % colNanFill takes an image stack with nans due to warping and fills them
 % in with the nears non nan value in that column.
-
+if nargin==1
+    options='linear';
+end
  imSize=size(stackIn);
  nanMap=isnan(stackIn);
 if ismatrix(stackIn);
@@ -19,7 +21,7 @@ for i=1:imSize(2)
         
         tempCol(1:firstVal)=tempCol(firstVal);
         tempCol(lastVal:end)=tempCol(lastVal);
-        tempCol=interp1(find(~nanTemp),tempCol(~nanTemp),1:length(nanTemp),'linear');
+        tempCol=interp1(find(~nanTemp),tempCol(~nanTemp),1:length(nanTemp),options);
         
         stackIn(:,i,j)=tempCol;
     end

@@ -16,6 +16,7 @@ end
 
 
 %%
+
 % bfIdxList=1:length(bfAll.frameTime);
 % fluorIdxList=1:length(fluorAll.frameTime);
 % bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'PCHIP');
@@ -111,6 +112,29 @@ groupSize=100;
 % stats=regionprops(wormLabelMask,'Centroid','Area');
 % centroids=reshape([stats.Centroid],3,[])';
 
+
+
+
+if 0
+    
+      
+    greenBackground=gback((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
+    redBackground=rback((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
+    redBackground=imwarp(redBackground,S2AHiRes.t_concord,'OutputView',S2AHiRes.Rsegment);
+greenBackground=greenBackground-90;
+greenBackground=greenBackground/mean(greenBackground(:));
+greenBackground(greenBackground<.1)=.1;
+redBackground=redBackground-90;
+redBackground=redBackground/mean(redBackground(:));
+redBackground(redBackground<.1)=.1;
+
+else
+    greenBackground=1;
+    redBackground=1;
+    
+    
+end
+
 %%
 
 
@@ -133,7 +157,7 @@ for iStack=1:length(annotated)
           fiducialZ=round(cell2mat(currentFiducials(fiducialIdx,4)));
     %    [fiducialPlanes,ia,ib]=unique(fiducialZ);
 
-        currentFiducials=cell2mat(currentFiducials(fiducialIdx,:));    
+        currentFiducials=cell2mat(currentFiducials(fiducialIdx,1:4));    
         Rout=zeros(12,1);
         Gout=Rout;
         backgroundOut=Gout;
@@ -159,7 +183,8 @@ progressbar(iStack/length(annotated),i/size(rFiducialPoints,1));
     segmentChannel=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
     activityChannel=hiResImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
     activityChannel=imwarp(activityChannel,S2AHiRes.t_concord,'OutputView',S2AHiRes.Rsegment);
-    
+    segmentChannel=bsxfun(@rdivide,segmentChannel-90,greenBackground);
+    activityChannel=bsxfun(@rdivide,activityChannel-90,redBackground);
  
     [yspace,xspace]=meshgrid(rFiducialPoints(i,2)+(-boxR(1):boxR(1))...
     ,rFiducialPoints(i,1)+(-boxR(2):boxR(2)));
@@ -190,7 +215,7 @@ BackgroundF{iStack}=backgroundOut;
 end
 %%
 
-SliceBrowser((squeeze(mean(mean(Rcrop(:,:,:,:,:),2),1))));
+SliceBrowser((squeeze(mean(mean(Gcrop(:,:,:,:,:),2),1))));
 
 SliceBrowser((squeeze(mean(mean(Rcrop(:,:,:,:,:),3),1))));
 %%

@@ -1,12 +1,11 @@
-xAll=[];tAll=[];
-nFiducials=60;
-
+xAll=[];tAll=[];xMatAll=[];
+nFiducials=100;
 hasPoints=cellfun(@(x) ~isempty(x{1}), fiducialPoints,'uniformoutput',0);
 hasPoints=find(cell2mat(hasPoints));
 nTimes=length(hasPoints);
 for ii=1:nTimes
     i=hasPoints(ii);
-%x=(cell2mat(cellfun(@(x) x{:,1}, fiducialPoints(i),'uniformoutput',0)));
+x=(cell2mat(cellfun(@(x) x{:,1}, fiducialPoints(i),'uniformoutput',0)));
 x=(fiducialPoints{i});
 if(size(x,1))>=nFiducials && size(x,2)>2
 x=x(1:nFiducials,1:2);
@@ -19,8 +18,11 @@ end
 
 
     xAll=cat(1,xAll,X2);
+    xMatAll=cat(3,xMatAll,squareform(X2));
     tAll=cat(1,tAll,i);
 else
+        xMatAll=cat(3,xMatAll,squareform(X0));
+
     xAll=cat(1,xAll,X0);
         tAll=cat(1,tAll,i);
 
@@ -30,12 +32,11 @@ end
 end
 %%
 xmeans=nanmean(xAll,1);
-%xmeans=xAll(50,:);
 xSTDs=nanstd(xAll,[],1);
 zAll=bsxfun(@minus, xAll,xmeans);
 zAll=bsxfun(@rdivide, zAll,xSTDs);
 
-[coeff,score,latent,tsquared,explained,mu] = pca(zAll);
+[coeff,score,xlatent,tsquared,explained,mu] = pca(zAll,'row','pairwise');
 coeff2=bsxfun(@times, coeff,xSTDs');
 coeff2=bsxfun(@plus, coeff2,xmeans');
 
