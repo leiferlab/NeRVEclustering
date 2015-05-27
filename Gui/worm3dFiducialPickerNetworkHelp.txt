@@ -35,6 +35,7 @@ Saving		-	Toggle on and off saving. if saving is off, saving will be in a temp l
 Next Annotated	-	Finds next stack with annotated neurons by current user
 Previous Annotated	-	Finds last stack with annotated neurons by current user
 Load fiducials	-	Select folder with fiducial files
+Cruise Control -    Continuous moving forward with autoselect, press any key to abort
 
 Other Controls:
 Filter Size 	-	STD of gaussian or LOG filter
