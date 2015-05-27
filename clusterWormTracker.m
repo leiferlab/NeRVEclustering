@@ -12,7 +12,6 @@ param.excessive=4;
 iIdxList=startIdx:startIdx+stepSize-1;
 %%
 for iIdx=iIdxList%length(TrackData)
-    tic
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
     TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(outRange));
@@ -107,9 +106,8 @@ for iIdx=iIdxList%length(TrackData)
         end
 
     end
-    toc
     outputName=fileparts(filePath);
 outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
-%save(outputName,'TrackMatrix');
+save(outputName,'TrackMatrix');
 end
 
