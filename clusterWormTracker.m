@@ -24,9 +24,7 @@ for iIdx=iIdxList%length(TrackData)
             
             if ~isempty(T1) && ~isempty(T2)
                 for regionId=0:2
-                    
-                    
-                    
+                                        
                     select1=pointStats(i).regionLabel==regionId ...
                         & pointStats(i).Rintensities>40;
                     select2=pointStats(j).regionLabel==regionId &...
@@ -110,6 +108,6 @@ for iIdx=iIdxList%length(TrackData)
     end
     outputName=fileparts(filePath);
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
-    save(outputName,'TrackMatrix');
+    save(outputName,'TrackMatrixi');
 end
 
