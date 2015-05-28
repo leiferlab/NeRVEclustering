@@ -7,7 +7,7 @@ N=length(presentIdx);
 param.dim=3;
 param.excessive=4;
 param.quiet=1;
-param.difficult=5.e4;
+param.difficult=2.e4;
 
 
 iIdxList=startIdx:startIdx+stepSize-1;
@@ -16,6 +16,7 @@ for iIdx=iIdxList%length(TrackData)
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
     TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(outRange));
+    transformedTest=cell(length(presentIdx),3);
     for j=presentIdx%outRange;
         try
             T1=[pointStats(i).straightPoints pointStats(i).pointIdx];
@@ -43,15 +44,17 @@ for iIdx=iIdxList%length(TrackData)
                             
                             
                         end
-                        
                         trackInput=[T1temp  T1temp find(select1) ones(size(T1temp(:,1))); ...
                             Transformed_M T2temp find(select2) 2*ones(size(Transformed_M(:,1)))];
                         TrackOut=nan;
-                        counter=20;
+                        counter=10;
                         while(all(isnan(TrackOut(:))))
                             TrackOut=trackJN(trackInput,counter,param);
                             counter=counter-1;
                         end
+                        
+                        transformedTest{j,regionId}=TrackOut;
+
                         
                         TrackOut(:,1:3)=[];
                         TrackStats=round(TrackOut(:,4:end));
@@ -86,7 +89,7 @@ for iIdx=iIdxList%length(TrackData)
                     trackInput=[T1unmatchedWarped T1(unmatched1Idx,4) ones(size(T1unmatchedWarped(:,1))); ...
                         T2unmatched 2*ones(size(T2unmatched(:,1)))];
                     
-                    counter=20;
+                    counter=10;
                     TrackOut=nan;
                     while(all(isnan(TrackOut(:))))
                         TrackOut=trackJN(trackInput,counter,param);
@@ -100,7 +103,7 @@ for iIdx=iIdxList%length(TrackData)
                     track2=TrackStats(2:2:end,1);
                     TrackMatrixi(track1,j-outRange(1)+1)=track2;
                     
-                end
+               end
             end
         catch ME
             
@@ -109,6 +112,6 @@ for iIdx=iIdxList%length(TrackData)
     end
     outputName=fileparts(filePath);
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
-    save(outputName,'TrackMatrixi');
+    save(outputName,'TrackMatrixi','transformedTest');
 end
 
