@@ -62,44 +62,44 @@ for iIdx=iIdxList%length(TrackData)
                     end
                 end
                 
-                select1= pointStats(i).Rintensities>40;
-                select2=pointStats(j).Rintensities>40;
-             %   T1temp=T1(select1,1:3);
-              %  T2temp=T2(select2,1:3);
-                
-                matchedIdx=find( TrackMatrixi(:,j-outRange(1)+1));
-                
-                matchedPairs=[matchedIdx, TrackMatrixi(matchedIdx,j-outRange(1)+1)];
-                T1matched=T1(matchedPairs(:,1),:);
-                T2matched=T2(matchedPairs(:,2),:);
-                unmatched1Idx=~ismember(find(select1),matchedPairs(:,1));
-                unmatched2Idx=~ismember(find(select2),matchedPairs(:,2));
-                T1unmatched=T1(unmatched1Idx,:);
-                T2unmatched=T2(unmatched2Idx,:);
-                
-                if ~isempty(matchedPairs) && ~isempty(unmatched1Idx)  && ~isempty(unmatched2Idx)
-                    [T1unmatchedWarped] = tpswarp3points(T1matched(:,1:3), ...
-                        T2matched(:,1:3),T1unmatched(:,1:3));
+%                 select1= pointStats(i).Rintensities>40;
+%                 select2=pointStats(j).Rintensities>40;
+%              %   T1temp=T1(select1,1:3);
+%               %  T2temp=T2(select2,1:3);
+%                 
+%                 matchedIdx=find( TrackMatrixi(:,j-outRange(1)+1));
+%                 
+%                 matchedPairs=[matchedIdx, TrackMatrixi(matchedIdx,j-outRange(1)+1)];
+%                 T1matched=T1(matchedPairs(:,1),:);
+%                 T2matched=T2(matchedPairs(:,2),:);
+%                 unmatched1Idx=find(~ismember(find(select1),matchedPairs(:,1)));
+%                 unmatched2Idx=find(~ismember(find(select2),matchedPairs(:,2)));
+%                 T1unmatched=T1(unmatched1Idx,:);
+%                 T2unmatched=T2(unmatched2Idx,:);
+%                 
+%                 if ~isempty(matchedPairs) && ~isempty(unmatched1Idx)  && ~isempty(unmatched2Idx)
+%                     [T1unmatchedWarped] = tpswarp3points(T1matched(:,1:3), ...
+%                         T2matched(:,1:3),T1unmatched(:,1:3));
+%                     
+%                     
+%                     trackInput=[T1unmatchedWarped T1(unmatched1Idx,4) ones(size(T1unmatchedWarped(:,1))); ...
+%                         T2unmatched 2*ones(size(T2unmatched(:,1)))];
+%                     
+%                     counter=10;
+%                     TrackOut=nan;
+%                     while(all(isnan(TrackOut(:))))
+%                         TrackOut=trackJN(trackInput,counter,param);
+%                         counter=counter-1;
+%                     end
+%                     
+%                     TrackStats=round(TrackOut(:,4:end));
+%                     TrackedIDs=TrackStats([1;diff(TrackStats(:,3))]==0,end);
+%                     TrackStats=TrackStats(ismember(TrackStats(:,end),TrackedIDs),:);
+%                     track1=TrackStats(1:2:end,1);
+%                     track2=TrackStats(2:2:end,1);
+%                     TrackMatrixi(track1,j-outRange(1)+1)=track2;
                     
-                    
-                    trackInput=[T1unmatchedWarped T1(unmatched1Idx,4) ones(size(T1unmatchedWarped(:,1))); ...
-                        T2unmatched 2*ones(size(T2unmatched(:,1)))];
-                    
-                    counter=10;
-                    TrackOut=nan;
-                    while(all(isnan(TrackOut(:))))
-                        TrackOut=trackJN(trackInput,counter,param);
-                        counter=counter-1;
-                    end
-                    
-                    TrackStats=round(TrackOut(:,4:end));
-                    TrackedIDs=TrackStats([1;diff(TrackStats(:,3))]==0,end);
-                    TrackStats=TrackStats(ismember(TrackStats(:,end),TrackedIDs),:);
-                    track1=TrackStats(1:2:end,1);
-                    track2=TrackStats(2:2:end,1);
-                    TrackMatrixi(track1,j-outRange(1)+1)=track2;
-                    
-                end
+%                end
             end
         catch ME
             
