@@ -84,6 +84,7 @@ switch lower(config.motion)
             
         catch err
             %catch rounding errors
+            err
             display('rounding error found');
             param = x0;
         end
