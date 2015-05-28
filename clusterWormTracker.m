@@ -66,8 +66,8 @@ for iIdx=iIdxList%length(TrackData)
                     end
                 end
                 
-                select1= pointStats(i).Rintensities>40;
-                select2=pointStats(j).Rintensities>40;
+                select1= find(pointStats(i).Rintensities>40);
+                select2=find(pointStats(j).Rintensities>40);
              %   T1temp=T1(select1,1:3);
               %  T2temp=T2(select2,1:3);
                 
@@ -76,11 +76,18 @@ for iIdx=iIdxList%length(TrackData)
                 matchedPairs=[matchedIdx, TrackMatrixi(matchedIdx,j-outRange(1)+1)];
                 T1matched=T1(matchedPairs(:,1),:);
                 T2matched=T2(matchedPairs(:,2),:);
-                unmatched1Idx=find(~ismember(find(select1),matchedPairs(:,1)));
-                unmatched2Idx=find(~ismember(find(select2),matchedPairs(:,2)));
+                unmatched1Idx=select1(~ismember(select1,matchedPairs(:,1)));
+                unmatched2Idx=select2(~ismember(select2,matchedPairs(:,2)));
                 T1unmatched=T1(unmatched1Idx,:);
                 T2unmatched=T2(unmatched2Idx,:);
                 
+%                 scatter3(T1unmatched(:,1),T1unmatched(:,2),T1unmatched(:,3));
+% axis equal
+% hold on
+% scatter3(T2unmatched(:,1),T2unmatched(:,2),T2unmatched(:,3));
+% scatter3(T1unmatchedWarped(:,1),T1unmatchedWarped(:,2),T1unmatchedWarped(:,3),'x');
+%      
+
                 if ~isempty(matchedPairs) && ~isempty(unmatched1Idx)  && ~isempty(unmatched2Idx)
                     [T1unmatchedWarped] = tpswarp3points(T1matched(:,1:3), ...
                         T2matched(:,1:3),T1unmatched(:,1:3));

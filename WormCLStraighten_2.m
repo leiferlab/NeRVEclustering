@@ -156,8 +156,12 @@ centerline=centerline.centerline;
 % 
              fluorFrame2=imwarp(fluorFrame,Hi2LowResF.t_concord,...
                  'OutputView',Hi2LowResF.Rsegment);
-    %        fluorFrame2=fluorFrame2((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
-%             
+             if all(size(fluorFrame2(:,:,1))==[rows cols]);
+          fluorFrame2=fluorFrame2((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
+cropFlag=1;
+             else 
+                 cropFlag=0;
+             end
 %  fluorFrame2=double(fluorFrame2(:,:,ib));   
 %  
 %  bfFrame=double(bfFrame(:,:,ib));           
@@ -168,8 +172,6 @@ centerline=centerline.centerline;
     
     status=fseek(Fid,2*(hiResIdx(1))*nPix,-1);
     pixelValues=fread(Fid,nPix*(length(hiResIdx)),'uint16',0,'l');
- 
-    
     hiResImage=reshape(pixelValues,rows,cols,length(hiResIdx));
     
     segmentChannel=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
@@ -303,9 +305,9 @@ CL2=[];
 
 %[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2(:,2,:),CL2(:,1,:));
 [CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2(:,2,:),CL2(:,1,:));
-
-%CL2(:,2,:)=CL2(:,2,:)-600;
-
+if cropFlag
+CL2(:,2,:)=CL2(:,2,:)-600;
+end
 %[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(hiResFix.t_concord,CL2(:,2,:),CL2(:,1,:));
 
 CL2(:,1,:)=CL2(:,1,:);

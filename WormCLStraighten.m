@@ -966,7 +966,7 @@ end
 
 %fileName=[imageFolder filesep 'image' num2str(iStack,'%3.5d') '.tif'];
 fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
-fileName3=[imageFolder2 filesep 'imageMap' num2str(iStack,'%3.5d') '.tif'];
+fileName3=[imageFolder2 filesep 'imageMap' num2str(iStack,'%3.5d')];
 
 %tiffwrite(fileName,Vproj,'tif');
 tiffwrite(fileName2,single(V),'tif');
