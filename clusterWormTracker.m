@@ -53,7 +53,7 @@ for iIdx=iIdxList%length(TrackData)
                             counter=counter-1;
                         end
                         
-                        transformedTest{j,regionId}=TrackOut;
+                        transformedTest{j,regionId+1}=TrackOut;
 
                         
                         TrackOut(:,1:3)=[];
@@ -106,7 +106,7 @@ for iIdx=iIdxList%length(TrackData)
                end
             end
         catch ME
-            
+            ME
         end
         
     end
