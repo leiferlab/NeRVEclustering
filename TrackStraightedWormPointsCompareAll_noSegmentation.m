@@ -1,5 +1,5 @@
 imFolder='F:\20141212\BrainScanner20141212_145951\CLstraight_20150525_2';
-
+%%
 zindexer=@(x,s) x./(s)+1;
 
 options.thresh1=0.05;

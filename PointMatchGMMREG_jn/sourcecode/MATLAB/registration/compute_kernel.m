@@ -25,12 +25,14 @@ switch d
         end
     end
   case 3
-    for i=1:n
-        for j=1:n
-            r = norm(ctrl_pts(i,1:3) - ctrl_pts(j,1:3));
-            K(i,j) =   -r;
-        end
-    end
+      
+      K=-squareform(pdist(ctrl_pts(:,1:3)));
+%     for i=1:n
+%         for j=1:n
+%             r = norm(ctrl_pts(i,1:3) - ctrl_pts(j,1:3));
+%             K(i,j) =   -r;
+%         end
+%     end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
