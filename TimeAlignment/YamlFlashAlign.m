@@ -20,14 +20,28 @@ flashes=regexpi(matName','flash');
 flashes=cellfun(@(x) ~isempty(x), flashes)';
 
 if length(yamls)<2 ||length(flashes)<2
+    dyamls=dir([dataFolder filesep '*.yaml']);
+if isempty(dyamls)
    if length( yamls)<2
     display('Select Yaml Files');
 yamlFiles=uipickfiles('filterspec', dataFolder);
    end
-   
+else
+    yamlFiles={dyamls.name};
+    yamlFiles=cellfun(@(x) [dataFolder filesep x],yamlFiles,'uniform',0);
+end
+davis=dir([dataFolder filesep '*.avi']);
+davis={davis.name};
+davis=davis(cellfun(@(x) isempty(strfind(x, 'HUDS')),davis));
+if isempty(davis)
 if length(flashes)<2
 display('Select avi files');
 aviFiles=uipickfiles('filterspec', dataFolder);
+end
+else
+    aviFiles=davis;
+    aviFiles=cellfun(@(x) [dataFolder filesep x],aviFiles,'uniform',0);
+
 end
 
 findFlash(aviFiles);
@@ -83,9 +97,9 @@ fluorFrameTime=fluorFrameTime-min(fluorFrameTime);
 %% find flash indecies
 
 bfFlash=bfFlash-min(bfFlash);
-bfFlashloc=find(bfFlash>(max(bfFlash)/2));
+bfFlashloc=find(bfFlash>(mean(bfFlash)+std(bfFlash)*5));
 fluorFlash=fluorFlash-min(fluorFlash);
-fluorFlashloc=find(fluorFlash>(std(fluorFlash)*10));
+fluorFlashloc=find(fluorFlash>(mean(fluorFlash)+(std(fluorFlash)*5)));
 
 bfFlashTime=bfFrameTime(bfFlashloc);
 fluorFlashTime=fluorFrameTime(fluorFlashloc);

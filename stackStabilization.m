@@ -34,24 +34,24 @@ for iHalf=1:2
         
         imgBRaw=(Vtemp(:,:,iSlice))/maxI;
         imgBRaw(isnan(imgBRaw))=0;
-          imgB=imgBRaw;
-            imgB=bpass(imgB,3,20);
-            imgB=(imgB);
-            imgB(imgB<thresh)=0;
-            if iSlice>sliceLag
+        imgB=imgBRaw;
+        imgB=bpass(imgB,3,20);
+        imgB=(imgB);
+        imgB(imgB<thresh)=0;
+        if iSlice>sliceLag
             imgARaw=(Vtemp(:,:,iSlice-sliceLag))/maxI;
             imgA=imgARaw;
             imgA=bpass(imgA,3,20);
             imgA=(imgA);
             imgA(imgA<thresh)=0;
-            else
-                imgA=0;
-            end      
+        else
+            imgA=0;
+        end
         
         if  nnz(imgB) && nnz(imgA) && iSlice>sliceLag
             %%
-     
-
+            
+            
             
             % pointsA = detectFASTFeatures(imgA, 'MinContrast', ptThresh);
             % pointsB = detectFASTFeatures(imgB, 'MinContrast', ptThresh);
@@ -95,14 +95,20 @@ for iHalf=1:2
             
             if length(pointsBM)>2
                 
-%                 [tform, pointsBm, pointsAm] = estimateGeometricTransform(...
-%                     pointsBM, pointsAM, 'affine');
-
-tform=fitgeotrans( pointsBM, pointsAM, 'affine');
+                %                 [tform, pointsBm, pointsAm] = estimateGeometricTransform(...
+                %                     pointsBM, pointsAM, 'affine');
+                
+                tform=fitgeotrans( pointsBM, pointsAM, 'similarity');
+%                 if det(tform.T)<.9 || det(tform.T)>1.1
+%                     tform=affine2d(eye(3));
+%                     
+%                 end
+                
             else
                 tform=affine2d(eye(3));
             end
-          %  [det(tform.T) length(pointsBM)]
+            
+            %   tform.T(1:2,1:2)= tform.T(1:2,1:2)/det(tform.T);
             tform.T=tform.T*tformAll{iSlice-sliceLag}.T;
             VtempOut(:,:,iSlice)=imwarp(Vtemp(:,:,iSlice),R,tform,...
                 'OutputView',R);
@@ -116,7 +122,7 @@ tform=fitgeotrans( pointsBM, pointsAM, 'affine');
                     scatter( pointsBM(:,1), pointsBM(:,2))
                 end
                 hold off
-drawnow
+                drawnow
             end
         else
             tform=affine2d(eye(3));

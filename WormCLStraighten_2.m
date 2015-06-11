@@ -310,7 +310,6 @@ CL2(:,2,:)=CL2(:,2,:)-600;
 end
 %[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(hiResFix.t_concord,CL2(:,2,:),CL2(:,1,:));
 
-CL2(:,1,:)=CL2(:,1,:);
 
 CL2X=reshape(CL2(:,1,CLsearchWindow:end-CLsearchWindow),[],1,1);
 CL2Y=reshape(CL2(:,2,CLsearchWindow:end-CLsearchWindow),[],1,1);
@@ -380,7 +379,7 @@ for i=2:length(ia);
     %[shift,~]=find(corrtemp==max(corrtemp(:)));
     [~,shift]=min(corrtemp);
     shiftVec(i)=r(shift);
-[i r(shift) shift]
+%[i r(shift) shift];
 end
 
 shiftVec=cumsum(shiftVec);
@@ -541,8 +540,8 @@ close all
 % 
 for iSlice=1:size(worm2,3);
     
-    imagesc(worm2(:,:,iSlice));
-    hold on
+    imagesc(worm2(:,:,iSlice));colormap hot
+hold on
     clSlice=interp1([lowLevel midZ hiLevel],[minZCL midZCL maxZCL], iSlice,'linear','extrap');
     clSlice=round(clSlice);
     clSlice(clSlice<1)=1;
@@ -554,6 +553,8 @@ plot(CL3all(:,1,clSlice),CL3all(:,2,clSlice));
 
 hold off
 axis auto equal
+xlim([0 600]);ylim([0 600])
+%print(gcf,['Y:\Jeff\PowerPoint\New folder\MySavedPlot' num2str(iSlice,'%3.5d') ],'-dpng')
 pause(.1)
 end
         end
@@ -744,7 +745,7 @@ Vsmooth=temp;
 
 else
 yshift=yshift-2*yshift(maxPos)+outputRadius+50;
-
+yshift=-yshift;
     lags=[maxPos-outputLength,0];
     [ndX,ndY,ndZ]=ndgrid(1:size(V,1),1:size(V,2),1:size(V,3));
     
@@ -775,9 +776,9 @@ end
 
 %% 
 
-V1=nansum(V(:,:,1:floor(outputRadius)),3);
+V1=Vtemplate;
 V1f=bpass(V1,.1,[30 30]);
-V2=nansum(V(:,:,floor(outputRadius+1):end),3);
+V2=Vproj;
 V2f=bpass(V2,.1,[30 30]);
 
 
@@ -787,28 +788,23 @@ vline1=smooth(vline1,30);
 vline2=smooth(vline2,30);
 V1f=imfilter(V1f,-gaussKernal50);
 V2f=imfilter(V2f,-gaussKernal50);
-[~,maxpeak1]=max(vline1+vline2);
-[~,maxpeak2]=max(vline2+vline1);
-vline1=vline1+vline2;
+[~,maxpeak1]=max(vline1);
+%vline1=vline1+vline2;
 vline2=vline1;
 [~,locs1,w1,p1]=findpeaks(-vline1(1:maxpeak1));
 w1=w1.*p1;
 [~,nring1]=max(w1);
 nring1=locs1(nring1);
 
-[~,locs2,w2,p2]=findpeaks(-vline2(1:maxpeak2));
-w2=w2.*p2;
-[~,nring2]=max(w2);
-nring2=locs2(nring2);
 lowVal=min(V2f(:));
-V2f(1:nring2-20,:)=lowVal;
+V2f(1:nring1-20,:)=lowVal;
 V1f(1:nring1-20,:)=lowVal;
 
 
 % V1f=[V1f; V1f*0-1000];
 % V2f=[V2f; V2f*0-1000];
 
-[~,locs3,w3,p3]=findpeaks(smooth(-vline1-vline2,15));
+[~,locs3,w3,p3]=findpeaks(smooth(-vline1,15));
 %if problem finding nchord peak, use old one
 if any(locs3(locs3>maxpeak1))
 nchord=locs3(locs3>maxpeak1);
@@ -835,7 +831,7 @@ VXgrid=VXgrid-mean(VXgrid(:));
 VYgrid=VYgrid-mean(VYgrid(:));
 %Vbit=atan2(VXgrid,VYgrid);
 
-
+subV(isnan(subV))=0;
 Vbit=double(VXgrid>VYgrid)+2.*(double(VYgrid>-VXgrid));
 Vbit=Vbit+1;
 vRegion=accumarray(Vbit(:),subV(:),[],@nanmean);
@@ -843,24 +839,33 @@ vRegion=Vbit==find(vRegion==max(vRegion));
 end
 V1f=V1f-lowVal;
 V2f=V2f-lowVal;
-
 %%
 
-xVec1=floor(outputRadius+1):size(V1,2);
-xVec2=1:floor(outputRadius);
- aOut1=fminsearch(@(a) CLsearch(V1f,[xVec2 xVec1] ,[(a(1))*(xVec2-101).^2+a(2)*(xVec2-101)+nring1 ,...
+xVec1=floor(outputRadius+1):size(V1,2)-50;
+xVec2=51:floor(outputRadius);
+
+ aOut1=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[(a(1))*(xVec2-outputRadius).^2+a(2)*(xVec2-101)+nring1 ,...
     (a(3))*(xVec1-outputRadius-1).^2+a(4)*(xVec1-outputRadius-1)+nring1] ...
 ,show),[0.0040 0.0040  .004 .3]);
 
- aOut2=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[(a(1))*(xVec2-101).^2+a(2)*(xVec2-101)+nring2 ,...
-   ( a(3))*(xVec1-outputRadius-1).^2+a(4)*(xVec1-outputRadius-1)+nring2] ...
-,show),[0.0040 -0.0040  .004 .3  ]);
+%  aOut1=fminsearch(@(a) CLsearch(V1f,[xVec2 xVec1] ,[(a(1))*(xVec2-outputRadius).^2+nring1 ,...
+%     (a(2))*(xVec1-outputRadius-1).^2+nring1] ...
+% ,show),[0.0040 0.0040]);
 
+%aOut2=aOut1;
+%  aOut2=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[(a(1))*(xVec2-101).^2+a(2)*(xVec2-101)+nring2 ,...
+%    ( a(3))*(xVec1-outputRadius-1).^2+a(4)*(xVec1-outputRadius-1)+nring2] ...
+% ,show),[0.0040 -0.0040  .004 .3  ]);
 
-boundary1=[aOut2(1)*(xVec2-outputRadius-1).^2+aOut2(2)*(xVec2-outputRadius-1)+nring1 ...
+boundary1=zeros(1,outputRadius*2+1);
+boundary1(51:size(V1,2)-50)=[aOut1(1)*(xVec2-outputRadius-1).^2+aOut1(2)*(xVec2-outputRadius-1)+nring1 ...
      aOut1(3)*(xVec1-outputRadius-1).^2+aOut1(4)*(xVec1-outputRadius-1)+nring1] ;
-boundary2=[aOut2(1)*(xVec2-outputRadius-1).^2+aOut2(2)*(xVec2-outputRadius-1)+nring2 ...
-     aOut2(3)*(xVec1-outputRadius-1).^2+aOut2(4)*(xVec1-outputRadius-1)+nring2] ;
+boundary1(1:50)=boundary1(51);
+boundary1(size(V1,2)-50+1:end)=boundary1(size(V1,2)-50);
+ boundary2=boundary1;
+%  
+%  boundary2=[aOut2(1)*(xVec2-outputRadius-1).^2+aOut2(2)*(xVec2-outputRadius-1)+nring2 ...
+%      aOut2(3)*(xVec1-outputRadius-1).^2+aOut2(4)*(xVec1-outputRadius-1)+nring2] ;
 
  
  boundary2(boundary2>nchord)=nchord;

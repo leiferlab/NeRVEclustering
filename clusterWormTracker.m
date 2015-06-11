@@ -1,8 +1,9 @@
 function clusterWormTracker(filePath,startIdx,stepSize)
 
 load(filePath);
-presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
-presentIdx=find(cell2mat(presentIdx));
+% presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
+% presentIdx=find(cell2mat(presentIdx));
+presentIdx=1:length(pointStats);
 N=length(presentIdx);
 param.dim=3;
 param.excessive=4;
@@ -117,6 +118,10 @@ for iIdx=iIdxList%length(TrackData)
         end
         
     end
+    if isempty(TrackMatrixi)
+        TrackMatrixi=[];
+    end
+    
     outputName=fileparts(filePath);
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
     save(outputName,'TrackMatrixi','transformedTest');

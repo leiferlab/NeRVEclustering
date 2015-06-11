@@ -37,7 +37,7 @@ wormtop=normalizeRange(wormtop);
 wormBW=wormtop>thresh1;
 %% find connected objects
 cc=bwconncomp(wormBW,4);
-blobSizes=cellfun(@(x) length(x), cc.PixelIdxList);
+blobSizes=cellfun(@(x) length(x), cc.PixelIdxList); % replace with bwareaopen
 cc.PixelIdxList(blobSizes<minObjSize)=[];
 cc.NumObjects=sum(blobSizes>=minObjSize);
 blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
