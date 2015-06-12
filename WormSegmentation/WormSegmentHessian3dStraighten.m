@@ -9,11 +9,12 @@ valleyRatio=.75;
 watershedFilter=0; % watershed filter object shapes? is also the value for imhmin
 filterSize=[10,10,4]; %bp filter size low f
 noise=1; % bp filter hi f
-pad=4; % pad to take around each sub blob
+pad=10; % pad to take around each sub blob
 show=0; %show fits (deactivated)
 maxSplit=0; % split objects using regional maxima
 minSphericity=.55; % minimum sphericity for splitting.
 prefilter=0;
+gaussFilter=1;
 
 % parse options to load fields
 if nargin==2
@@ -103,15 +104,20 @@ for iblob=1:cc.NumObjects;
 
 % smooth image and calculate hessian and eigenvalues for segmentation
 
-
-subIm=smooth3(subIm,'gaussian',5,3);
+if ~prefilter
+subIm=smooth3(subIm,'gaussian',2*gaussFilter+1,gaussFilter);
+else
+subIm=bpass3(subIm,2,filterSize);
+end
 H=hessianMatrix(subIm,8);
 Heig=hessianEig(H,subIm);
 Heig(isnan(Heig))=0;
-Htrace=Heig(:,:,:,1);
+Htrace=real(Heig(:,:,:,1));
 % Jm= Heig(:,:,:,1)<-hthresh & Heig(:,:,:,2)<-hthresh & ...
 %    Heig(:,:,:,3)<-hthresh;
-Jm=Htrace<hthresh;
+Jm=Htrace<hthresh ;
+Jm=AreaFilter(Jm,minObjSize,[],6);
+
 %Jm=Jm & pedMask;
 % watershed filter shapes
 %%

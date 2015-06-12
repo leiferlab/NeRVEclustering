@@ -114,7 +114,7 @@ zOffset=z2ImageIdxOffset;
 
 startStack=hasPoints(1);
 endStack=hasPoints(end);
-destination= 'CLstraight_20150610';
+destination= 'CLstraight_20150611';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;

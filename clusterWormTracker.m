@@ -1,4 +1,7 @@
-function clusterWormTracker(filePath,startIdx,stepSize)
+function clusterWormTracker(filePath,startIdx,nSegments)
+%made specifically for 1hr queue, can only do ~ 250 comparisons per hour
+matchesPerSegment=250;
+
 
 load(filePath);
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
@@ -9,16 +12,18 @@ param.dim=3;
 param.excessive=4;
 param.quiet=1;
 param.difficult=2.e4;
+segments=ceil(N/matchesPerSegment);
 
-
-iIdxList=startIdx:startIdx+stepSize-1;
+iIdxList=ceil(startIdx/segments);%:startIdx+stepSize-1;
+runIdx=rem(startIdx,segments);
 %%
 for iIdx=iIdxList%length(TrackData)
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
     TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(outRange));
     transformedTest=cell(length(presentIdx),3);
-    for j=presentIdx%outRange;
+    runIdxList=(runIdx*matchesPerSegment+1):min(N,(runIdx+1)*matchesPerSegment);
+    for j=runIdxList%outRange;
         try
             T1=[pointStats(i).straightPoints pointStats(i).pointIdx];
             T2=[pointStats(j).straightPoints pointStats(j).pointIdx];
@@ -123,7 +128,7 @@ for iIdx=iIdxList%length(TrackData)
     end
     
     outputName=fileparts(filePath);
-    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
-    save(outputName,'TrackMatrixi','transformedTest');
+    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(runIdx,'%3.2d')];
+    save(outputName,'TrackMatrixi');
 end
 

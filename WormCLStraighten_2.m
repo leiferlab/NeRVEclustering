@@ -19,9 +19,10 @@ zindexer=@(x,s) x./(s)+1;
     options.power=1;
     options.thresh1=.05;
     options.minObjSize=50;
-    options.filterSize=[10 10 4];
-    options.power=1;
+options.filterSize=[15 15 15];
+options.power=1;
     options.prefilter=1;
+    options.hthresh=-1e-5;
     
 %% set up different kernals
 % gaussKernal=gausswin(30);
