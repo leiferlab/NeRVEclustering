@@ -24,7 +24,7 @@ labJackData=importdata([imFolder filesep 'LabJackData.txt']);
 labJackData=labJackData.data;
 %FuncGen Voltage ZSensor FxnGenSync CameraTrigger savedFrameCount FrameCount {x y}
 
-
+%%
 %load images to find flash, flashes have intensity above 10 sigma
 datFile=[imFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'];
 datFlashRaw=findDatFlash(datFile,row,col,10);
@@ -37,7 +37,7 @@ imageWave=imageWave<.5;
 %us func gen trigger signal (square) , smooth it out (makes it traingle) and
 %use that to sepearte stacks;
 zTrigger=labJackData(:,3);
-zTrigger=smooth(zTrigger,200);
+zTrigger=smooth(zTrigger,500);
 zWave=labJackData(:,2);
 
 daqSaveFrame=labJackData(:,5);

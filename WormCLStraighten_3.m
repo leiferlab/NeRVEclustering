@@ -555,6 +555,7 @@ for iSlice=1:size(worm2,3);
     imagesc(worm2(:,:,iSlice));colormap hot
 hold on
     clSlice=interp1([lowLevel midZ hiLevel],[minZCL midZCL maxZCL], iSlice,'linear','extrap');
+    clSlice=CLsearchWindow+iSlice;
     clSlice=round(clSlice);
     clSlice(clSlice<1)=1;
     clSlice(clSlice>size(CL3all,3))=size(CL3all,3);
@@ -603,7 +604,8 @@ zslice=repmat(zInterp,1,2*outputRadius+1,length(Bv));
 
 zLevels(zLevels<min(ia))=min(ia);
 zLevels(zLevels>size(worm2,3))=size(worm2,3);
-zLevels=interp1([lowLevel midZ hiLevel],[minZCL midZCL maxZCL], zLevels,'linear','extrap');
+%zLevels=interp1([lowLevel midZ hiLevel],[minZCL midZCL maxZCL], zLevels,'linear','extrap');
+zLevels=zLevels+CLsearchWindow;
 CLzLevels=zLevels;
 % zLevels=interp1(ia,CLIdxUnique,zLevels,'linear','extrap');
 % zLevels(zLevels<1)=1;
@@ -665,9 +667,9 @@ Vproj=squeeze(nansum(V,3));
 wormProj=smooth2a(max(V(:,:,round(outputRadius+(-100:100))),[],3),1,1);
 wormProj=normalizeRange(wormProj);
 
-wormProjMask=wormProj>.1;
+wormProjMask=wormProj>.05;
 wormProjMask=imclearborder(wormProjMask);
-wormProj=wormProj.*(wormProj>.2).*(wormProjMask);
+wormProj=wormProj.*(wormProj>.07).*(wormProjMask);
 %wormProj(:,1:end/2)=0;
 
 %%
@@ -680,6 +682,7 @@ maxY=maxY(ia2);
 wormProjMaxI=wormProjMaxI(ia2);
 maxPos=find(sum(wormProj,2)==max(sum(wormProj,2)));
 wormProjMaxI(maxX>(maxPos-20) & maxX<(maxPos+20))=0;
+wormProjMaxI(maxX>(maxPos+400) | maxX<(maxPos-400))=0;
 
 [~,locs]=findpeaks(maxY,'MinPeakHeight',outputRadius*0);
 if maxY(1)>maxY(2)
@@ -853,27 +856,23 @@ V1f=V1f-lowVal;
 V2f=V2f-lowVal;
 %%
 
-xVec1=floor(outputRadius+1):size(V1,2)-50;
-xVec2=51:floor(outputRadius);
+fitCutOff=50;
+xVec1=floor(outputRadius+1):floor(outputRadius+1)+fitCutOff;
+xVec2=floor(outputRadius)-fitCutOff:floor(outputRadius);
+xVecRange=(floor(outputRadius)-fitCutOff):(floor(outputRadius+1)+fitCutOff);
+%  aOut1=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[(a(1))*(xVec2-outputRadius).^2+a(2)*(xVec2-101)+nring1 ,...
+%     (a(3))*(xVec1-outputRadius-1).^2+a(4)*(xVec1-outputRadius-1)+nring1] ...
+% ,show),[0.0040 0.0040  .004 .3]);
 
- aOut1=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[(a(1))*(xVec2-outputRadius).^2+a(2)*(xVec2-101)+nring1 ,...
-    (a(3))*(xVec1-outputRadius-1).^2+a(4)*(xVec1-outputRadius-1)+nring1] ...
-,show),[0.0040 0.0040  .004 .3]);
-
-%  aOut1=fminsearch(@(a) CLsearch(V1f,[xVec2 xVec1] ,[(a(1))*(xVec2-outputRadius).^2+nring1 ,...
-%     (a(2))*(xVec1-outputRadius-1).^2+nring1] ...
-% ,show),[0.0040 0.0040]);
-
-%aOut2=aOut1;
-%  aOut2=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[(a(1))*(xVec2-101).^2+a(2)*(xVec2-101)+nring2 ,...
-%    ( a(3))*(xVec1-outputRadius-1).^2+a(4)*(xVec1-outputRadius-1)+nring2] ...
-% ,show),[0.0040 -0.0040  .004 .3  ]);
-
+aOut1=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[a(1)*(xVec2-outputRadius)+nring1 ,...
+    a(2)*(xVec1-outputRadius-1)+nring1] ...
+,show),[ -3 3]);
+aOut1=[0 aOut1(1) 0 aOut1(2)];
 boundary1=zeros(1,outputRadius*2+1);
-boundary1(51:size(V1,2)-50)=[aOut1(1)*(xVec2-outputRadius-1).^2+aOut1(2)*(xVec2-outputRadius-1)+nring1 ...
+boundary1(xVecRange)=[aOut1(1)*(xVec2-outputRadius-1).^2+aOut1(2)*(xVec2-outputRadius-1)+nring1 ...
      aOut1(3)*(xVec1-outputRadius-1).^2+aOut1(4)*(xVec1-outputRadius-1)+nring1] ;
-boundary1(1:50)=boundary1(51);
-boundary1(size(V1,2)-50+1:end)=boundary1(size(V1,2)-50);
+boundary1(1:min(xVecRange))=boundary1(min(xVecRange));
+boundary1(max(xVecRange):end)=boundary1(max(xVecRange));
  boundary2=boundary1;
 %  
 %  boundary2=[aOut2(1)*(xVec2-outputRadius-1).^2+aOut2(2)*(xVec2-outputRadius-1)+nring2 ...

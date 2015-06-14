@@ -22,7 +22,7 @@ function varargout = Worm3DFiducialPickerNetwork(varargin)
 
 % Edit the above text to modify the response to help Worm3DFiducialPickerNetwork
 
-% Last Modified by GUIDE v2.5 22-Jan-2015 00:42:32
+% Last Modified by GUIDE v2.5 13-Jun-2015 21:56:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -103,15 +103,15 @@ function SelectFolder_Callback(hObject, eventdata, handles)
 display('Select image folder,');
 mostRecent=getappdata(0,'mostRecent');
 if isempty(mostRecent)
-imFiles=uipickfiles();
+    imFiles=uipickfiles();
 else
     imFiles=uipickfiles('filterspec', mostRecent);
 end
-    mostRecent=imFiles{1};
-    if ~isdir(mostRecent)
-        mostRecent=fileparts(mostRecent);
-    end
-    setappdata(0,'mostRecent',mostRecent);
+mostRecent=imFiles{1};
+if ~isdir(mostRecent)
+    mostRecent=fileparts(mostRecent);
+end
+setappdata(0,'mostRecent',mostRecent);
 set(handles.currentFolder,'String',mostRecent);
 %load registration file if needed for split
 [rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\registration','Select Registration File');
@@ -170,7 +170,7 @@ for i=1:length(contents);
     save([fiduicialFileName filesep contents{i}],'fiducialPoints','clickPoints','-v6');
 end
 timeOffset=str2double(get(handles.timeOffset,'String'));
-    save([fiduicialFileName filesep 'timeOffset'],'timeOffset','-v6');
+save([fiduicialFileName filesep 'timeOffset'],'timeOffset','-v6');
 
 start(handles.timer);
 %plotter(handles.slider1,eventdata);
@@ -221,28 +221,28 @@ end
 offset=str2double(get(handles.timeOffset,'string'));
 
 imFiles=getappdata(handles.figure1,'imFiles');
-    %for selection of dat files
-    
-    hiResData=getappdata(handles.figure1,'hiResData');
-    R=getappdata(0,'registration');
-    [row,col]=size(R.initialIm);
-    imFiles=imFiles{1};
-     FrameIdx=getappdata(handles.figure1,'FrameIdx');
-    zVoltages=getappdata(handles.figure1,'zVoltages'); 
-    
+%for selection of dat files
+
+hiResData=getappdata(handles.figure1,'hiResData');
+R=getappdata(0,'registration');
+[row,col]=size(R.initialIm);
+imFiles=imFiles{1};
+FrameIdx=getappdata(handles.figure1,'FrameIdx');
+zVoltages=getappdata(handles.figure1,'zVoltages');
+
 if iImage~=getappdata(handles.figure1,'currentFrame') | isempty(zVoltages)
     
-FrameIdx=find(hiResData.stackIdx==iImage);%+offset;
-FrameIdx=FrameIdx(FrameIdx>(-offset) & FrameIdx<length(hiResData.stackIdx));
-zVoltages=hiResData.Z(FrameIdx);
-[zVoltages,~,ia]=unique(zVoltages);
-FrameIdx=FrameIdx(ia);
-[~,ib]=sort(zVoltages,'ascend');
-zVoltages=zVoltages(ib);
-FrameIdx=FrameIdx(ib);
-setappdata(handles.figure1,'FrameIdx',FrameIdx);
-setappdata(handles.figure1,'zVoltages',zVoltages);
- 
+    FrameIdx=find(hiResData.stackIdx==iImage);%+offset;
+    FrameIdx=FrameIdx(FrameIdx>(-offset) & FrameIdx<length(hiResData.stackIdx));
+    zVoltages=hiResData.Z(FrameIdx);
+    [zVoltages,~,ia]=unique(zVoltages);
+    FrameIdx=FrameIdx(ia);
+    [~,ib]=sort(zVoltages,'ascend');
+    zVoltages=zVoltages(ib);
+    FrameIdx=FrameIdx(ib);
+    setappdata(handles.figure1,'FrameIdx',FrameIdx);
+    setappdata(handles.figure1,'zVoltages',zVoltages);
+    
     
 end
 
@@ -259,207 +259,211 @@ hiResIdx=FrameIdx(zSlice)+offset;
 setappdata(handles.figure1,'currentHiResIdx',hiResIdx);
 Fid=getappdata(handles.figure1,'fileID');
 if isempty(Fid)
-Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
-setappdata(handles.figure1,'fileID',Fid);
+    Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
+    setappdata(handles.figure1,'fileID',Fid);
 elseif Fid<=0;
     Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
-setappdata(handles.figure1,'fileID',Fid);
+    setappdata(handles.figure1,'fileID',Fid);
 end
-    
-    status=fseek(Fid,2*hiResIdx*row*col,-1);
-    temp=fread(Fid,row*col,'uint16',0,'l');
-    temp=(reshape(temp,row,col));
-   % fclose(Fid)
-    %     temp=pixelIntensityCorrection(temp);
-    %crop left and right regions
-    rect1=R.rect1;
-    rect2=R.rect2;
-    t_concord=R.t_concord;
-    Rsegment=R.Rsegment;
-    padRegion=R.padRegion;
-    worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
-    
-    if get(handles.channelSelect,'Value')==1
-    baseImg=worm; %red   
-    else 
-        activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
-        baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
-    end
-    
+
+status=fseek(Fid,2*hiResIdx*row*col,-1);
+temp=fread(Fid,row*col,'uint16',0,'l');
+temp=(reshape(temp,row,col));
+% fclose(Fid)
+%     temp=pixelIntensityCorrection(temp);
+%crop left and right regions
+rect1=R.rect1;
+rect2=R.rect2;
+t_concord=R.t_concord;
+Rsegment=R.Rsegment;
+padRegion=R.padRegion;
+worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
+
+if get(handles.channelSelect,'Value')==1
+    baseImg=worm; %red
+else
+    activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+    baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
+end
+
 setappdata(handles.figure1,'baseImg',baseImg);
 setappdata(handles.figure1,'hiResIdx',hiResIdx);
-    
-   % baseImg=pedistalSubtract(baseImg);
+
+% baseImg=pedistalSubtract(baseImg);
 setappdata(handles.figure1,'currentFrame',iImage);
 setappdata(0,'baseImg',baseImg)
 %     figure
 %     imagesc(smooth2a(baseImg,20,20)>5);
 timeStep=str2double(get(handles.timeStep,'String'));
-   set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's' ...
-         '  ' num2str(zVoltageOut)]);
- %    set(handles.FrameIdx,'string',stackName);
+set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's' ...
+    '  ' num2str(zVoltageOut)]);
+%    set(handles.FrameIdx,'string',stackName);
 
-        newContrast=getappdata(handles.figure1,'newContrast');
-        if isempty(newContrast)
-            newContrast=[min(baseImg(:)),max(baseImg(:))];
-        end
+newContrast=getappdata(handles.figure1,'newContrast');
+if isempty(newContrast)
+    newContrast=[min(baseImg(:)),max(baseImg(:))];
+end
 %         baseImg(baseImg<newContrast(1)) = newContrast(1);
 %         baseImg(baseImg>newContrast(2)) = newContrast(2);
 %         baseImg = (baseImg-newContrast(1))./diff(newContrast);
-        hold(handles.axes1,'off')
+hold(handles.axes1,'off')
 
-    ax1=imagesc(baseImg,'parent',handles.axes1);
-    set(ax1,'ButtonDownFcn',...
-'Worm3DFiducialPickerNetwork(''axes1_ButtonDownFcn'',gcbo,[],guidata(gcbo))')
+ax1=imagesc(baseImg,'parent',handles.axes1);
+set(ax1,'ButtonDownFcn',...
+    'Worm3DFiducialPickerNetwork(''axes1_ButtonDownFcn'',gcbo,[],guidata(gcbo))')
 caxis(handles.axes1, [newContrast]);
-    hold(handles.axes1,'on')
-    axis(handles.axes1,'equal');
-    
-    
+hold(handles.axes1,'on')
+axis(handles.axes1,'equal');
+
+
 %  B=bwboundaries(wormMask(:,:,zSlice));
-%   
+%
 %     for i=1:length(B)
 %         b=B{i};
 %         plot(handles.axes1,b(:,2),b(:,1),'b')
 %     end
-    plot(handles.axes4,stdPlot,zVoltages);
-    ylim(handles.axes4,[get(handles.zSlider,'Min'),get(handles.zSlider,'Max')]);
+plot(handles.axes4,stdPlot,zVoltages);
+ylim(handles.axes4,[get(handles.zSlider,'Min'),get(handles.zSlider,'Max')]);
 
-    
-    
+
+
 %    fiducialData=getappdata(handles.figure1,'fiducialdata');
 
 %fiducialFile=get(handles.currentFiducialFile,'String');
- %   fiducialData=load(fiducialFile);
-  %  if isfield(fiducialData,'timeOffset');
+%   fiducialData=load(fiducialFile);
+%  if isfield(fiducialData,'timeOffset');
 %fiducialData = rmfield(fiducialData,'timeOffset');
- %   end
-  %  fiducialData=structfun(@(x) x(iImage),fiducialData);
-    contents = cellstr(get(handles.usersDropdown,'String'));
+%   end
+%  fiducialData=structfun(@(x) x(iImage),fiducialData);
+contents = cellstr(get(handles.usersDropdown,'String'));
 fiducialFileName=get(handles.currentFiducialFile,'String');
 colorOrder=get(gca,'colorOrder');
+colorOrder=[colorOrder;colorOrder;colorOrder];
 fiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
-    for iUser=1:length(contents);
-        user=contents{iUser};
-        if iUser==get(handles.usersDropdown,'Value')
-       textColor=[1 1 1] ;%textColor=colorOrder(iUser,:);
+for iUser=1:length(contents);
+    user=contents{iUser};
+    if iUser==get(handles.usersDropdown,'Value')
+        textColor=[1 1 1] ;%textColor=colorOrder(iUser,:);
         textColor2=[0 0 0];
-        else
-            textColor=colorOrder(iUser,:);
-            textColor2=textColor;
-        end
+    else
+        textColor=colorOrder(iUser,:);
+        textColor2=textColor;
+    end
+    if ~isempty(fiducialsAllUsers);
+        currentFiducialsAll=fiducialsAllUsers.(user);
+        %currentFiducialsAll=currentFiducialsAll.fiducialPoints;
+        currentFiducials=currentFiducialsAll{iImage};
+        if iUser==get(handles.usersDropdown,'Value');
+            set(handles.DisplayIdx,'data',currentFiducials);
+            setappdata(handles.figure1,'fiducials',currentFiducialsAll);
             
-currentFiducialsAll=fiducialsAllUsers.(user);
-%currentFiducialsAll=currentFiducialsAll.fiducialPoints;
-   currentFiducials=currentFiducialsAll{iImage};
-   if iUser==get(handles.usersDropdown,'Value');
-    set(handles.DisplayIdx,'data',currentFiducials);
-    setappdata(handles.figure1,'fiducials',currentFiducialsAll);
-
-   end
-    
-    plotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
-currentPoints=cell2mat(currentFiducials(:,1:4));
-circleScatter=getappdata(handles.figure1,'circleScatter');
-if iUser==1
-    delete(findobj(handles.axes2,'type','scatter'))
-    delete(findobj(handles.axes2,'type','text'))
-cla(handles.axes2,'reset')
-end
-
-if ~isempty(currentPoints)
-    hold(handles.axes2,'on')
-
-randPos=(mod(10*sin(plotIdx.^(1.4)+iUser),5)-2)/2;
-circleScatter=scatter(handles.axes2,randPos,currentPoints(:,3),'x','MarkerEdgeColor',colorOrder(iUser,:));
-ylim(handles.axes2,ylim(handles.axes4))
-
-setappdata(handles.figure1,'circleScatter',circleScatter);
-
-
-%inSlice=interp1(zVoltages,1:length(zVoltages),currentPoints(:,4),'nearest','extrap');
-closeSlice=abs(currentPoints(:,4)-hiResIdx)<2;
-perfectSlice=currentPoints(:,4)==hiResIdx;
-if ~isempty(currentPoints)
-switch getappdata(handles.figure1,'show')
-    case 1
-scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
-scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
-    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),[cellstr(num2str(plotIdx(closeSlice)))],'VerticalAlignment'...
-        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
-        'fontsize',10,'parent',handles.axes1);
-    case 2
-scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
-scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
-    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),...
-        cellfun(@(x) [user x],cellstr(num2str(plotIdx(closeSlice))),'uniform',0)...
-        ,'VerticalAlignment'...
-        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
-        'fontsize',10,'parent',handles.axes1);
-    case 3
-           cursorTarget=getappdata(handles.figure1,'cursorTarget');
-cursorTarget=plotIdx==cursorTarget;
-cursorTarget=cursorTarget & perfectSlice;
-scatter(handles.axes1,currentPoints(cursorTarget,1),currentPoints(cursorTarget,2),'xr');
- 
+        end
+        
+        plotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
+        currentPoints=cell2mat(currentFiducials(:,1:4));
+        circleScatter=getappdata(handles.figure1,'circleScatter');
+        if iUser==1
+            delete(findobj(handles.axes2,'type','scatter'))
+            delete(findobj(handles.axes2,'type','text'))
+            cla(handles.axes2,'reset')
+        end
+    else
+        currentPoints=[];
     end
-end
     
-    circleLabel=text( randPos, currentPoints(:,3),...
-        cellstr(num2str(plotIdx))...
-        ,'VerticalAlignment'...
-        ,'bottom', 'HorizontalAlignment','right','color',textColor2,...
-        'fontsize',10,'parent',handles.axes2);
-    setappdata(handles.figure1,'circleLabel',circleLabel);
-
-end
-
-%allPoints=cat(2,allPoints,currentPoints);
+    if ~isempty(currentPoints)
+        hold(handles.axes2,'on')
+        
+        randPos=(mod(10*sin(plotIdx.^(1.4)+iUser),5)-2)/2;
+        circleScatter=scatter(handles.axes2,randPos,currentPoints(:,3),'x','MarkerEdgeColor',colorOrder(iUser,:));
+        ylim(handles.axes2,ylim(handles.axes4))
+        
+        setappdata(handles.figure1,'circleScatter',circleScatter);
+        
+        
+        %inSlice=interp1(zVoltages,1:length(zVoltages),currentPoints(:,4),'nearest','extrap');
+        closeSlice=abs(currentPoints(:,4)-hiResIdx)<2;
+        perfectSlice=currentPoints(:,4)==hiResIdx;
+        if ~isempty(currentPoints)
+            switch getappdata(handles.figure1,'show')
+                case 1
+                    scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
+                    scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
+                    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),[cellstr(num2str(plotIdx(closeSlice)))],'VerticalAlignment'...
+                        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
+                        'fontsize',10,'parent',handles.axes1);
+                case 2
+                    scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
+                    scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
+                    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),...
+                        cellfun(@(x) [user x],cellstr(num2str(plotIdx(closeSlice))),'uniform',0)...
+                        ,'VerticalAlignment'...
+                        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
+                        'fontsize',10,'parent',handles.axes1);
+                case 3
+                    cursorTarget=getappdata(handles.figure1,'cursorTarget');
+                    cursorTarget=plotIdx==cursorTarget;
+                    cursorTarget=cursorTarget & perfectSlice;
+                    scatter(handles.axes1,currentPoints(cursorTarget,1),currentPoints(cursorTarget,2),'xr');
+                    
+            end
+        end
+        
+        circleLabel=text( randPos, currentPoints(:,3),...
+            cellstr(num2str(plotIdx))...
+            ,'VerticalAlignment'...
+            ,'bottom', 'HorizontalAlignment','right','color',textColor2,...
+            'fontsize',10,'parent',handles.axes2);
+        setappdata(handles.figure1,'circleLabel',circleLabel);
+        
     end
-        plotCircle(handles)
+    
+    %allPoints=cat(2,allPoints,currentPoints);
+end
+plotCircle(handles)
 
 %setappdata(handles.figure1,'allPoints',allPoints)
 hold(handles.axes2,'off');
 
-    hold(handles.axes1,'off')
-    drawnow;
-    
-    
+hold(handles.axes1,'off')
+drawnow;
 
-   %     scat3=scatter3(handles.axes1,centroids(:,2),centroids(:,1),centroids(:,3),[],c);
-        
 
-        
-    %display circle on axis 2
+
+%     scat3=scatter3(handles.axes1,centroids(:,2),centroids(:,1),centroids(:,3),[],c);
+
+
+
+%display circle on axis 2
 function plotCircle(handles)
 ylim(handles.axes2,[get(handles.zSlider,'Min'),get(handles.zSlider,'Max')]);
 
 h=getappdata(handles.figure1,'circHandle');
 if isempty(h)
     cla(handles.axes2)
-center=[0,.5];
-radius=1;
-h=viscircles(handles.axes2, center,radius);
-setappdata(handles.figure1,'circHandle',h);
-ylim(handles.axes2,[get(handles.zSlider,'Min'),get(handles.zSlider,'Max')]);
+    center=[0,.5];
+    radius=1;
+    h=viscircles(handles.axes2, center,radius);
+    setappdata(handles.figure1,'circHandle',h);
+    ylim(handles.axes2,[get(handles.zSlider,'Min'),get(handles.zSlider,'Max')]);
 end
 
 
 g=getappdata(handles.figure1,'lineHandle');
 if isempty(g)
     
-hold(handles.axes2,'on')
-g=plot(handles.axes2,[-1,1], repmat(get(handles.zSlider,'Value'),1,2));
-hold(handles.axes2,'off');
-setappdata(handles.figure1,'lineHandle',g);
+    hold(handles.axes2,'on')
+    g=plot(handles.axes2,[-1,1], repmat(get(handles.zSlider,'Value'),1,2));
+    hold(handles.axes2,'off');
+    setappdata(handles.figure1,'lineHandle',g);
 else
     if ishandle(g)
-    set(g,'Ydata', repmat(get(handles.zSlider,'Value'),1,2));
+        set(g,'Ydata', repmat(get(handles.zSlider,'Value'),1,2));
     else
-hold(handles.axes2,'on')
-g=plot(handles.axes2,[-1,1], repmat(get(handles.zSlider,'Value'),1,2));
-hold(handles.axes2,'off');
-setappdata(handles.figure1,'lineHandle',g);
+        hold(handles.axes2,'on')
+        g=plot(handles.axes2,[-1,1], repmat(get(handles.zSlider,'Value'),1,2));
+        hold(handles.axes2,'off');
+        setappdata(handles.figure1,'lineHandle',g);
     end
     
 end
@@ -496,14 +500,15 @@ function goBack_Callback(hObject, eventdata, handles)
 % hObject    handle to goBack (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-moveFrame(hObject,eventdata,handles,-1)
+
+    moveFrame(hObject,eventdata,handles,-1);
 
 
 function moveFrame(hObject,eventdata,handles,move)
 set(handles.slider1,'value',get(handles.slider1,'value')+move);
 currentSlide=get(handles.zSlider,'value');
 currentFrame=round(get(handles.slider1,'value'));
-        contents = cellstr(get(handles.usersDropdown,'String'));
+contents = cellstr(get(handles.usersDropdown,'String'));
 previousFiducials=[];
 currentFiducials=[];
 tempFiducials=getappdata(handles.figure1,'fiducialsAllUsers');
@@ -512,50 +517,49 @@ if  currentFrame>0
     
     for iUser=1:length(contents);
         user=contents{iUser};
-            fiducialsAll=tempFiducials.(user);                    
- oldPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),fiducialsAll{currentFrame-move},'uniformoutput',0))),2));
- currentPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),fiducialsAll{currentFrame},'uniformoutput',0))),2));
-
- overlap=intersect(currentPlotIdx,oldPlotIdx);
-
-currentFiducials=cat(1,currentFiducials,fiducialsAll{currentFrame}(overlap,:));
-
-
-previousFiducials=cat(1,previousFiducials,fiducialsAll{currentFrame-move}(overlap,:));
- 
- 
- if iUser==get(handles.usersDropdown,'Value')
-     currentTarget=getappdata(handles.figure1,'cursorTarget');
-    % should always be true
-     if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
-         newZ=fiducialsAll{currentFrame}{currentTarget,3};
-     else
-         newZ=[];
-     end
- end
- 
-    end
-    
- %   fiducialPoints=getappdata(handles.figure1,'fiducials');
-%    currentFiducials=fiducialPoints{currentFrame};
-
-
-if isempty(newZ)
-    try
-        if size(previousFiducials,1)>4
-        oldzVoltages=(cell2mat(previousFiducials(:,3)));
-        currentzVoltages=(cell2mat(currentFiducials(:,3)));
-        p=polyfit(oldzVoltages,currentzVoltages,1);
-        newZ=p(2)+p(1)*currentSlide;
-        else
-        newZ=currentSlide;
+        fiducialsAll=tempFiducials.(user);
+        oldPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),fiducialsAll{currentFrame-move},'uniformoutput',0))),2));
+        currentPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),fiducialsAll{currentFrame},'uniformoutput',0))),2));
+        
+        overlap=intersect(currentPlotIdx,oldPlotIdx);
+        
+        currentFiducials=cat(1,currentFiducials,fiducialsAll{currentFrame}(overlap,:));
+        
+        
+        previousFiducials=cat(1,previousFiducials,fiducialsAll{currentFrame-move}(overlap,:));
+        
+        
+        if iUser==get(handles.usersDropdown,'Value')
+            currentTarget=getappdata(handles.figure1,'cursorTarget');
+            % should always be true
+            if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
+                newZ=fiducialsAll{currentFrame}{currentTarget,3};
+            else
+                newZ=[];
+            end
         end
-    catch
-        newZ=currentSlide;
+        
     end
     
-end
-set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
+    %   fiducialPoints=getappdata(handles.figure1,'fiducials');
+    %    currentFiducials=fiducialPoints{currentFrame};
+    
+    if isempty(newZ)
+        try
+            if size(previousFiducials,1)>4
+                oldzVoltages=(cell2mat(previousFiducials(:,3)));
+                currentzVoltages=(cell2mat(currentFiducials(:,3)));
+                p=polyfit(oldzVoltages,currentzVoltages,1);
+                newZ=p(2)+p(1)*currentSlide;
+            else
+                newZ=currentSlide;
+            end
+        catch
+            newZ=currentSlide;
+        end
+        
+    end
+    set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
     
 end
 if steps>10
@@ -733,62 +737,62 @@ else
     oldFrameIdx=getappdata(handles.figure1,'cruiseStartFrame')+(-1:-1:-oldFrameIdx);
 end
 
-    oldFrameIdx=oldFrameIdx(oldFrameIdx>0);
-    
-            contents = cellstr(get(handles.usersDropdown,'String'));
+oldFrameIdx=oldFrameIdx(oldFrameIdx>0);
+
+contents = cellstr(get(handles.usersDropdown,'String'));
 fiducialFileName=get(handles.currentFiducialFile,'String');
 plotIdx=getappdata(handles.figure1,'cursorTarget');
 userIdx=get(handles.usersDropdown,'Value');
 %find best match frame for all users and all points
 
 
-tempFiducials=getappdata(handles.figure1,'fiducialsAllUsers'); 
-            
-            
+tempFiducials=getappdata(handles.figure1,'fiducialsAllUsers');
+
+
 %search for previous data with similar distance matrix
 bestOverlap=0;bestDistance=Inf;
-  currentAll=structfun(@(x) x{iFrame},tempFiducials,'uniform',0);
-    currentAll=struct2cell(currentAll);
-    %cellfun inside a cell fun to find index of fiducials... trust me it
-    %works
-  currentFiducialsIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y,...
-      'uniformoutput',0)),2))),currentAll,'uniformOutput',0)  ;
+currentAll=structfun(@(x) x{iFrame},tempFiducials,'uniform',0);
+currentAll=struct2cell(currentAll);
+%cellfun inside a cell fun to find index of fiducials... trust me it
+%works
+currentFiducialsIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y,...
+    'uniformoutput',0)),2))),currentAll,'uniformOutput',0)  ;
 
-  currentFiducialsIdx{userIdx}(currentFiducialsIdx{userIdx}==plotIdx)=[];
+currentFiducialsIdx{userIdx}(currentFiducialsIdx{userIdx}==plotIdx)=[];
 
-  for iCounter=1:length(oldFrameIdx)
+for iCounter=1:length(oldFrameIdx)
     iRefFrame=oldFrameIdx(iCounter);
     
-  oldFiducials=structfun(@(x) x{iRefFrame},tempFiducials,'uniform',0);
+    oldFiducials=structfun(@(x) x{iRefFrame},tempFiducials,'uniform',0);
     oldFiducials=struct2cell(oldFiducials);
     
-        oldFiducialIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y(:,1:4),...
-      'uniformoutput',0)),2))),oldFiducials,'uniformOutput',0)  ;  
-overlapIdx=cellfun(@(a,b) intersect(a,b)',oldFiducialIdx,currentFiducialsIdx,'uniform',0);
-
-
-if ~isempty(overlapIdx) && any(oldFiducialIdx{userIdx}==plotIdx) 
-movingPointstemp=cell2mat(cellfun(@(a,b) cell2mat(a(b,1:4)),oldFiducials,overlapIdx,'uniform',0));
-masterPointstemp=cell2mat(cellfun(@(a,b) cell2mat(a(b,1:4)),currentAll,overlapIdx,'uniform',0));
-
+    oldFiducialIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y(:,1:4),...
+        'uniformoutput',0)),2))),oldFiducials,'uniformOutput',0)  ;
+    overlapIdx=cellfun(@(a,b) intersect(a,b)',oldFiducialIdx,currentFiducialsIdx,'uniform',0);
     
-    movingDmat=pdist(movingPointstemp(:,1:2)');
-    masterDmat=pdist(masterPointstemp(:,1:2));
-    overlap=sum(cell2mat(cellfun(@(x) nnz(x), overlapIdx,'uniformoutput',0)));
-    dist=sum(sqrt((movingDmat-masterDmat).^2));
- 
     
-    if overlap>=bestOverlap  && dist<=bestDistance && any(oldFiducialIdx{userIdx}==plotIdx)
-bestRef=iRefFrame;
-    bestOverlap=overlap;
-    bestDistance=dist;
-    movingPoints=movingPointstemp(:,[1 2 4]);
-    masterPoints=masterPointstemp(:,[1 2 4]);
-    plotIdxPoint=oldFiducials{userIdx}(plotIdx,:);
+    if ~isempty(overlapIdx) && any(oldFiducialIdx{userIdx}==plotIdx)
+        movingPointstemp=cell2mat(cellfun(@(a,b) cell2mat(a(b,1:4)),oldFiducials,overlapIdx,'uniform',0));
+        masterPointstemp=cell2mat(cellfun(@(a,b) cell2mat(a(b,1:4)),currentAll,overlapIdx,'uniform',0));
+        
+        
+        movingDmat=pdist(movingPointstemp(:,1:2)');
+        masterDmat=pdist(masterPointstemp(:,1:2));
+        overlap=sum(cell2mat(cellfun(@(x) nnz(x), overlapIdx,'uniformoutput',0)));
+        dist=sum(sqrt((movingDmat-masterDmat).^2));
+        
+        
+        if overlap>=bestOverlap  && dist<=bestDistance && any(oldFiducialIdx{userIdx}==plotIdx)
+            bestRef=iRefFrame;
+            bestOverlap=overlap;
+            bestDistance=dist;
+            movingPoints=movingPointstemp(:,[1 2 4]);
+            masterPoints=masterPointstemp(:,[1 2 4]);
+            plotIdxPoint=oldFiducials{userIdx}(plotIdx,:);
+        end
+        
     end
-    
 end
-  end
 
 
 plotIdxPoint=cell2mat(plotIdxPoint([1 2 4]));
@@ -804,23 +808,23 @@ plotIdxPoint(:,end)=plotIdxPoint(:,end)-movingFloor;
 % Fx=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),movingPoints(:,3),masterPoints(:,1));
 % Fy=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),movingPoints(:,3),masterPoints(:,2));
 % %Fz=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),movingPoints(:,3),masterPoints(:,3));
-% 
+%
 % Fx=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),masterPoints(:,1));
 % Fy=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),masterPoints(:,2));
 % %Fz=scatteredInterpolant(movingPoints(:,1),movingPoints(:,2),movingPoints(:,3));,masterPoints(:,3));
-% 
+%
 % newEstimatePoint=[Fx(plotIdxPoint(1),plotIdxPoint(2))...
 %     Fy(plotIdxPoint(1),plotIdxPoint(2))];
 tform = makeAffine3d(movingPoints, masterPoints);
 
 
-         [movingPoints(:,1),movingPoints(:,2),movingPoints(:,3)]...
-               =transformPointsForward(tform,movingPoints(:,1),...
-               movingPoints(:,2),movingPoints(:,3));   
-         [plotIdxPoint(:,1),plotIdxPoint(:,2),plotIdxPoint(:,3)]...
-               =transformPointsForward(tform,plotIdxPoint(:,1),...
-               plotIdxPoint(:,2),plotIdxPoint(:,3));   
-           
+[movingPoints(:,1),movingPoints(:,2),movingPoints(:,3)]...
+    =transformPointsForward(tform,movingPoints(:,1),...
+    movingPoints(:,2),movingPoints(:,3));
+[plotIdxPoint(:,1),plotIdxPoint(:,2),plotIdxPoint(:,3)]...
+    =transformPointsForward(tform,plotIdxPoint(:,1),...
+    plotIdxPoint(:,2),plotIdxPoint(:,3));
+
 
 newEstimatePoint=tpswarp3points(movingPoints,masterPoints,plotIdxPoint);
 newEstimatePoint(3)=newEstimatePoint(3)+masterFloor;
@@ -853,7 +857,7 @@ drawnow
 
 
 
-  
+
 % newEstimatePoint=tpswarp3(affineFiducials,[],masterPoints,affineFiducials);
 function reclick(hObject,eventdata)
 handles=guidata(get(hObject,'Parent'));
@@ -887,26 +891,26 @@ userFiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
 userFiducialsAll=userFiducialsAllUsers.(user);
 plotIdx=getappdata(handles.figure1,'cursorTarget');
 
-    for iUser=1:length(contents)
-userFiducialsAllTemp=userFiducialsAllUsers.(contents{iUser});
-userFiducialsTemp=userFiducialsAllTemp{iFrame};
- if iUser==get(handles.usersDropdown,'Value')
-     userFiducials=userFiducialsTemp;
-     if size(userFiducialsTemp,1)>=plotIdx
-         refPoint=userFiducialsTemp(plotIdx,:);
-     userFiducialsTemp(plotIdx,:)=[];
-     if isempty(refPoint{1})
-         refPoint=[];
-     end
-     else
-         refPoint=[];
-     end
- end
- userFiducialsMaster=cat(1,userFiducialsMaster,userFiducialsTemp);
-
-    
+for iUser=1:length(contents)
+    userFiducialsAllTemp=userFiducialsAllUsers.(contents{iUser});
+    userFiducialsTemp=userFiducialsAllTemp{iFrame};
+    if iUser==get(handles.usersDropdown,'Value')
+        userFiducials=userFiducialsTemp;
+        if size(userFiducialsTemp,1)>=plotIdx
+            refPoint=userFiducialsTemp(plotIdx,:);
+            userFiducialsTemp(plotIdx,:)=[];
+            if isempty(refPoint{1})
+                refPoint=[];
+            end
+        else
+            refPoint=[];
+        end
     end
+    userFiducialsMaster=cat(1,userFiducialsMaster,userFiducialsTemp);
     
+    
+end
+
 %     if isfield(fiducialData,'timeOffset');
 % fiducialData = rmfield(fiducialData,'timeOffset');
 %     end
@@ -917,50 +921,50 @@ xRange=xlim(handles.axes1);
 yRange=ylim(handles.axes1);
 % if you click outside the image, the centroid will become nan
 if xselect>xRange(1) && xselect< xRange(2) && yselect>yRange(1) && yselect<yRange(2);
- % turn on snapping later
-%     minD=pdist2([xselect,yselect],currentCentroids(:,1:2),'euclidean','smallest',1);
-%     pointIdx=find(minD==min(minD),1,'first');
-%     pointIdx=currentCentroids(pointIdx,3);
-%     
-%baseImg=getappdata(0,'baseImg');
-filterSize=str2double(get(handles.filterSize,'String'));
-if ~isempty(filterSize)
-    switch get(handles.filterOption,'Value')
-        case 1
-            if filterSize>0
-gaussFilter=fspecial('gaussian', [10,10],filterSize);
-            else 
-                gaussFilter=1;
-            end
-            
-        case 2
-gaussFilter=-fspecial('log', [10,10],filterSize);
-
+    % turn on snapping later
+    %     minD=pdist2([xselect,yselect],currentCentroids(:,1:2),'euclidean','smallest',1);
+    %     pointIdx=find(minD==min(minD),1,'first');
+    %     pointIdx=currentCentroids(pointIdx,3);
+    %
+    %baseImg=getappdata(0,'baseImg');
+    filterSize=str2double(get(handles.filterSize,'String'));
+    if ~isempty(filterSize)
+        switch get(handles.filterOption,'Value')
+            case 1
+                if filterSize>0
+                    gaussFilter=fspecial('gaussian', [10,10],filterSize);
+                else
+                    gaussFilter=1;
+                end
+                
+            case 2
+                gaussFilter=-fspecial('log', [10,10],filterSize);
+                
+        end
+        
+    else
+        gaussFilter=fspecial('gaussian', [10,10],4);
+        set(handles.filterSize,'String','4')
     end
+    %baseImg=imfilter(baseImg,gaussFilter);
+    %subSearch=baseImg(round(yselect)+(-windowSearch:windowSearch),round(xselect)+(-windowSearch:windowSearch));
     
-else
-    gaussFilter=fspecial('gaussian', [10,10],4);
-    set(handles.filterSize,'String','4')
-end
-%baseImg=imfilter(baseImg,gaussFilter);
-%subSearch=baseImg(round(yselect)+(-windowSearch:windowSearch),round(xselect)+(-windowSearch:windowSearch));
-
-%look in small volume around point
-Fid=getappdata(handles.figure1,'fileID');
-hiResIdx=getappdata(handles.figure1,'currentHiResIdx');
-frameIdx=getappdata(handles.figure1,'FrameIdx');
-
-
-if isempty(Fid)
-Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
-setappdata(handles.figure1,'fileID',Fid);
-end
-        R=getappdata(0,'registration');
+    %look in small volume around point
+    Fid=getappdata(handles.figure1,'fileID');
+    hiResIdx=getappdata(handles.figure1,'currentHiResIdx');
+    frameIdx=getappdata(handles.figure1,'FrameIdx');
+    
+    
+    if isempty(Fid)
+        Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
+        setappdata(handles.figure1,'fileID',Fid);
+    end
+    R=getappdata(0,'registration');
     [row,col]=size(R.initialIm);
     status=fseek(Fid,2*(hiResIdx-zSearch)*row*col,-1);
     temp=fread(Fid,row*col*(2*zSearch+1),'uint16',0,'l');
     temp=(reshape(temp,row,col,(2*zSearch+1)));
-   % fclose(Fid)
+    % fclose(Fid)
     %     temp=pixelIntensityCorrection(temp);
     %crop left and right regions
     rect1=R.rect1;
@@ -969,105 +973,105 @@ end
     Rsegment=R.Rsegment;
     padRegion=R.padRegion;
     
-        
+    
     if get(handles.channelSelect,'Value')==1
-    worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
-    else 
+        worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
+    else
         worm=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
         worm=imwarp(worm,t_concord,'OutputView',Rsegment);
-
+        
     end
     
     worm=imfilter(worm,gaussFilter);
     subSearch=worm(round(yselect)+(-windowSearch:windowSearch),round(xselect)+(-windowSearch:windowSearch),:);
-%maxRegions=imregionalmax(subSearch);
-
-maxRegions=false(size(subSearch));
-for iSlice=1:size(subSearch,3);
-    maxRegions(:,:,iSlice)=imregionalmax(subSearch(:,:,iSlice));
-end
-
-
-if ~any(maxRegions)
-    maxRegions=(subSearch==max(subSearch));
-end
-
-[maxPosY,maxPosX,maxPosZ]=ind2sub(size(subSearch),find(maxRegions));
-
-
-zVoltages=getappdata(handles.figure1,'zVoltages');
-if mean(diff(frameIdx))>0
-subZVoltages=zVoltages(interp1(sort(frameIdx)+(1:length(frameIdx))'/100,...
-    1:length(frameIdx),hiResIdx-timeOffset+(-zSearch:zSearch),'nearest',1));
-else
-    subZVoltages=zVoltages(interp1(sort(frameIdx,'descend')+(length(frameIdx):-1:1)'/100,...
-        1:length(frameIdx),hiResIdx-timeOffset+(-zSearch:zSearch),'nearest',1));
-
-end
-maxVals=subSearch(maxRegions);
-xselect=xselect-windowSearch+maxPosX-1;
-yselect=yselect-windowSearch+maxPosY-1;
-zselect=subZVoltages(maxPosZ);
-zSliceSelect=maxPosZ-1-zSearch+hiResIdx;
-if length(xselect)>1
- if size(userFiducialsMaster,2)<3
-    currentXY=[0 0 0];
-else
-    currentXY=cell2mat(userFiducialsMaster(:,1:4));
+    %maxRegions=imregionalmax(subSearch);
     
-    if isempty(currentXY)
-            currentXY=[0 0 0 0 0];
+    maxRegions=false(size(subSearch));
+    for iSlice=1:size(subSearch,3);
+        maxRegions(:,:,iSlice)=imregionalmax(subSearch(:,:,iSlice));
     end
     
- end
     
-    %get only points that are further than 10 from all current points in the plane
-dmat=pdist2([xselect,yselect], currentXY(:,1:2))<5;
-eqmat=bsxfun(@minus ,zSliceSelect,currentXY(:,4)');
-eqmat=abs(eqmat)<=1;
-goodPoints=find(~any(dmat & eqmat,2)); 
-if ~isempty(refPoint)
-dmat2=pdist2([xselect(goodPoints),yselect(goodPoints)],...
-    cell2mat(refPoint(1:2)))<1;
-goodPoints=goodPoints(~dmat2);
-end
-if isempty(goodPoints)
-    goodPoints=1:length(maxVals);
-end
-
-goodPoints=goodPoints((maxVals(goodPoints)==max(maxVals(goodPoints))));
-
-xselect=xselect(goodPoints);
-yselect=yselect(goodPoints);
-zselect=zselect(goodPoints);
-maxPosZ=maxPosZ(goodPoints);
-end
-set(handles.zSlider,'Value',zselect)
-
+    if ~any(maxRegions)
+        maxRegions=(subSearch==max(subSearch));
+    end
+    
+    [maxPosY,maxPosX,maxPosZ]=ind2sub(size(subSearch),find(maxRegions));
+    
+    
+    zVoltages=getappdata(handles.figure1,'zVoltages');
+    if mean(diff(frameIdx))>0
+        subZVoltages=zVoltages(interp1(sort(frameIdx)+(1:length(frameIdx))'/100,...
+            1:length(frameIdx),hiResIdx-timeOffset+(-zSearch:zSearch),'nearest',1));
+    else
+        subZVoltages=zVoltages(interp1(sort(frameIdx,'descend')+(length(frameIdx):-1:1)'/100,...
+            1:length(frameIdx),hiResIdx-timeOffset+(-zSearch:zSearch),'nearest',1));
+        
+    end
+    maxVals=subSearch(maxRegions);
+    xselect=xselect-windowSearch+maxPosX-1;
+    yselect=yselect-windowSearch+maxPosY-1;
+    zselect=subZVoltages(maxPosZ);
+    zSliceSelect=maxPosZ-1-zSearch+hiResIdx;
+    if length(xselect)>1
+        if size(userFiducialsMaster,2)<3
+            currentXY=[0 0 0];
+        else
+            currentXY=cell2mat(userFiducialsMaster(:,1:4));
+            
+            if isempty(currentXY)
+                currentXY=[0 0 0 0 0];
+            end
+            
+        end
+        
+        %get only points that are further than 10 from all current points in the plane
+        dmat=pdist2([xselect,yselect], currentXY(:,1:2))<5;
+        eqmat=bsxfun(@minus ,zSliceSelect,currentXY(:,4)');
+        eqmat=abs(eqmat)<=1;
+        goodPoints=find(~any(dmat & eqmat,2));
+        if ~isempty(refPoint)
+            dmat2=pdist2([xselect(goodPoints),yselect(goodPoints)],...
+                cell2mat(refPoint(1:2)))<1;
+            goodPoints=goodPoints(~dmat2);
+        end
+        if isempty(goodPoints)
+            goodPoints=1:length(maxVals);
+        end
+        
+        goodPoints=goodPoints((maxVals(goodPoints)==max(maxVals(goodPoints))));
+        
+        xselect=xselect(goodPoints);
+        yselect=yselect(goodPoints);
+        zselect=zselect(goodPoints);
+        maxPosZ=maxPosZ(goodPoints);
+    end
+    set(handles.zSlider,'Value',zselect)
+    
     ctrlPnt=[xselect(1),yselect(1),zselect(1)]
-        userFiducials{plotIdx,4}=getappdata(handles.figure1,'currentHiResIdx')-(zSearch+1)+maxPosZ(1);
+    userFiducials{plotIdx,4}=getappdata(handles.figure1,'currentHiResIdx')-(zSearch+1)+maxPosZ(1);
     
-
-if isempty(userFiducials{plotIdx,1})
-         clickPoints=pointUpdate(handles);
+    
+    if isempty(userFiducials{plotIdx,1})
+        clickPoints=pointUpdate(handles);
     else
         clickPoints=getappdata(handles.figure1,'points');
     end
-% you only get points if you are replacing an empty point
-
+    % you only get points if you are replacing an empty point
+    
     userFiducials{plotIdx,1}=ctrlPnt(1);
-userFiducials{plotIdx,2}=ctrlPnt(2);
-userFiducials{plotIdx,3}=ctrlPnt(3);
-        userFiducials{plotIdx,5}=manualFlag;
-
+    userFiducials{plotIdx,2}=ctrlPnt(2);
+    userFiducials{plotIdx,3}=ctrlPnt(3);
+    userFiducials{plotIdx,5}=manualFlag;
+    
 else
-            clickPoints=getappdata(handles.figure1,'points');
-
+    clickPoints=getappdata(handles.figure1,'points');
+    
     userFiducials{plotIdx,1}=[];
-userFiducials{plotIdx,2}=[];
-userFiducials{plotIdx,3}=[];
-        userFiducials{plotIdx,4}=[];
- userFiducials{plotIdx,5}=[];
+    userFiducials{plotIdx,2}=[];
+    userFiducials{plotIdx,3}=[];
+    userFiducials{plotIdx,4}=[];
+    userFiducials{plotIdx,5}=[];
 end
 
 % if ~size(plotIdx
@@ -1088,8 +1092,8 @@ setappdata(handles.figure1,'lastUser',user);
 plotter(handles.slider1,'eventdata');
 
 if getappdata(handles.figure1,'updateFlag')
-
-
+    
+    
     updataData2(handles)
 end
 setappdata(handles.figure1,'updateFlag',0);
@@ -1142,7 +1146,7 @@ zVoltages=getappdata(handles.figure1,'zVoltages');
 currentZ=get(handles.zSlider,'value');
 currentZ=currentZ(1);
 if currentZ<max(zVoltages)
-newZ=zVoltages((find(zVoltages>currentZ,1,'first')));
+    newZ=zVoltages((find(zVoltages>currentZ,1,'first')));
 else newZ=currentZ;
 end
 set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
@@ -1156,7 +1160,7 @@ function goDown_Callback(hObject, eventdata, handles)
 zVoltages=getappdata(handles.figure1,'zVoltages');
 currentZ=get(handles.zSlider,'value');
 if currentZ>min(zVoltages)
-newZ=zVoltages((find(zVoltages<currentZ,1,'last')));
+    newZ=zVoltages((find(zVoltages<currentZ,1,'last')));
 else newZ=currentZ;
 end
 set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
@@ -1330,7 +1334,7 @@ function timeOffset_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
- 
+
 
 
 % --- Executes on key press with focus on figure1 and none of its controls.
@@ -1341,77 +1345,79 @@ function figure1_KeyPressFcn(hObject, evnt, handles)
 %	Character: character interpretation of the key(s) that was pressed
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
-     
-     %any key press turns off cruise control   
-        if get(handles.cruiseControl,'Value')
-       % if strcmp(evnt.EventName,'KeyPress')
-            set(handles.cruiseControl,'Value',0)
-       % end
-        return
-        end
 
-        %Forward
-        if strcmp(evnt.Key,'rightarrow')|| strcmp(evnt.Key,'d')
-            goForward_Callback(handles.slider1,evnt,handles);
-            
-        %Backward
-        elseif strcmp(evnt.Key,'backspace') || strcmp(evnt.Key,'leftarrow')|| strcmp(evnt.Key,'a')
-            goBack_Callback(handles.slider1,evnt,handles);
-        %Up
-        elseif  strcmp(evnt.Key,'uparrow')|| strcmp(evnt.Key,'w')
-            goUp_Callback(handles.zSlider,evnt,handles);
-        %Down
-        elseif strcmp(evnt.Key,'downarrow')|| strcmp(evnt.Key,'s')
-            goDown_Callback(handles.zSlider,evnt,handles);
-        elseif strcmp(evnt.Key,'space')
-            cursorNeuronSelect(handles.slider1,evnt)
-        elseif strcmp(evnt.Key,'e');
-            goForward_Callback(handles.slider1,evnt,handles);
-            autoSelect(handles.slider1,evnt)
-        elseif strcmp(evnt.Key,'r')
-             autoSelect(handles.slider1,evnt)
-        elseif strcmp(evnt.Key,'f');
-            nextAnnotated_Callback(handles.slider1,evnt,handles)
-        elseif strcmp(evnt.Key,'1') 
-            selectNeuron1_Callback(handles.selectNeuron1,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt)
-        elseif strcmp(evnt.Key,'2') 
-            selectNeuron2_Callback(handles.selectNeuron2,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'3')
-            selectNeuron3_Callback(handles.selectNeuron3,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt)
-        elseif strcmp(evnt.Key,'4') 
-            selectNeuron4_Callback(handles.selectNeuron4,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'5') 
-            selectNeuron5_Callback(handles.selectNeuron5,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'6') 
-            selectNeuron6_Callback(handles.selectNeuron6,evnt,handles);
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'return');
-            cursorNeuronSelect(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'shift');
-            current=get(handles.channelSelect,'Value');
-            set(handles.channelSelect,'Value',3-current);
-             channelSelect_Callback(handles.channelSelect, evnt, handles)
-        elseif strcmp(evnt.Key,'q');
-            reclick(handles.slider1,evnt);
-        elseif strcmp(evnt.Key,'c');
-            exactNeuronSelect(handles.slider1,evnt)
-        elseif strcmp(evnt.Key,'h')
-            switchShow(handles,evnt)
-        end
+%any key press turns off cruise control
+if get(handles.cruiseControl,'Value')
+    % if strcmp(evnt.EventName,'KeyPress')
+    set(handles.cruiseControl,'Value',0)
+    % end
+    return
+end
+%Forward
+if strcmp(evnt.Key,'rightarrow')|| strcmp(evnt.Key,'d')
+    goForward_Callback(handles.slider1,evnt,handles);
+    %Backward
+elseif strcmp(evnt.Key,'backspace') || strcmp(evnt.Key,'leftarrow')|| strcmp(evnt.Key,'a')
+    goBack_Callback(handles.slider1,evnt,handles);
+    %Up
+elseif  strcmp(evnt.Key,'uparrow')|| strcmp(evnt.Key,'w')
+    goUp_Callback(handles.zSlider,evnt,handles);
+    %Down
+elseif strcmp(evnt.Key,'downarrow')|| strcmp(evnt.Key,'s')
+    goDown_Callback(handles.zSlider,evnt,handles);
+elseif strcmp(evnt.Key,'space')
+    cursorNeuronSelect(handles.slider1,evnt)
+elseif strcmp(evnt.Key,'e');
+    if get(handles.missingMode,'Value')
+        nextMissing_Callback(hObject,evnt,handles)
+    else
+        goForward_Callback(handles.slider1,evnt,handles);
+    end
+    autoSelect(handles.slider1,evnt)
+elseif strcmp(evnt.Key,'r')
+    autoSelect(handles.slider1,evnt)
+elseif strcmp(evnt.Key,'f');
+    nextAnnotated_Callback(handles.slider1,evnt,handles)
+elseif strcmp(evnt.Key,'1')
+    selectNeuron1_Callback(handles.selectNeuron1,evnt,handles);
+    cursorNeuronSelect(handles.slider1,evnt)
+elseif strcmp(evnt.Key,'2')
+    selectNeuron2_Callback(handles.selectNeuron2,evnt,handles);
+    cursorNeuronSelect(handles.slider1,evnt);
+elseif strcmp(evnt.Key,'3')
+    selectNeuron3_Callback(handles.selectNeuron3,evnt,handles);
+    cursorNeuronSelect(handles.slider1,evnt)
+elseif strcmp(evnt.Key,'4')
+    selectNeuron4_Callback(handles.selectNeuron4,evnt,handles);
+    cursorNeuronSelect(handles.slider1,evnt);
+elseif strcmp(evnt.Key,'5')
+    selectNeuron5_Callback(handles.selectNeuron5,evnt,handles);
+    cursorNeuronSelect(handles.slider1,evnt);
+elseif strcmp(evnt.Key,'6')
+    selectNeuron6_Callback(handles.selectNeuron6,evnt,handles);
+    cursorNeuronSelect(handles.slider1,evnt);
+elseif strcmp(evnt.Key,'return');
+    cursorNeuronSelect(handles.slider1,evnt);
+elseif strcmp(evnt.Key,'shift');
+    current=get(handles.channelSelect,'Value');
+    set(handles.channelSelect,'Value',3-current);
+    channelSelect_Callback(handles.channelSelect, evnt, handles)
+elseif strcmp(evnt.Key,'q');
+    reclick(handles.slider1,evnt);
+elseif strcmp(evnt.Key,'c');
+    exactNeuronSelect(handles.slider1,evnt)
+elseif strcmp(evnt.Key,'h')
+    switchShow(handles,evnt)
+end
 
-        
+
 %         elseif strcmp(evnt.Character,'h')
 %             dispFeat=~dispFeat;
 %             RefreshDisplayAndPlot;
 %             disp('Hide/Show Features');
 %         end
-%          
-        %Ignore the key stroke
+%
+%Ignore the key stroke
 function switchShow(handles,eventdata)
 
 show=getappdata(handles.figure1,'show');
@@ -1433,7 +1439,7 @@ function loadFiducials_Callback(hObject, eventdata, handles)
 imFiles=getappdata(handles.figure1,'imFiles');
 imFiles=imFiles{1};
 if ~isdir(imFiles)
-parent=fileparts(imFiles);
+    parent=fileparts(imFiles);
 else
     parent=imFiles;
 end
@@ -1451,8 +1457,8 @@ set(handles.currentFiducialFile,'String',fiducialFile)
 pointUpdate(handles);
 updataData2(handles);
 if get(handles.savingFiducials,'Value')==0
-set(handles.savingFiducials,'Value',1);
-savingFiducials_Callback(handles.savingFiducials, eventdata, handles)
+    set(handles.savingFiducials,'Value',1);
+    savingFiducials_Callback(handles.savingFiducials, eventdata, handles)
 end
 
 stop(handles.timer)
@@ -1491,29 +1497,23 @@ function previousAnnotated_Callback(hObject, eventdata, handles)
 iUser=get(handles.usersDropdown,'Value');
 contents = cellstr(get(handles.usersDropdown,'String'));
 user=contents{iUser};
-    
 userFiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
-  
-
 fiducialPoints=userFiducialsAllUsers.(user);
-
 currentFrame=getappdata(handles.figure1,'currentFrame');
 plotIdx=getappdata(handles.figure1,'cursorTarget');
 
 try
-annotated=find(cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints,'uniformOutput',0)));
+    annotated=find(cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints,'uniformOutput',0)));
 catch
-annotated=find(cell2mat(cellfun(@(x) size(x,1)>=plotIdx,fiducialPoints,'uniformOutput',0)));
-annotated=annotated(cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints(annotated),'uniformOutput',0)));
+    annotated=find(cell2mat(cellfun(@(x) size(x,1)>=plotIdx,fiducialPoints,'uniformOutput',0)));
+    annotated=annotated(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints(annotated)));
 end
 nextFrame=annotated((annotated<currentFrame));
-
 if isempty(nextFrame)
     return
 end
 nextFrame=nextFrame(end);
-set(handles.slider1,'Value',max(nextFrame,get(handles.slider1,'min')));
-plotter(handles.slider1,eventdata);
+moveFrame(hObject,eventdata,handles,nextFrame-currentFrame)
 
 
 % --- Executes on button press in nextAnnotated.
@@ -1525,20 +1525,16 @@ function nextAnnotated_Callback(hObject, eventdata, handles)
 iUser=get(handles.usersDropdown,'Value');
 contents = cellstr(get(handles.usersDropdown,'String'));
 user=contents{iUser};
-    
 userFiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
-  
-
 fiducialPoints=userFiducialsAllUsers.(user);
-
 currentFrame=getappdata(handles.figure1,'currentFrame');
 plotIdx=getappdata(handles.figure1,'cursorTarget');
 
 try
-annotated=find(cell2mat(cellfun(@(x) isempty(x{plotIdx,1}),fiducialPoints,'uniformOutput',0)));
+    annotated=find(cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints,'uniformOutput',0)));
 catch
-annotated=find(cell2mat(cellfun(@(x) size(x,1)>=plotIdx,fiducialPoints,'uniformOutput',0)));
-annotated=annotated(cell2mat(cellfun(@(x) isempty(x{plotIdx,1}),fiducialPoints(annotated),'uniformOutput',0)));
+    annotated=find(cell2mat(cellfun(@(x) size(x,1)>=plotIdx,fiducialPoints,'uniformOutput',0)));
+    annotated=annotated(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints(annotated)));
 end
 
 nextFrame=annotated((annotated>currentFrame));
@@ -1546,8 +1542,68 @@ if isempty(nextFrame)
     return
 end
 nextFrame=nextFrame(1);
-set(handles.slider1,'Value',min(nextFrame,get(handles.slider1,'max')));
-plotter(handles.slider1,eventdata);
+moveFrame(hObject,eventdata,handles,nextFrame-currentFrame)
+
+
+% --- Executes on button press in previousMissing.
+function previousMissing_Callback(hObject, eventdata, handles)
+% hObject    handle to previousMissing (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+iUser=get(handles.usersDropdown,'Value');
+contents = cellstr(get(handles.usersDropdown,'String'));
+user=contents{iUser};
+userFiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
+fiducialPoints=userFiducialsAllUsers.(user);
+currentFrame=getappdata(handles.figure1,'currentFrame');
+plotIdx=getappdata(handles.figure1,'cursorTarget');
+
+try
+    missing=find(~cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints,'uniformOutput',0)));
+catch
+    missing=find(cell2mat(cellfun(@(x) size(x,1)>=plotIdx,fiducialPoints,'uniformOutput',0)));
+    missing=missing(~cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints(annotated),'uniformOutput',0)));
+end
+nextFrame=missing((missing<currentFrame));
+if isempty(nextFrame)
+    return
+end
+nextFrame=nextFrame(end);
+moveFrame(hObject,eventdata,handles,nextFrame-currentFrame)
+
+
+% --- Executes on button press in nextMissing.
+function nextMissing_Callback(hObject, eventdata, handles)
+% hObject    handle to nextMissing (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+iUser=get(handles.usersDropdown,'Value');
+contents = cellstr(get(handles.usersDropdown,'String'));
+user=contents{iUser};
+userFiducialsAllUsers=getappdata(handles.figure1,'fiducialsAllUsers');
+fiducialPoints=userFiducialsAllUsers.(user);
+currentFrame=getappdata(handles.figure1,'currentFrame');
+plotIdx=getappdata(handles.figure1,'cursorTarget');
+
+try
+    missing=find(~cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints,'uniformOutput',0)));
+catch
+    missing=find(cell2mat(cellfun(@(x) size(x,1)>=plotIdx,fiducialPoints,'uniformOutput',0)));
+    missing=missing(~cell2mat(cellfun(@(x) ~isempty(x{plotIdx,1}),fiducialPoints(annotated),'uniformOutput',0)));
+end
+
+nextFrame=missing((missing>currentFrame));
+if isempty(nextFrame)
+    return
+end
+nextFrame=nextFrame(1);
+moveFrame(hObject,eventdata,handles,nextFrame-currentFrame)
+
+% set(handles.slider1,'Value',min(nextFrame,get(handles.slider1,'max')));
+% plotter(handles.slider1,eventdata);
+
 
 
 % --- Executes on button press in savingFiducials.
@@ -1578,7 +1634,7 @@ function axes1_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if strcmp(get(handles.figure1,'SelectionType'),'alt')
     cursorNeuronSelect(handles.slider1,eventdata);
-
+    
 end
 
 
@@ -1650,17 +1706,17 @@ function figure1_WindowScrollWheelFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if eventdata.VerticalScrollCount>2
     for i=1:floor(eventdata.VerticalScrollCount/2)
-                goUp_Callback(handles.zSlider,eventdata,handles);
+        goUp_Callback(handles.zSlider,eventdata,handles);
     end
 elseif eventdata.VerticalScrollCount<-2
     for i=1:floor(abs(eventdata.VerticalScrollCount/2))
-                goDown_Callback(handles.zSlider,eventdata,handles);
+        goDown_Callback(handles.zSlider,eventdata,handles);
     end
 end
 
 
 
-
+%updates the number of points, possibly playing fun sounds
 function points=pointUpdate(handles)
 currentClick=datevec(now);
 history=getappdata(handles.figure1,'history');
@@ -1669,58 +1725,58 @@ multiplier=1;
 
 
 if size(history,1)>30
-history=cat(1,history(2:end,:),currentClick);
+    history=cat(1,history(2:end,:),currentClick);
 else
     history=cat(1,history,currentClick);
 end
 setappdata(handles.figure1,'history',history)
 if size(history,1)>10
-
-timeIntervalHistory=diff(history,[],1);
-timeIntervalHistory=timeIntervalHistory*[0 0 3600*24 3600 60 1]';
-
-shortTimeHistory=mean(timeIntervalHistory(end-9:end));
-if size(history,1)>20
-longTimeHistory=mean(timeIntervalHistory);
-else
-  longTimeHistory=inf;
-end
-%multiplier can be up to 10. 
-if shortTimeHistory<10
-    multiplier=multiplier+1;
-end
-if shortTimeHistory<5
-    multiplier=multiplier+3;
-end
-
-if longTimeHistory<10
-    multiplier=multiplier+4;
-end
-if longTimeHistory<5
-    multiplier=multiplier+6;
-end
-
-if longTimeHistory<3.5
-    multiplier=multiplier+5;
-end
-%[shortTimeHistory multiplier]
-
+    
+    timeIntervalHistory=diff(history,[],1);
+    timeIntervalHistory=timeIntervalHistory*[0 0 3600*24 3600 60 1]';
+    
+    shortTimeHistory=mean(timeIntervalHistory(end-9:end));
+    if size(history,1)>20
+        longTimeHistory=mean(timeIntervalHistory);
+    else
+        longTimeHistory=inf;
+    end
+    %multiplier can be up to 10.
+    if shortTimeHistory<10
+        multiplier=multiplier+1;
+    end
+    if shortTimeHistory<5
+        multiplier=multiplier+3;
+    end
+    
+    if longTimeHistory<10
+        multiplier=multiplier+4;
+    end
+    if longTimeHistory<5
+        multiplier=multiplier+6;
+    end
+    
+    if longTimeHistory<3.5
+        multiplier=multiplier+5;
+    end
+    %[shortTimeHistory multiplier]
+    
 end
 fireCombo=getappdata(handles.figure1,'fireCombo');
 switch multiplier
     case {2 5}
         Etext='Keep it up!';
-fireCombo=0;
+        fireCombo=0;
     case {6 9}
         Etext='You''re on a roll!';
-fireCombo=0;
+        fireCombo=0;
     case {15}
         Etext='Amazing!!';
-fireCombo=0;
+        fireCombo=0;
     case {20}
         Etext='You''re on FIRE!!!';
         if fireCombo==0
-           soundpath=which('Worm3DFiducialPickerNetwork');
+            soundpath=which('Worm3DFiducialPickerNetwork');
             soundpath=fileparts(soundpath);
             soundpath=[soundpath filesep 'onFire.mp3'];
             [data,fs]=audioread(soundpath);
@@ -1730,71 +1786,71 @@ fireCombo=0;
         fireCombo=fireCombo+1/20;
         if floor(fireCombo)>0
             Etext=[Etext '   Fire Combo x' num2str(floor(fireCombo))];
-        
+            
         end
         
-if abs(fireCombo-round(fireCombo))<.01
+        if abs(fireCombo-round(fireCombo))<.01
             soundpath=which('Worm3DFiducialPickerNetwork');
             soundpath=fileparts(soundpath);
-      
-    switch mod(round(fireCombo),34)
-
-        case 3
-            soundpath=[soundpath filesep 'tripleCombo.mp3'];
-        case 6
-            soundpath=[soundpath filesep 'superCombo.mp3'];
-        case 9
-             soundpath=[soundpath filesep 'hyperCombo.mp3'];
-        case 12
-             soundpath=[soundpath filesep 'brutalCombo.mp3'];
-        case 15
-             soundpath=[soundpath filesep 'masterCombo.mp3'];
-        case 18
-             soundpath=[soundpath filesep 'awesomeCombo.mp3'];
-        case 21
-             soundpath=[soundpath filesep 'blasterCombo.mp3'];
-        case 24
-             soundpath=[soundpath filesep 'monsterCombo.mp3'];
-        case 27        
-             soundpath=[soundpath filesep 'kingCombo.mp3'];
-        case 30
-             soundpath=[soundpath filesep 'killerCombo.mp3'];
-        case 33
-             soundpath=[soundpath filesep 'ultraCombo.mp3'];
-        otherwise
-            if rand>.7
+            
+            switch mod(round(fireCombo),34)
                 
-          soundpath=[soundpath filesep 'Boomshakalaka.wav'];
-            elseif rand>.5
-          soundpath=[soundpath filesep 'kaboom.mp3'];
-            elseif rand>.3
-          soundpath=[soundpath filesep 'boomshakalaka2.mp3'];
-            else
-          soundpath=[soundpath filesep 'onFire.mp3'];
+                case 3
+                    soundpath=[soundpath filesep 'tripleCombo.mp3'];
+                case 6
+                    soundpath=[soundpath filesep 'superCombo.mp3'];
+                case 9
+                    soundpath=[soundpath filesep 'hyperCombo.mp3'];
+                case 12
+                    soundpath=[soundpath filesep 'brutalCombo.mp3'];
+                case 15
+                    soundpath=[soundpath filesep 'masterCombo.mp3'];
+                case 18
+                    soundpath=[soundpath filesep 'awesomeCombo.mp3'];
+                case 21
+                    soundpath=[soundpath filesep 'blasterCombo.mp3'];
+                case 24
+                    soundpath=[soundpath filesep 'monsterCombo.mp3'];
+                case 27
+                    soundpath=[soundpath filesep 'kingCombo.mp3'];
+                case 30
+                    soundpath=[soundpath filesep 'killerCombo.mp3'];
+                case 33
+                    soundpath=[soundpath filesep 'ultraCombo.mp3'];
+                otherwise
+                    if rand>.7
+                        
+                        soundpath=[soundpath filesep 'Boomshakalaka.wav'];
+                    elseif rand>.5
+                        soundpath=[soundpath filesep 'kaboom.mp3'];
+                    elseif rand>.3
+                        soundpath=[soundpath filesep 'boomshakalaka2.mp3'];
+                    else
+                        soundpath=[soundpath filesep 'onFire.mp3'];
+                    end
+                    
             end
             
-    end
-    
-                [data,fs]=audioread(soundpath);
+            [data,fs]=audioread(soundpath);
             sound(data,fs);
             display('Boomshakalaka!')
-    
-end
+            
+        end
         
     otherwise
         Etext='Click the Neurons!';
-fireCombo=0;
+        fireCombo=0;
 end
 
 if fireCombo<getappdata(handles.figure1,'fireCombo');
     Etext=['COMBO BREAKER'];
     soundpath=which('Worm3DFiducialPickerNetwork');
-            soundpath=fileparts(soundpath);
-            [data,fs]=audioread([soundpath filesep 'combobreaker.mp3']);
-            sound(data,fs);
-            display('COMBO BREAKER');
+    soundpath=fileparts(soundpath);
+    [data,fs]=audioread([soundpath filesep 'combobreaker.mp3']);
+    sound(data,fs);
+    display('COMBO BREAKER');
 end
-    setappdata(handles.figure1,'fireCombo',fireCombo(1));
+setappdata(handles.figure1,'fireCombo',fireCombo(1));
 
 totalNeuronsClicked=getappdata(handles.figure1,'totalNeuronsClicked');
 
@@ -1810,22 +1866,22 @@ if isempty(getappdata(handles.figure1,'level'));
     setappdata(handles.figure1,'level',level);
     oldLevel=level;
 else
-oldLevel=getappdata(handles.figure1,'level');
+    oldLevel=getappdata(handles.figure1,'level');
 end
 
 if level>oldLevel;
     try
-    pointsAll=getappdata(handles.figure1,'pointsAll');
-    iUser=get(handles.usersDropdown,'Value');
-    [~,ia]=sort(pointsAll,'descend');
-
-    msgbox(['Congratulations! You have just reached level: ' ...
-        num2str(level) '. Your rank is ' num2str(find(ia==iUser))]);
+        pointsAll=getappdata(handles.figure1,'pointsAll');
+        iUser=get(handles.usersDropdown,'Value');
+        [~,ia]=sort(pointsAll,'descend');
+        
+        msgbox(['Congratulations! You have just reached level: ' ...
+            num2str(level) '. Your rank is ' num2str(find(ia==iUser))]);
     catch
     end
     
 end
-    setappdata(handles.figure1,'level',level);
+setappdata(handles.figure1,'level',level);
 
 
 points2nextLevel=round(10000*(1.3)^(level)-points);
@@ -1957,7 +2013,7 @@ function neuron1_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of neuron1 as text
 %        str2double(get(hObject,'String')) returns contents of neuron1 as a double
- currentNeuron=str2double(get(hObject,'String'));
+currentNeuron=str2double(get(hObject,'String'));
 currentNeuronString=num2str(currentNeuron);
 set(handles.selectNeuron1,'String',currentNeuronString);
 setappdata(handles.figure1,'cursorTarget',currentNeuron);
@@ -1973,7 +2029,7 @@ function neuron2_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of neuron2 as text
 %        str2double(get(hObject,'String')) returns contents of neuron2 as a double
- currentNeuron=str2double(get(hObject,'String'));
+currentNeuron=str2double(get(hObject,'String'));
 currentNeuronString=num2str(currentNeuron);
 set(handles.selectNeuron2,'String',currentNeuronString);
 setappdata(handles.figure1,'cursorTarget',currentNeuron);
@@ -1989,7 +2045,7 @@ function neuron3_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of neuron3 as text
 %        str2double(get(hObject,'String')) returns contents of neuron3 as a double
- currentNeuron=str2double(get(hObject,'String'));
+currentNeuron=str2double(get(hObject,'String'));
 currentNeuronString=num2str(currentNeuron);
 set(handles.selectNeuron3,'String',currentNeuronString);
 setappdata(handles.figure1,'cursorTarget',currentNeuron);
@@ -2005,7 +2061,7 @@ function neuron4_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of neuron4 as text
 %        str2double(get(hObject,'String')) returns contents of neuron4 as a double
- currentNeuron=str2double(get(hObject,'String'));
+currentNeuron=str2double(get(hObject,'String'));
 currentNeuronString=num2str(currentNeuron);
 set(handles.selectNeuron4,'String',currentNeuronString);
 setappdata(handles.figure1,'cursorTarget',currentNeuron);
@@ -2021,7 +2077,7 @@ function neuron5_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of neuron5 as text
 %        str2double(get(hObject,'String')) returns contents of neuron5 as a double
- currentNeuron=str2double(get(hObject,'String'));
+currentNeuron=str2double(get(hObject,'String'));
 currentNeuronString=num2str(currentNeuron);
 set(handles.selectNeuron5,'String',currentNeuronString);
 setappdata(handles.figure1,'cursorTarget',currentNeuron);
@@ -2038,7 +2094,7 @@ function neuron6_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of neuron6 as text
 %        str2double(get(hObject,'String')) returns contents of neuron6 as a double
- currentNeuron=str2double(get(hObject,'String'));
+currentNeuron=str2double(get(hObject,'String'));
 currentNeuronString=num2str(currentNeuron);
 set(handles.selectNeuron6,'String',currentNeuronString);
 setappdata(handles.figure1,'cursorTarget',currentNeuron);
@@ -2192,7 +2248,7 @@ setappdata(handles.figure1,'updateFlag',1);
 
 
 function updataData2(handles)
-        contents = cellstr(get(handles.usersDropdown,'String'));
+contents = cellstr(get(handles.usersDropdown,'String'));
 fiducialFileName=get(handles.currentFiducialFile,'String');
 successFlag=false;
 tryCounter=0;
@@ -2200,76 +2256,75 @@ ME=[];
 display('Refreshing Data');
 
 
-    if get(handles.savingFiducials,'Value') && ~isempty(getappdata(handles.figure1,'lastUser'))
+if get(handles.savingFiducials,'Value') && ~isempty(getappdata(handles.figure1,'lastUser'))
     clickPoints=getappdata(handles.figure1,'points');
     userFiducialsAll=getappdata(handles.figure1,'fiducialsAllUsers');
     user=getappdata(handles.figure1,'lastUser');
-fiducialPoints=userFiducialsAll.(user);
-fiducialFile=get(handles.currentFiducialFile,'String');
+    fiducialPoints=userFiducialsAll.(user);
+    fiducialFile=get(handles.currentFiducialFile,'String');
     timeOffset=str2double(get(handles.timeOffset,'String'));
     save([fiducialFile filesep user],'fiducialPoints','clickPoints','-v6')
     save([fiducialFile filesep 'timeOffset'],'timeOffset','-v6')
-    end
+end
 
 
-    
+
 while ~successFlag
     tryCounter=tryCounter+1;
-
+    
     
     try
-
-    for iUser=1:length(contents);
         
-        
-        user=contents{iUser};
-        if exist([fiducialFileName filesep user '.mat'],'file')
-            fiducialsAll=load([fiducialFileName filesep user]);
-points=fiducialsAll.clickPoints;
-fiducialsAll=fiducialsAll.fiducialPoints;            
-
-        else
-hiResData=getappdata(handles.figure1,'hiResData');
-fiducialPoints=cell(6,5);
-fiducialPoints=repmat({fiducialPoints},max(hiResData.stackIdx),1);
-setappdata(handles.figure1,'fiducials',fiducialPoints);
-clickPoints=0;
-points=clickPoints;
-    save([fiducialFileName filesep user],'fiducialPoints','clickPoints','-v6');
-fiducialsAll=fiducialPoints;
+        for iUser=1:length(contents);
             
+            
+            user=contents{iUser};
+            if exist([fiducialFileName filesep user '.mat'],'file')
+                fiducialsAll=load([fiducialFileName filesep user]);
+                points=fiducialsAll.clickPoints;
+                fiducialsAll=fiducialsAll.fiducialPoints;
+                
+            else
+                hiResData=getappdata(handles.figure1,'hiResData');
+                fiducialPoints=cell(6,5);
+                fiducialPoints=repmat({fiducialPoints},max(hiResData.stackIdx),1);
+                setappdata(handles.figure1,'fiducials',fiducialPoints);
+                clickPoints=0;
+                points=clickPoints;
+                save([fiducialFileName filesep user],'fiducialPoints','clickPoints','-v6');
+                fiducialsAll=fiducialPoints;
+                
+            end
+            
+            if iUser==get(handles.usersDropdown,'Value')
+                setappdata(handles.figure1,'points',points);
+            end
+            pointsAll(iUser)=points;
+            
+            fiducialsAllUsers.(user)=fiducialsAll;
+            successFlag=true;
+        end
+        setappdata(handles.figure1,'pointsAll',pointsAll);
+        setappdata(handles.figure1,'fiducialsAllUsers',fiducialsAllUsers);
+        nFidClicked=@(Y) max(cell2mat(cellfun(@(x) size(cell2mat(x(:,1)),1),Y,'uniformOutput',0)));
+        totalNeuronsClicked=structfun(nFidClicked, fiducialsAllUsers,'uniform',0);
+        totalNeuronsClicked=sum(cell2mat(struct2cell(totalNeuronsClicked)));
+        
+        setappdata(handles.figure1,'totalNeuronsClicked',totalNeuronsClicked);
+        
+    catch ME
+        successFlag=false;
+        if tryCounter>5
+            display('ERROR, Fiducial Loading fail')
+            rethrow(ME)
+        else
+            display('Loading Conflict, trying again');
         end
         
-if iUser==get(handles.usersDropdown,'Value')
-    setappdata(handles.figure1,'points',points);
-end
-pointsAll(iUser)=points;
-
-fiducialsAllUsers.(user)=fiducialsAll;
-successFlag=true;
-    end
-    setappdata(handles.figure1,'pointsAll',pointsAll);
-    setappdata(handles.figure1,'fiducialsAllUsers',fiducialsAllUsers);
-     
-    nFidClicked=@(Y) max(cell2mat(cellfun(@(x) size(cell2mat(x(:,1)),1),Y,'uniformOutput',0)));
-totalNeuronsClicked=structfun(nFidClicked, fiducialsAllUsers,'uniform',0);
-totalNeuronsClicked=sum(cell2mat(struct2cell(totalNeuronsClicked)));
-
-setappdata(handles.figure1,'totalNeuronsClicked',totalNeuronsClicked);
-
-    catch ME
-successFlag=false;
-    if tryCounter>5
-display('ERROR, Fiducial Loading fail')
-rethrow(ME)
-    else
- display('Loading Conflict, trying again');
-    end
-    
-    
+        
     end
 end
-   display('Refresh Complete');
+display('Refresh Complete');
 
 
 
@@ -2287,7 +2342,7 @@ if strcmp(get(handles.timer, 'Running'), 'on')
     start(handles.timer)
 else               % If timer is stopped, reset its period only.
     set(handles.timer,'Period',period)
-        start(handles.timer)
+    start(handles.timer)
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -2323,8 +2378,12 @@ setappdata(handles.figure1,'cruiseStartFrame',currentFrame);
 
 %while get(hObject,'Value')
 while get(hObject,'Value')
-            goForward_Callback(handles.slider1,eventdata,handles);
-            autoSelect(handles.slider1,eventdata)            
+    if get(handles.missingMode,'Value')
+        nextMissing_Callback(hObject,eventdata,handles)
+    else
+        goForward_Callback(handles.slider1,eventdata,handles);
+    end
+    autoSelect(handles.slider1,eventdata)
 end
 
 setappdata(handles.figure1,'cruiseStartFrame',[]);
@@ -2340,9 +2399,18 @@ fiducialFileName=get(handles.currentFiducialFile,'String');
 pop=[fiducialFileName filesep 'ErrorNotes.txt'];
 if exist(pop)==2;
     
-popupmessage(pop,'Error Notes')
+    popupmessage(pop,'Error Notes')
 else
     fid=fopen(pop,'w');
     fclose(fid);
 end
 open(pop);
+
+
+% --- Executes on button press in missingMode.
+function missingMode_Callback(hObject, eventdata, handles)
+% hObject    handle to missingMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of missingMode

@@ -20,7 +20,7 @@ param.excessive=4;
 windowSearch=5;
 
 %%
-[TrackMatrix,pointStats]=compileTrackMatrix(imFolder);
+[TrackMatrix,pointStats]=compileTrackMatrix2(imFolder);
 
  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.TrackMatrixi},'uniform',0);
 presentIdx=find(cell2mat(presentIdx));

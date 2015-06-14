@@ -28,7 +28,7 @@ nPix=rows*cols;
 bfIdxList=1:length(bfAll.frameTime);
 fluorIdxList=1:length(fluorAll.frameTime);
 bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'linear','extrap');
-fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'linear');
+fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'linear','extrap');
 
 [hiImageIdx,ib]=unique(hiResData.imageIdx);
 hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
@@ -36,10 +36,13 @@ hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
 
 
 stack2BFidx=bfIdxLookup(diff(hiResData.stackIdx)==1);
+stack2fluoridx=fluorIdxLookup(diff(hiResData.stackIdx)==1);
+
 %stack2BFidx=stack2BFidx(~isnan(stack2BFidx))
 BF2stackIdx=interp1(stack2BFidx,1:max(hiResData.stackIdx),bfIdxList,'nearest');
+fluor2stackIdx=interp1(stack2fluoridx,1:max(hiResData.stackIdx),fluorIdxList,'nearest');
 
-
+minStart=max([min(BF2stackIdx) min(fluor2stackIdx)])+1;
 
 %% load alignment data
 try
@@ -132,15 +135,16 @@ hasPoints=find(cell2mat(hasPoints));
 %%
 zWave=hiResData.Z;
 zWave=gradient(zWave);
+zWave=smooth(zWave,10);
 [ZSTDcorrplot,lags]=(crosscorr(abs(zWave),hiResData.imSTD,20));
 ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 %%
 
-startStack=2;
-endStack=100;
-destination= 'CLstraight_20150612';
+startStack=minStart;
+endStack=1000;
+destination= 'CLstraight_20150613_2';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;
@@ -153,8 +157,8 @@ tic
 show=1;
 counter=1;
 [V,pointStatsOut,Vtemplate,vRegion]=...
-    WormCLStraighten_2(dataFolder,destination,vidInfo,...
-    alignments,fiducialPoints{startStack},[],[],zOffset,startStack,show);
+    WormCLStraighten_3(dataFolder,destination,vidInfo,...
+    alignments,[],[],[],zOffset,startStack,show);
 poinStatsFields=fieldnames(pointStatsOut);
 for iFields=1:length(poinStatsFields)
     field=poinStatsFields{iFields};
@@ -172,9 +176,9 @@ show=0;
 display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
 
 %%
-subfiducialPoints=fiducialPoints(stackRange);
+%subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
-for counter=2:length(stackRange)
+for counter=76:500;
  %   parforprogress
 %progressbar((iStack-startStack)/(endStack-startStack));
              iStack=stackRange(counter);
@@ -182,9 +186,9 @@ display(['Starting'  num2str(iStack,'%3.5d') ])
      try
           tic
 %change indexing for better parfor 
-         ctrlPoints=subfiducialPoints{counter};
+         ctrlPoints=[];%subfiducialPoints{counter};
 [V,pointStatsOut,~,~]=...
-    WormCLStraighten_2(dataFolder,destination,vidInfo,...
+    WormCLStraighten_3(dataFolder,destination,vidInfo,...
     alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,show);
 
 for iFields=1:length(poinStatsFields)
