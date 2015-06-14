@@ -3,7 +3,9 @@ function clusterWormTracker(filePath,startIdx,matchesPerSegment)
 % if nargin==2
 % matchesPerSegment=250;
 % end
-
+filePath
+startIdx
+matchesPerSegment
 load(filePath);
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
