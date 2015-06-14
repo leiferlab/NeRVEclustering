@@ -1,11 +1,9 @@
 function clusterWormTracker(filePath,startIdx,matchesPerSegment)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
-% if nargin==2
-% matchesPerSegment=250;
-% end
-filePath
-startIdx
-matchesPerSegment
+ if nargin==2
+ matchesPerSegment=175;
+ end
+
 load(filePath);
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
