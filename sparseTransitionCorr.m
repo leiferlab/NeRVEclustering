@@ -17,4 +17,5 @@ amean=asum/Alength;
 aSTD=sqrt((asum.*(1-amean).^2+(Alength-asum).*amean.^2)/Alength);
 aSTD=full(aSTD);
 aCovariance=A*A'/Alength;
-r=aCovariance./(aSTD'*aSTD);
+stdMat=(aSTD'*aSTD);
+r=aCovariance./stdMat;
