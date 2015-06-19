@@ -1454,6 +1454,12 @@ set(handles.timeOffset,'String',timeOffset)
 
 %setappdata(handles.figure1,'fiducialsData', fiducialData2)
 set(handles.currentFiducialFile,'String',fiducialFile)
+userList=dir([fiducialFile filesep '*.mat']); %get all user files
+userList={userList.name};
+userList=userList(~strcmp(userList,'timeOffset.mat'));
+userList=cellfun(@(x) x(1:end-4),userList,'uniform',0);
+handles.usersDropdown.String=userList;
+
 pointUpdate(handles);
 updataData2(handles);
 if get(handles.savingFiducials,'Value')==0

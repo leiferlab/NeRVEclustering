@@ -36,13 +36,19 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 
 %%
-for i=1:length(pointStats2)
+stackLength=max(hiResData.stackIdx);
+fiducialPointsTempAll=cell(stackLength,10);
+fiducialPoints=cell(stackLength,1);
+pointStatsLookup={pointStats.stackIdx};
+pointStatsLookup(cellfun(@(x) isempty(x), pointStatsLookup))={0};
+pointStatsLookup=cell2mat(pointStatsLookup);
+for i=1:stackLength
     try
         currentData=pointStats2(i);
 
     iStack=currentData.stackIdx;
-        hiResIdx=find(hiResData.stackIdx==iStack)+ zOffset;
-    zRange=hiResData.Z(hiResIdx-2*zOffset);
+        hiResIdx=find(hiResData.stackIdx==iStack);
+    zRange=hiResData.Z(hiResIdx);
     
     rawPoints=currentData.rawPoints;
     trackIdx=currentData.trackIdx;
@@ -54,11 +60,11 @@ for i=1:length(pointStats2)
 if 0%sign(nanmean(diff(zRange)))==-1
     
     zRange2=zRange([true ; diff(zRange)<0]);
-    zInterp=interp1(flipud(hiResIdx)-zOffset,zLevels,'*linear');
+    zInterp=interp1(flipud(hiResIdx),zLevels,'*linear');
 zVoltages=interp1(flipud(zRange),zLevels,'*linear');
 else
         zRange2=zRange([true ; diff(zRange)>0]);
-    zInterp=interp1((hiResIdx)-zOffset,zLevels,'*linear');
+    zInterp=interp1((hiResIdx),zLevels,'*linear');
 zVoltages=interp1((zRange),zLevels,'*linear');
 
 end
@@ -66,9 +72,13 @@ end
 fiducialPointsTemp=cell(max(trackIdx),5);
 
 fiducialPointsTemp(trackIdx,1:4)=num2cell([rawPoints(:,1:2),zVoltages,zInterp]);
+for iBot=1:10
+    fiducialPointsTempAll{iStack,iBot}=fiducialPointsTemp(iBot:10:size(fiducialPointsTemp,1),:);
+end
 
-fiducialPoints{iStack}=fiducialPointsTemp;
+fiducialPoints{iStack-1}=fiducialPointsTemp;
     catch
+
     end
     
 end
@@ -79,9 +89,13 @@ timeOffset=zOffset;
 %%
 mkdir(folderStr)
 clickPoints=0;
-fiducialPoints=fiducialPointsBot';
+%fiducialPoints=fiducialPointsBot';
+for iBot=1:10
+fiducialPoints=fiducialPointsTempAll(:,iBot);
 fiducialPoints(cellfun(@(x) isempty(x),fiducialPoints))={cell(5,5)};
-save([folderStr filesep 'JeffBot'], 'fiducialPoints','clickPoints');
+save([folderStr filesep 'JeffBot' num2str(iBot-1)], 'fiducialPoints','clickPoints');
+
+end
 save([folderStr filesep 'timeOffset'], 'timeOffset');
 fiducialPoints=repmat({cell(5,5)},length(fiducialPointsBot),1);
 save([folderStr filesep 'Fred'], 'fiducialPoints','clickPoints');

@@ -143,8 +143,8 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 %%
 
 startStack=minStart;
-endStack=1000;
-destination= 'CLstraight_20150613_2';
+endStack=1530;
+destination= 'CLstraight_20150618';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;
@@ -156,9 +156,9 @@ pointStats=repmat(struct(),1,length(stackRange));
 tic
 show=1;
 counter=1;
-[V,pointStatsOut,Vtemplate,vRegion]=...
-    WormCLStraighten_3(dataFolder,destination,vidInfo,...
-    alignments,[],[],[],zOffset,startStack,show);
+[~,pointStatsOut,Vtemplate,vRegion,side]=...
+    WormCLStraighten_5(dataFolder,destination,vidInfo,...
+    alignments,[],[],[],zOffset,startStack,[],show);
 poinStatsFields=fieldnames(pointStatsOut);
 for iFields=1:length(poinStatsFields)
     field=poinStatsFields{iFields};
@@ -174,11 +174,19 @@ show=0;
 
 
 display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
+[~,clusterFolder]=fileparts(dataFolder);
+clusterFolder=['/scratch/tmp/jnguyen/' clusterFolder];
+save([dataFolder filesep 'startWorkspace'])
 
 %%
 %subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
-for counter=76:500;
+
+missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+stackRange2=stackRange(missingIdx);
+parfor counter=1:length(stackRange);
+    if missingIdx(counter)
+    
  %   parforprogress
 %progressbar((iStack-startStack)/(endStack-startStack));
              iStack=stackRange(counter);
@@ -188,8 +196,8 @@ display(['Starting'  num2str(iStack,'%3.5d') ])
 %change indexing for better parfor 
          ctrlPoints=[];%subfiducialPoints{counter};
 [V,pointStatsOut,~,~]=...
-    WormCLStraighten_3(dataFolder,destination,vidInfo,...
-    alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,show);
+    WormCLStraighten_4(dataFolder,destination,vidInfo,...
+    alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,side,show);
 
 for iFields=1:length(poinStatsFields)
     field=poinStatsFields{iFields};
@@ -209,7 +217,7 @@ display(['Finished image ' num2str(iStack,'%3.5d') ' in ' num2str(toc) 's'])
         display(['Error in Frame' num2str(iStack,'%3.5d') ' in ' num2str(toc) 's'])
 
     end
-    
+    end
     
 end
 save([imageFolder2 filesep 'PointsStats'],'pointStats');

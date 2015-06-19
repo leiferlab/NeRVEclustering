@@ -15,13 +15,13 @@ trackStrIdx=(strfind(fileListCell{1},'x')+1):(strfind(fileListCell{1},'Run')-1);
 runStrIdx=(strfind(fileListCell{1},'n')+1):(strfind(fileListCell{1},'.mat')-1);
 trackIdxList=cellfun(@(x) str2double(x(trackStrIdx)),fileListCell);
 runIdxList=cellfun(@(x) str2double(x(runStrIdx)),fileListCell);
-[trackIdxListU,ia,ib]=unique(trackIdxList)
+[trackIdxListU,ia,ib]=unique(trackIdxList);
 
 pointStats=load([fileName filesep 'PointsStats']);
 pointStats=pointStats.pointStats;
  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
- presentIdx=find(cell2mat(presentIdx));
-presentIdx=1:max(presentIdx);
+ presentIdx=1:length(pointStats);%find(cell2mat(presentIdx));
+%presentIdx=1:max(presentIdx);
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
 

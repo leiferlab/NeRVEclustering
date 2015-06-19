@@ -1,5 +1,8 @@
-function [Vout, tformOut]=stackStabilization(V,searchRad,show)
+function [Vout, tformOut]=stackStabilization(V,searchRad,show,outputFlag)
 % stackStabilization goes through a 3D image and aligns the points to the
+if nargin<4
+    outputFlag=true;
+end
 if nargin<3
     show=0;
 end
@@ -7,6 +10,10 @@ if nargin<2;
     searchRad=10;
     
 end
+if show
+    outputFlag=1
+end
+   
 thresh=.01;
 sliceLag=1;
 imSize=size(V);
@@ -29,21 +36,31 @@ for iHalf=1:2
     end
     tformAll=[];
     VtempOut=Vtemp;
-    
+    VsmoothHistory=zeros(size(Vtemp));
+    pointsHistory=cell(1,size(Vtemp,3));
+
     for iSlice=1:size(Vtemp,3)
-        
+                    pointsA=[];pointsB=[];
+
         imgBRaw=(Vtemp(:,:,iSlice))/maxI;
         imgBRaw(isnan(imgBRaw))=0;
         imgB=imgBRaw;
         imgB=bpass(imgB,3,20);
         imgB=(imgB);
         imgB(imgB<thresh)=0;
+        VsmoothHistory(:,:,iSlice)=imgB;
+            
+            [pointsB(:,2),pointsB(:,1)]=find(imregionalmax(imgB));
+            pointsHistory{iSlice}=pointsB;
+            
         if iSlice>sliceLag
-            imgARaw=(Vtemp(:,:,iSlice-sliceLag))/maxI;
-            imgA=imgARaw;
-            imgA=bpass(imgA,3,20);
+%             imgARaw=(Vtemp(:,:,iSlice-sliceLag))/maxI;
+%             imgA=imgARaw;
+            imgA= VsmoothHistory(:,:,iSlice-sliceLag);
             imgA=(imgA);
             imgA(imgA<thresh)=0;
+            pointsA= pointsHistory{iSlice-sliceLag};
+
         else
             imgA=0;
         end
@@ -55,10 +72,7 @@ for iHalf=1:2
             
             % pointsA = detectFASTFeatures(imgA, 'MinContrast', ptThresh);
             % pointsB = detectFASTFeatures(imgB, 'MinContrast', ptThresh);
-            pointsA=[];pointsB=[];
-            [pointsA(:,2),pointsA(:,1)]=find(imregionalmax(imgA));
-            [pointsB(:,2),pointsB(:,1)]=find(imregionalmax(imgB));
-            
+
             % if show
             %     %%
             % subplot(1,2,1); imagesc(imgA); hold on;
@@ -110,9 +124,11 @@ for iHalf=1:2
             
             %   tform.T(1:2,1:2)= tform.T(1:2,1:2)/det(tform.T);
             tform.T=tform.T*tformAll{iSlice-sliceLag}.T;
-            VtempOut(:,:,iSlice)=imwarp(Vtemp(:,:,iSlice),R,tform,...
+                        tformAll{iSlice}=tform;
+
+            if outputFlag
+            VtempOut(:,:,iSlice)=imwarp(Vtemp(:,:,iSlice),R,tform,'nearest',...
                 'OutputView',R);
-            tformAll{iSlice}=tform;
             if show
                 imagesc(VtempOut(:,:,iSlice)-Vtemp(:,:,iSlice))
                 hold on
@@ -123,6 +139,9 @@ for iHalf=1:2
                 end
                 hold off
                 drawnow
+            end
+            else
+                VtempOut(:,:,iSlice)=Vtemp(:,:,iSlice);
             end
         else
             tform=affine2d(eye(3));

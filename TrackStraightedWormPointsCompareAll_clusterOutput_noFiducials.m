@@ -104,19 +104,29 @@ transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
     corrmat=squareform(corrmat);
     
     Z=linkage(1-corrmat,'complete');
-    
+    %%
     c=cluster(Z,'cutoff',.9999,'criterion','distance');
-    
-    caccum=accumarray(c,ones(size(c)));
-    caccum=find(caccum<100 | caccum>N*1.2);
-    c(ismember(c,caccum))=0;
-    [~,ia,ib]=unique(c);
-    [~,ic]=sort(ia);
-    [~, id]=sort(ic);
-    c2=id(ib);
-    c2(c==0)=nan;
+    c=c+1;
+    caccum=accumarray(c,ones(size(c))); %how many in each cluster
 
-  %%  correction factor, optional
+    caccumN=find(caccum<100 | caccum>N*1.2); %bad clusters
+    c(ismember(c,caccumN))=1;
+    
+        caccum=accumarray(c,ones(size(c))); %how many in each cluster
+    [~,iaAccum]=sort(caccum,'descend'); %the rank of each cluster
+    [~,iaAccum]=sort(iaAccum);
+    
+    [cUnique,ia,ib]=unique(c); % ib is posotion of unique terms)
+    cUnique=iaAccum(cUnique);
+%     [~,ic]=sort(ia);
+%     [~, id]=sort(ic);
+    c2=cUnique(ib);
+  c2(c==1)=nan;
+   c2=c2-1;
+    
+    
+
+  %%  correction factor, optional, add groups that are cloes but were not clustered
     subTcorr=[];subTcorr2=[];
     uniqueIDs=unique(c2(~isnan(c2)));
     uniqueIDs(uniqueIDs==0)=[];
@@ -136,11 +146,35 @@ transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
         end
         
         %%
+        c2=c2+1;
+  c2(isnan(c2))=1;
+                caccum=hist(c2,1:max(c2)); %how many in each cluster
+    [~,iaAccum]=sort(caccum,'descend'); %the rank of each cluster
+    [~,iaAccum]=sort(iaAccum);
+    
+    [cUnique,ia,ib]=unique(c2); % ib is posotion of unique terms)
+    cUnique=iaAccum(cUnique);
+    
+           c2=cUnique(ib);
+  c2(c==1)=nan;
+   c2=c2-1;
+     
+        
+        %%
           
-    caccum=hist(c2,1:max(c2));%accumarray(c2,ones(size(c2)));
-    caccum=find(caccum<200 | caccum>N*1.2);
-    c2(ismember(c,caccum))=nan;
-            ccell=mat2cell(c2,diff(indexAdd(min(outRange):max(outRange+1))));
+%     caccum=hist(c2,1:max(c2));%accumarray(c2,ones(size(c2)));
+%      Ncaccum=find(caccum<N/5 | caccum>N*1.2);
+%      caccum(Ncaccum)=nan;
+%       c2(ismember(c,Ncaccum))=nan;
+%       c2(isnan(c2))=0;
+%     c3=zeros(size(c2));   
+%    [ ~,ia]=sort(caccum,'descend');
+% 
+%     for iTrack=1:max(c2)
+%         c3(c2==ia(iTrack))=(iTrack);
+%         
+%     end
+            ccell=mat2cell(c2',diff(indexAdd(min(outRange):max(outRange+1))));
     neuronsinFrame=cell2mat(cellfun(@(x) sum(~isnan(x)),ccell,'uniform',0));
     
     
@@ -198,60 +232,23 @@ end
 pointStats2=pointStats3;
 
 
-%% match control points with automated points
-
-
-for i=1:length(pointStats2)
-   %      pointStats2(presentIdx(i)).transitionMatrix=TrackMatrix{i};
-
-    try
-    rawPoints=pointStats2(presentIdx(i)).rawPoints;
-    rawPoints=rawPoints(~isnan(pointStats2(presentIdx(i)).trackIdx),:);
-    rawPointsId=pointStats2(presentIdx(i)).trackIdx(~isnan(pointStats2(presentIdx(i)).trackIdx));
-    controlPoints=pointStats2(presentIdx(i)).controlPoints;
-    rawPoints=[rawPoints rawPointsId ones(size(rawPoints,1),1)];
-    controlPoints=[controlPoints (1:size(controlPoints,1))' 2*ones(size(controlPoints,1),1)];
-    matchOut=trackJN([rawPoints;controlPoints],9,param);
-    matchID=matchOut(:,end-2);
-    pairedId=[ matchID(and(matchOut(:,end-1)==1, circshift(~diff([1;matchOut(:,end)]),-1))) ...
-        matchID(and(matchOut(:,end-1)==2, ~diff([1;matchOut(:,end)])))];
-    trackIdx=pointStats2(presentIdx(i)).trackIdx;
-    trackIdx(~ismember(trackIdx,pairedId(:,1)))=nan;
-    [~,ia]=sort(trackIdx);
-    pairedId=sortrows(pairedId);
-    matchIdx=nan(size(pointStats2(presentIdx(i)).trackIdx));
-    matchIdx(ia(1:size(pairedId,1)))=pairedId(:,2);
-    
-    pointStats2(presentIdx(i)).matchIdx=matchIdx;
-    catch ME
-        display(['Error frame:' num2str(presentIdx(i))]);
-    end
-    
-end
 
 %% turn matches into matrix for checking accuracy
 nTracks=max(cell2mat(cellfun(@(x) nanmax(x),{pointStats2.trackIdx},'uniform',0)'));
-matchTest=zeros(nTracks,N);
-Dmat=nan(size(matchTest));
-lookupMat=nan(size(matchTest));
+lookupMat=nan(nTracks,N);
 for i=1:N
+    try
     trackIdx=pointStats2(i).trackIdx;
-    matchIdx=pointStats2(i).matchIdx;
     pointIdx=pointStats2(i).pointIdx;
         if nnz(~isnan(trackIdx))>10
-                noNans=~isnan(trackIdx+matchIdx);
-    trackIdx=trackIdx(noNans);matchIdx=matchIdx(noNans);
+                noNans=~isnan(trackIdx);
+    trackIdx=trackIdx(noNans);
     pointIdx=pointIdx(noNans);
     
  rawPoints=pointStats2(i).rawPoints(noNans,:);
- controlPoints=pointStats2(i).controlPoints(matchIdx,:);
- D=sqrt(sum((rawPoints-controlPoints).^2,2));
-
-    matchTest(trackIdx,i)=matchIdx;
-    lookupMat(trackIdx,i)=pointIdx;
-    Dmat(trackIdx,i)=D;
+   lookupMat(trackIdx,i)=pointIdx;
         end
-    
+    catch end
         
 end
 
