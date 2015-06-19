@@ -10,7 +10,6 @@ for iStack=nStart:(nStart+nRange-1)
     alignments,[],Vtemplate,vRegion,zOffset,iStack,side,0);
 
    catch me
-       me
-       me.stack
+       save([clusterFolder filesep 'Error' num2str(iStack)],'me')
    end
 end
