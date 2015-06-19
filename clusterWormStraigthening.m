@@ -4,11 +4,10 @@ load([clusterFolder filesep 'startWorkspace.mat']);
 
 for iStack=nStart:(nStart+nRange-1)
    try 
-[~,pointStats,~,~]=...
     WormCLStraighten_5(clusterFolder,destination,vidInfo,...
     alignments,[],Vtemplate,vRegion,zOffset,iStack,side,0);
 
-save([dataFolder filesep  'pointStats' num2str(iStack,'%3.5d')],'pointStats');
    catch me
+       me
    end
 end
