@@ -621,7 +621,10 @@ else
 
 end
 
-
+zInterp
+outputRadius
+Bv
+length(Bv)
 %zInterp=permute(zInterp,[2,3,1]);
 zslice=repmat(zInterp,1,2*outputRadius+1,length(Bv));
 
