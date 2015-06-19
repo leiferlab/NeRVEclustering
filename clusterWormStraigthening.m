@@ -1,5 +1,6 @@
 function clusterWormStraigthening(dataFolder,nStart,nRange)
 [~,dataFolder]=fileparts(dataFolder);
+
 clusterFolder=['/scratch/tmp/jnguyen/' dataFolder];
 load([clusterFolder filesep 'startWorkspace.mat']);
 
@@ -10,5 +11,6 @@ for iStack=nStart:(nStart+nRange-1)
 
    catch me
        me
+       me.stack
    end
 end
