@@ -968,6 +968,9 @@ wormRegions=uint8(wormRegions);
     BWplot=(squeeze(sum(sum(imdilate(wormBW2,true(10,10,10)),1),2)));
     BWplot=smooth(BWplot,20);
     [~,locs]=findpeaks(BWplot);
+    locs
+    length(1)
+    [1 length(locs)]
     endpts=locs([1,length(locs)]);
     [~,locs]=findpeaks(-BWplot);
     botpoint1=locs((locs>endpts(1)));
