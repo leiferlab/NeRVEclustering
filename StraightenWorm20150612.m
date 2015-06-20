@@ -182,10 +182,10 @@ save([dataFolder filesep 'startWorkspace'])
 %subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
 
-%missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
 %stackRange2=stackRange(missingIdx);
 parfor counter=1:length(stackRange);
-    if 1% missingIdx(counter)
+    if  missingIdx(counter)
     
  %   parforprogress
 %progressbar((iStack-startStack)/(endStack-startStack));

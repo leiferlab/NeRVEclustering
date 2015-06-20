@@ -6,7 +6,7 @@ function [V,pointStats,Vproj,vRegion,side]=WormCLStraighten_5(dataFolder,destina
 
 imageFolder2=[dataFolder filesep destination];
 
-
+try
 %% initial parameters
 outputRadius=127.5000;
 outputLength=400;
@@ -1051,3 +1051,8 @@ save(fileName3,'pointStats');
 %save(fileName3,'wormRegions');
 
 fclose(Fid);
+catch me
+    fileName=[imageFolder2 filesep 'ERROR' num2str(iStack,'%3.5d')];
+    save(fileName);
+    rethrow(me)
+end
