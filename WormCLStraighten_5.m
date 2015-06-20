@@ -680,16 +680,14 @@ zslice=permute(zslice,[3,2,1]);
    %% stack stabilization
    
    [~, tformAll]=stackStabilization(V,30,show,0);
-   oneVec=ones(size(xslice,2)*size(xslice,1),1);
+R = imref2d(size(V(:,:,1))) ;
    for iSlice=1:size(xslice,3)
        if any(any(inImageMap(:,:,iSlice)))
-       xtemp=xslice(:,:,iSlice);
-       ytemp=yslice(:,:,iSlice);
-       XYtemp=[xtemp(:) ytemp(:) oneVec]*tformAll{iSlice}.T;
-       xtemp=reshape(XYtemp(:,1),size(xslice,1),size(xslice,2));
-       ytemp=reshape(XYtemp(:,2),size(xslice,1),size(xslice,2));
-       xslice(:,:,iSlice)=xtemp;
-       yslice(:,:,iSlice)=ytemp;
+temp=imwarp(cat(3,xslice(:,:,iSlice),yslice(:,:,iSlice)),R,tformAll{iSlice},'nearest',...
+                'OutputView',R);
+            xslice(:,:,iSlice)=temp(:,:,1);
+            yslice(:,:,iSlice)=temp(:,:,2);
+
        end
    end
 
