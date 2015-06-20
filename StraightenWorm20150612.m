@@ -143,12 +143,12 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 %%
 
 startStack=minStart;
-endStack=1530;
-destination= 'CLstraight_20150618';
+endStack=max(hiResData.stackIdx);
+destination= 'CLstraight_20150619';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;
-stackRange= startStack+1:endStack;
+stackRange= startStack:endStack;
 
 pointStats=repmat(struct(),1,length(stackRange));
 
@@ -182,10 +182,10 @@ save([dataFolder filesep 'startWorkspace'])
 %subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
 
-missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
-stackRange2=stackRange(missingIdx);
+%missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+%stackRange2=stackRange(missingIdx);
 parfor counter=1:length(stackRange);
-    if missingIdx(counter)
+    if 1% missingIdx(counter)
     
  %   parforprogress
 %progressbar((iStack-startStack)/(endStack-startStack));
