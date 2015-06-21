@@ -17,9 +17,7 @@ param.dim=3;
 param.excessive=4;
 param.quiet=1;
 param.difficult=2.e4;
-segments=ceil(N/matchesPerSegment);
-
-iIdxList=ceil(startIdx/segments);%:startIdx+stepSize-1;
+iIdxList=startIdx;%:startIdx+stepSize-1;
 %%
 for iIdx=iIdxList%length(TrackData)
     %%
@@ -133,7 +131,7 @@ for iIdx=iIdxList%length(TrackData)
     end
     
     outputName=fileparts(filePath);
-    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(runIdx,'%3.2d')];
+    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
     save(outputName,'TrackMatrixi');
 end
 
