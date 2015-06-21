@@ -1,4 +1,4 @@
-function  r=sparseTransitionCorr(A)
+function A=sparseTransitionCorr(A)
 
 % sparseTransitionCorr approximates the correlation matrix of a sparse
 % transition matrix consisting of only ones and zeros. It takes advantage
@@ -11,11 +11,10 @@ if ~issparse(A)
 end
 
 
-Alength=size(A,1);
+Alength=size(A,2);
 asum=sum(A);
 amean=asum/Alength;
 aSTD=sqrt((asum.*(1-amean).^2+(Alength-asum).*amean.^2)/Alength);
-aSTD=full(aSTD);
-aCovariance=A*A'/Alength;
-stdMat=(aSTD'*aSTD);
-r=aCovariance./stdMat;
+A=A'*A/Alength;
+A=bsxfun(@rdivide,A,aSTD);
+A=bsxfun(@rdivide,A,aSTD');

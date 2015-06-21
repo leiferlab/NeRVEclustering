@@ -1,9 +1,14 @@
 function clusterWormTracker(filePath,startIdx)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
- matchesPerSegment=175;
  
 
 load(filePath);
+%%
+ matchesPerSegment=175;
+
+runIdxList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
+presentN=length(runIdxList);
+runIdxList=runIdxList(round(1:presentN/matchesPerSegment:presentN));
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
 presentIdx=1:length(pointStats);
@@ -15,15 +20,15 @@ param.difficult=2.e4;
 segments=ceil(N/matchesPerSegment);
 
 iIdxList=ceil(startIdx/segments);%:startIdx+stepSize-1;
-runIdx=rem(startIdx,segments);
 %%
 for iIdx=iIdxList%length(TrackData)
+    %%
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
-    TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(outRange));
+    TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(runIdxList));
     transformedTest=cell(length(presentIdx),3);
-    runIdxList=(runIdx*matchesPerSegment+1):min(N,(runIdx+1)*matchesPerSegment);
-    for j=runIdxList%outRange;
+    for runIdx=1:length(runIdxList)%outRange;
+        j=runIdxList(runIdx);
         try
             T1=[pointStats(i).straightPoints pointStats(i).pointIdx];
             T2=[pointStats(j).straightPoints pointStats(j).pointIdx];
@@ -59,7 +64,7 @@ for iIdx=iIdxList%length(TrackData)
                             counter=counter-1;
                         end
                         
-                        transformedTest{j,regionId+1}=TrackOut;
+                        transformedTest{runIdx,regionId+1}=TrackOut;
 
                         
                         TrackOut(:,1:3)=[];
@@ -68,7 +73,7 @@ for iIdx=iIdxList%length(TrackData)
                         TrackStats=TrackStats(ismember(TrackStats(:,end),TrackedIDs),:);
                         track1=TrackStats(1:2:end,1);
                         track2=TrackStats(2:2:end,1);
-                        TrackMatrixi(track1,j-outRange(1)+1)=track2;
+                        TrackMatrixi(track1,runIdx-outRange(1)+1)=track2;
                     end
                 end
                 
@@ -77,9 +82,9 @@ for iIdx=iIdxList%length(TrackData)
              %   T1temp=T1(select1,1:3);
               %  T2temp=T2(select2,1:3);
                 
-                matchedIdx=find( TrackMatrixi(:,j-outRange(1)+1));
+                matchedIdx=find( TrackMatrixi(:,runIdx-outRange(1)+1));
                 
-                matchedPairs=[matchedIdx, TrackMatrixi(matchedIdx,j-outRange(1)+1)];
+                matchedPairs=[matchedIdx, TrackMatrixi(matchedIdx,runIdx-outRange(1)+1)];
                 T1matched=T1(matchedPairs(:,1),:);
                 T2matched=T2(matchedPairs(:,2),:);
                 unmatched1Idx=select1(~ismember(select1,matchedPairs(:,1)));
@@ -114,7 +119,7 @@ for iIdx=iIdxList%length(TrackData)
                     TrackStats=TrackStats(ismember(TrackStats(:,end),TrackedIDs),:);
                     track1=TrackStats(1:2:end,1);
                     track2=TrackStats(2:2:end,1);
-                    TrackMatrixi(track1,j-outRange(1)+1)=track2;
+                    TrackMatrixi(track1,runIdx-outRange(1)+1)=track2;
                     
                end
             end

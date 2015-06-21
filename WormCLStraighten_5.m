@@ -963,33 +963,30 @@ wormRegions=uint8(wormRegions);
     imsize=size(V);
     [wormBW2,wormtop]=WormSegmentHessian3dStraighten(Vsmooth,options);
 %     
-%     BWplot=(squeeze(sum(sum(imdilate(wormBW2,true(10,10,10)),1),2)));
-%     BWplot=smooth(BWplot,20);
-%     [~,locs]=findpeaks(BWplot);
-%     locs
-%     length(1)
-%     [1 length(locs)]
-%     endpts=locs([1,length(locs)]);
-%     [~,locs]=findpeaks(-BWplot);
-%     botpoint1=locs((locs>endpts(1)));
-%     if isempty(botpoint1);botpoint1=1;end;
-%     botpoint1=botpoint1(1);
-%     botpoint2=locs((locs<endpts(2)));
-%     if isempty(botpoint2);botpoint2=imsize(3);end;
-%     
-%     botpoint2=botpoint2(end);
-%     botpoint1(botpoint1>imsize(3)*1/4)=1;
-%     botpoint2(botpoint2<imsize(3)*3/4)=imsize(3);
-%     
-%     
-%     cc=bwconncomp(wormBW2);
-%     
-%     badRegions=(cellfun(@(x) any(zindexer(x,imsize(1)*imsize(2))<=botpoint1),cc.PixelIdxList)...
-%         |cellfun(@(x) any(zindexer(x,imsize(1)*imsize(2))>=botpoint2),cc.PixelIdxList))';
-%     
-%     wormBW2(cell2mat(cc.PixelIdxList(badRegions)'))=false;
-%     cc.PixelIdxList=cc.PixelIdxList(~badRegions);
-%     cc.NumObjects=nnz(~badRegions);
+    BWplot=(squeeze(sum(sum(imdilate(wormBW2,true(10,10,10)),1),2)));
+    BWplot=smooth(BWplot,20);
+    [~,locs]=findpeaks(BWplot);
+    endpts=locs([1,length(locs)]);
+    [~,locs]=findpeaks(-BWplot);
+    botpoint1=locs((locs>endpts(1)));
+    if isempty(botpoint1);botpoint1=1;end;
+    botpoint1=botpoint1(1);
+    botpoint2=locs((locs<endpts(2)));
+    if isempty(botpoint2);botpoint2=imsize(3);end;
+    
+    botpoint2=botpoint2(end);
+    botpoint1(botpoint1>imsize(3)*1/4)=1;
+    botpoint2(botpoint2<imsize(3)*3/4)=imsize(3);
+    
+    
+    cc=bwconncomp(wormBW2);
+    
+    badRegions=(cellfun(@(x) any(zindexer(x,imsize(1)*imsize(2))<=botpoint1),cc.PixelIdxList)...
+        |cellfun(@(x) any(zindexer(x,imsize(1)*imsize(2))>=botpoint2),cc.PixelIdxList))';
+    
+    wormBW2(cell2mat(cc.PixelIdxList(badRegions)'))=false;
+    cc.PixelIdxList=cc.PixelIdxList(~badRegions);
+    cc.NumObjects=nnz(~badRegions);
      cc=bwconncomp(wormBW2);
     stats=regionprops(cc,V,'Centroid','MeanIntensity',...
         'Area');

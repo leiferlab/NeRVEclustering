@@ -28,7 +28,6 @@ N=max(presentIdx);
 
 presentIdx=1:N;
 pointStats=pointStats(1:N);
-TrackMatrix={pointStats.TrackMatrixi};
 
 
 
