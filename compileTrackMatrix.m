@@ -14,12 +14,12 @@ fileList=dir([fileName filesep 'trackMatrix*.mat']);
 
 pointStats=load([fileName filesep 'PointsStats']);
 pointStats=pointStats.pointStats;
- presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
- presentIdx=find(cell2mat(presentIdx));
-presentIdx=1:max(presentIdx);
+%  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
+%  presentIdx=find(cell2mat(presentIdx));
+% presentIdx=1:max(presentIdx);
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
-
+presentIdx=1:length(pointStats);
 
 for i=1:length(fileList)
     currentFile=[fileName filesep fileList(i).name];

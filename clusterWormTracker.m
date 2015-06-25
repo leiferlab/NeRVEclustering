@@ -32,10 +32,12 @@ for iIdx=iIdxList%length(TrackData)
             T2=[pointStats(j).straightPoints pointStats(j).pointIdx];
             T1length=size(pointStats(i).straightPoints ,1);
             T2length=size(pointStats(j).straightPoints ,1);
-            
+                    pointStats(i).regionLabel(pointStats(i).regionLabel==2)=1;
+                    pointStats(j).regionLabel(pointStats(j).regionLabel==2)=1;
+                                
             if ~isempty(T1) && ~isempty(T2)
-                for regionId=0:2
-                                        
+                for regionId=0:1
+
                     select1=pointStats(i).regionLabel==regionId ...
                         & pointStats(i).Rintensities>40;
                     select2=pointStats(j).regionLabel==regionId &...

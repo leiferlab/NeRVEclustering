@@ -36,6 +36,9 @@ Next Annotated	-	Finds next stack with annotated neurons by current user
 Previous Annotated	-	Finds last stack with annotated neurons by current user
 Load fiducials	-	Select folder with fiducial files
 Cruise Control -    Continuous moving forward with autoselect, press any key to abort
+Only Missing Frames -	When active, autoselect jumps to the next frames where neuron in question is either missing or has 
+confidence below threshold
+
 
 Other Controls:
 Filter Size 	-	STD of gaussian or LOG filter
@@ -43,6 +46,8 @@ autoclick history -	amount of frames back to compare with when looking for match
 Filter type -		filter kernel, either Gaussian or Laplacian of gaussian with FilterSize std
 minTime -		set lower limit for time slider
 maxTime - 		set upper limit for time slider
+Confidence Limit - 	Confidence for automated selection is between 0 and 1. Neurons with confidence below this value will be
+ counted as "missing" during autoselection.
 
 
 

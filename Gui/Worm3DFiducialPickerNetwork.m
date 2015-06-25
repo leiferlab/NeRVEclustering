@@ -732,7 +732,7 @@ iFrame=getappdata(handles.figure1,'currentFrame');
 
 oldFrameIdx=str2double(get(handles.refIdx,'String'));
 if isempty(getappdata(handles.figure1,'cruiseStartFrame'))
-    oldFrameIdx=iFrame+(-1:-1:-oldFrameIdx);
+    oldFrameIdx=iFrame+((oldFrameIdx:-1:-oldFrameIdx));
 else
     oldFrameIdx=getappdata(handles.figure1,'cruiseStartFrame')+(-1:-1:-oldFrameIdx);
 end
@@ -761,6 +761,7 @@ currentFiducialsIdx=cellfun(@(Y) find((any(cell2mat(cellfun(@(x) ~isempty(x),Y,.
 currentFiducialsIdx{userIdx}(currentFiducialsIdx{userIdx}==plotIdx)=[];
 
 for iCounter=1:length(oldFrameIdx)
+    try
     iRefFrame=oldFrameIdx(iCounter);
     
     oldFiducials=structfun(@(x) x{iRefFrame},tempFiducials,'uniform',0);
@@ -791,6 +792,8 @@ for iCounter=1:length(oldFrameIdx)
             plotIdxPoint=oldFiducials{userIdx}(plotIdx,:);
         end
         
+    end
+    catch
     end
 end
 
@@ -878,7 +881,7 @@ function inputData(hObject,xselect,yselect,windowSearch,zSearch,manualFlag)
 if nargin==5
     manualFlag=0;
 end
-
+manualFlag=double(manualFlag);
 
 handles=guidata(get(hObject,'Parent'));
 fiducialFile=get(handles.currentFiducialFile,'String');
