@@ -144,6 +144,6 @@ DMatrixi(presentIJ,runIdx-outRange(1)+1)=pointdistances;
     
     outputName=fileparts(filePath);
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
-    save(outputName,'TrackMatrixi');
+    save(outputName,'TrackMatrixi','DMatrixi');
 end
 
