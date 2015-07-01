@@ -131,7 +131,7 @@ CLfieldNames=fieldnames(centerline);
 CLfieldIdx=cellfun(@(x) ~isempty(strfind(x,'centerline')),CLfieldNames);
 CLoffsetIdx=cellfun(@(x) ~isempty(strfind(x,'off')),CLfieldNames);
 if any(CLoffsetIdx)
-CLoffset=centerline.CLfieldNames{CLoffsetIdx};
+CLoffset=centerline.(CLfieldNames{CLoffsetIdx});
 
 
 else
@@ -379,7 +379,8 @@ end
 
 
 %%
-%align centerlines using plotMatch
+% align centerlines using plotMatch (correlations) to account for
+% centerline sliding
 shiftVec=0;
 for i=2:length(ia);
     CL1temp=CL3all(:,:,ia(i));
@@ -387,7 +388,7 @@ for i=2:length(ia);
   %  CL1temp=bsxfun(@minus,CL1temp,mean(CL1temp));
    % CL2temp=bsxfun(@minus,CL2temp,mean(CL2temp));
     
-    [corrtemp,r]=plotMatch(CL1temp,CL2temp,250);
+    [corrtemp,r]=plotMatch(CL1temp,CL2temp,1250);
     %[shift,~]=find(corrtemp==max(corrtemp(:)));
     [~,shift]=min(corrtemp);
     shiftVec(i)=r(shift);
@@ -404,13 +405,24 @@ for iCL=1:size(CL2,3)
 CL3temp=interp1(CL3temp,shiftVec(ic(iCL))+(-500:2500),'linear','extrap');
     CL3all2(:,:,iCL)=CL3temp;
     
-   
+    if show
+        if iCL==1
+            close all
+            imagesc(segmentChannel(:,:,midZ))
+            hold on
+        end
+        plot(CL3temp(:,1),CL3temp(:,2))
+    drawnow
+    end
     
     
 end
-
+ % center around head portion of worm that is in image
 inImage=sum(all(CL3all2>0 & CL3all2<600,2),3);
-inImageRange=round(mean(find(inImage>max(inImage)/2)))+(-outputLength:outputLength);
+inImage=inImage>max(inImage)/2;
+cc_inImage=bwconncomp(inImage);
+
+inImageRange=round(mean(cc_inImage.PixelIdxList{1}))+(-outputLength:outputLength);
 %%
 CL3all=interp1(CL3all2,inImageRange,'*linear','extrap');
 
@@ -610,12 +622,12 @@ zLevels=((zslice(:,1,1)));
 %correct for non monoticity
 if sign(nanmean(diff(zRange)))==-1
     
-    zRange2=zRange([true ; diff(zRange)<0]);
+    zRange2=unique(cummin(zRange));
     zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadius+1))/10);
 
   zLevels=flipud(zLevels);  
 else
-        zRange2=zRange([true ; diff(zRange)>0]);
+    zRange2=unique(cummax(zRange));
 
     zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadius+1))/10);
 
@@ -729,7 +741,7 @@ maxY=maxY(ia2);
 wormProjMaxI=wormProjMaxI(ia2);
 maxPos=find(sum(wormProj,2)==max(sum(wormProj,2)));
 wormProjMaxI(maxX>(maxPos-20) & maxX<(maxPos+20))=0;
-wormProjMaxI(maxX>(maxPos+400) | maxX<(maxPos-400))=0;
+wormProjMaxI(maxX>(maxPos+outputLength) | maxX<(maxPos-outputLength))=0;
 
 [~,locs]=findpeaks(maxY,'MinPeakHeight',outputRadius*0);
 if maxY(1)>maxY(2)
@@ -759,11 +771,11 @@ polyCritPoints=f(polyRoots);
 x=1:(2*outputLength+1);
 yshift=f(x);
 if any(isnan(yshift)) 
-        yshift=ones(300,1);
+        yshift=ones(2*outputLength+1,1);
 
 end
 else
-    yshift=ones(300,1);
+    yshift=ones(2*outputLength+1,1);
 end
 
 end
@@ -806,8 +818,12 @@ temp(inImage)=Vsmooth(inImageIdx);
 Vsmooth=temp;
 
 else
-yshift=yshift-2*yshift(maxPos)+outputRadius+50;
-yshift=-yshift;
+wormWidth=wormProj(maxPos,:);
+wormWidth=normalizeRange(wormWidth);
+wormWidth=abs(diff(minmax(find(wormWidth>graythresh(wormWidth)))));
+yshift=yshift-2*yshift(maxPos)+outputRadius+wormWidth/2;
+
+%yshift=-yshift;
     lags=[maxPos-outputLength,0];
     [ndX,ndY,ndZ]=ndgrid(1:size(V,1),1:size(V,2),1:size(V,3));
     
@@ -855,8 +871,9 @@ V2f=imfilter(V2f,-gaussKernal50);
 vline2=vline1;
 [~,locs1,w1,p1]=findpeaks(-vline1(1:maxpeak1));
 w1=w1.*p1;
-[~,nring1]=max(w1);
-nring1=locs1(nring1);
+w1Pos=find(w1>(max(w1)/5),1,'last');
+nring1=locs1(w1Pos);
+%nring1=locs1(nring1);
 
 lowVal=min(V2f(:));
 V2f(1:nring1-20,:)=lowVal;
@@ -866,8 +883,9 @@ V1f(1:nring1-20,:)=lowVal;
 % V1f=[V1f; V1f*0-1000];
 % V2f=[V2f; V2f*0-1000];
 
-[~,locs3,w3,p3]=findpeaks(smooth(-vline1,15));
-%if problem finding nchord peak, use old one
+[~,locs3,w3,p3]=findpeaks(smooth(-vline1,5));
+
+%% if problem finding nchord peak, use old one
 if any(locs3(locs3>maxpeak1))
 nchord=locs3(locs3>maxpeak1);
 nchord=nchord(1);

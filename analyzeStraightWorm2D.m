@@ -1,5 +1,9 @@
 %%  load syncing data
+
+%load folder
 dataFolder='E:\DATA\3DwormData\BrainScanner20140911_182843';
+
+%load yamls and scan for flashes for alignment
 [bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
 hiResData=highResTimeTraceAnalysis(dataFolder);
 
@@ -18,10 +22,10 @@ fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
 
 
 %% load centerline data
-centerLineFile=dir([dataFolder filesep '*centerline*']);
-centerLineFile=centerLineFile.name;
-centerline=load([dataFolder filesep centerLineFile],'centerline');
-centerline=centerline.centerline;
+% centerLineFile=dir([dataFolder filesep '*centerline*']);
+% centerLineFile=centerLineFile.name;
+% centerline=load([dataFolder filesep centerLineFile],'centerline');
+% centerline=centerline.centerline;
 
 %% make lookup tables for indices
 bfIdxList=1:length(bfAll.frameTime);

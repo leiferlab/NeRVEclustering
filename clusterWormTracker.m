@@ -1,7 +1,11 @@
 function clusterWormTracker(filePath,startIdx)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
  
-
+if nargin==0
+    filePath=uipickfiles;
+    startIdx=1;
+    filePath=filePath{1};
+end
 load(filePath);
 %%
  matchesPerSegment=175;
@@ -24,6 +28,7 @@ for iIdx=iIdxList%length(TrackData)
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
     TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(runIdxList));
+    DMatrixi=TrackMatrixi;
     transformedTest=cell(length(presentIdx),3);
     for runIdx=1:length(runIdxList)%outRange;
         j=runIdxList(runIdx);
@@ -121,7 +126,12 @@ for iIdx=iIdxList%length(TrackData)
                     track2=TrackStats(2:2:end,1);
                     TrackMatrixi(track1,runIdx-outRange(1)+1)=track2;
                     
-               end
+                end
+                presentIJ=TrackMatrixi(:,runIdx-outRange(1)+1)>0;
+points1=pointStats(i).straightPoints(presentIJ,:);
+points2=pointStats(j).straightPoints(TrackMatrixi(presentIJ,runIdx-outRange(1)+1)>0,:);
+pointdistances=sqrt(sum((points1-points2).^2,2));
+DMatrixi(presentIJ,runIdx-outRange(1)+1)=pointdistances;
             end
         catch ME
             ME

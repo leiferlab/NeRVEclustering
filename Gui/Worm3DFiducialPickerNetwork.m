@@ -22,7 +22,7 @@ function varargout = Worm3DFiducialPickerNetwork(varargin)
 
 % Edit the above text to modify the response to help Worm3DFiducialPickerNetwork
 
-% Last Modified by GUIDE v2.5 13-Jun-2015 21:56:50
+% Last Modified by GUIDE v2.5 01-Jul-2015 14:17:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -738,6 +738,11 @@ else
 end
 
 oldFrameIdx=oldFrameIdx(oldFrameIdx>0);
+
+if get(handles.onlyComparePrevious,'Value')
+    
+    oldFrameIdx=oldFrameIdx(oldFrameIdx<iFrame);
+end
 
 contents = cellstr(get(handles.usersDropdown,'String'));
 fiducialFileName=get(handles.currentFiducialFile,'String');
@@ -2423,3 +2428,12 @@ function missingMode_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of missingMode
+
+
+% --- Executes on button press in previousCompareOnly.
+function previousCompareOnly_Callback(hObject, eventdata, handles)
+% hObject    handle to previousCompareOnly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of previousCompareOnly

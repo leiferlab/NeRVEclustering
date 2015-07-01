@@ -182,10 +182,10 @@ save([dataFolder filesep 'startWorkspace'])
 %subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
 
-%missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
 %stackRange2=stackRange(missingIdx);
 parfor counter=1:length(stackRange);
-    if  1%missingIdx(counter)
+    if  missingIdx(counter)
     
  %   parforprogress
 %progressbar((iStack-startStack)/(endStack-startStack));
@@ -217,6 +217,11 @@ display(['Finished image ' num2str(iStack,'%3.5d') ' in ' num2str(toc) 's'])
         display(['Error in Frame' num2str(iStack,'%3.5d') ' in ' num2str(toc) 's'])
 
     end
+    else
+       iStack=stackRange(counter);
+
+    %   display(['Frame ' num2str(iStack,'%3.5d') ' already done!'])
+
     end
     
 end
