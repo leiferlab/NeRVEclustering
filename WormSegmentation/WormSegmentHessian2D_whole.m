@@ -3,7 +3,7 @@ function wormBW2=WormSegmentHessian2D_whole(worm)
 %% Initialize parameters
 thresh1=.05; %initial Threshold
 hthresh=-.0001; %threshold for trace of hessian.
-minObjSize=50; 
+minObjSize=20; 
 maxObjSize=200;
 minObjectSpacing=5;
 minSearchRad=3;
@@ -28,7 +28,7 @@ worm=worm-pedistal;
 worm(worm<0)=0;
 worm(isnan(worm))=0;
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
-wormtop=bpass_jn(worm,1,[200,200]);
+wormtop=bpass_jn(worm,3,[30,30]);
 %wormtop=worm-abs(worm-wormtop);
 %wormtop(wormtop<0)=0;
 wormtop=normalizeRange(wormtop);
@@ -49,41 +49,52 @@ centerIm=zeros(size(wormBW));
 wormBW2=zeros(size(wormBW));
 
 % smooth image and calculate hessian and eigenvalues
-subIm=normalizeRange(smooth2a(wormtop,10,10));
-subIm=subIm./smooth2a(subIm,30,30).*wormBW;
-
-
+% subIm=normalizeRange(smooth2a(wormtop,10,10));
+% subIm=subIm./smooth2a(subIm,30,30).*wormBW;
+% 
+subIm=wormtop;
 H=hessianMatrix(subIm,5);
 Heig=hessianEig(H,wormBW);
 
 Htrace=sum(Heig,3);
 
 Jm=Htrace<hthresh;
-Jm=((Jm | subIm>.2) & wormtop>thresh1); %add global thresh
-
+%Jm=((Jm | subIm>.2) & wormtop>thresh1); %add global thresh
+%%
 Jm=AreaFilter(Jm,minObjSize,Inf,4);
 subCC=bwconncomp(Jm>0,4);
 stats=regionprops(subCC,'eccentricity','Area');
-
+%%
 
 %check size, if size is too large, increase watershedding
-for isubBlob=1:subCC.NumObjects
-    if stats(isubBlob).Eccentricity>.8 && stats(isubBlob).Area>maxObjSize;
-        blank=false(size(worm));
-        blank(subCC.PixelIdxList{isubBlob})=true;
-            Jd=-bwdist(~blank);
+% for isubBlob=1:subCC.NumObjects
+%     if 1% stats(isubBlob).Eccentricity>.8 && stats(isubBlob).Area>maxObjSize;
+%         blank=false(size(worm));
+%         blank(subCC.PixelIdxList{isubBlob})=true;
+%             Jd=-bwdist(~blank);
+%             %Jd=smooth3(Jd,'gaussian',5,2);
+%             Jd=imhmin(Jd,watershedthresh);
+%             Jd(~Jm)=Inf;
+%             Jw=watershed(Jd);
+%           %  Jw=watershed(-imregionalmax(blank.*wormtop));
+%             
+%             
+%             Jm(blank)=~~Jw(blank);
+%     end
+%     
+% end
+
+   Jd=-bwdist(~Jm);
             %Jd=smooth3(Jd,'gaussian',5,2);
             Jd=imhmin(Jd,watershedthresh);
             Jd(~Jm)=Inf;
             Jw=watershed(Jd);
           %  Jw=watershed(-imregionalmax(blank.*wormtop));
             
-            
-            Jm(blank)=~~Jw(blank);
-    end
-    
-end
+            Jm=Jm.*(Jw>0);
+            %Jm(blank)=~~Jw(blank);
 
+%%
 if maxSplit
     subCC=bwconncomp(Jm>0,4);
 %stats=regionprops(subCC,'eccentricity','Area');

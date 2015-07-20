@@ -1,6 +1,6 @@
-
+% select all the fiducial users
 totalPoints=20;
-fiducialFiles=uipickfiles('filterspec','O:\');
+fiducialFiles=uipickfiles('filterspec','V:\');
 %%
 
     data=load(fiducialFiles{1});
@@ -29,12 +29,13 @@ startVec=[startVec,start-1];
    FileName{iFiles}=tempName;
 end
 %%
-dataFolder=fileparts(fiducialFiles{1});
-dataFolder=fileparts(dataFolder);
+fiducialFolder=fileparts(fiducialFiles{1});
+dataFolder=fileparts(fiducialFolder);
 fiducialPoints=dataAll;
-timeOffset=-6;
+load([fiducialFolder filesep 'timeOffset.mat']);
+%timeOffset=-6;
 
-save([dataFolder filesep 'tempFiducials 20150327'],'fiducialPoints','timeOffset');
+save([dataFolder filesep 'tempFiducials'],'fiducialPoints','timeOffset');
 
 %%
 dataFolder='O:\20150118\BrainScanner20150118_184857 - 4+min';

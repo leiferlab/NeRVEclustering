@@ -11,7 +11,7 @@ if nargin<2;
     
 end
 if show
-    outputFlag=1
+    outputFlag=1;
 end
    
 thresh=.01;

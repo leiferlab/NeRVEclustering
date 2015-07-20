@@ -25,7 +25,9 @@ for i=1:length(fileList)
     currentFile=[fileName filesep fileList(i).name];
     currentFileIdx=str2double(currentFile(end-8:end-4));
     currentData=load(currentFile);
-    TrackMatrixAll{presentIdx(i)}=currentData.TrackMatrixi;
-    pointStats(presentIdx(i)).TrackMatrixi=currentData.TrackMatrixi;
-    
+for jname=fieldnames(currentData)'
+%    TrackMatrixAll{presentIdx(i)}=currentData.TrackMatrixi;
+    pointStats(presentIdx(i)).(jname{1})=currentData.(jname{1});
 end
+end
+TrackMatrixAll=[];

@@ -28,12 +28,18 @@ BF2stackIdx=interp1(stack2BFidx,1:max(hiResData.stackIdx),bfIdxList,'nearest');
 
 
 %%
+% zWave=hiResData.Z;
+% zWave=gradient(zWave);
+% [ZSTDcorrplot,lags]=(crosscorr(abs(zWave),hiResData.imSTD,40));
+% ZSTDcorrplot=smooth(ZSTDcorrplot,3);
+% zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
+%%
 zWave=hiResData.Z;
 zWave=gradient(zWave);
+zWave=smooth(zWave,10);
 [ZSTDcorrplot,lags]=(crosscorr(abs(zWave),hiResData.imSTD,20));
 ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
-
 
 %%
 
@@ -42,10 +48,12 @@ NSegments=15;
 stackLength=max(hiResData.stackIdx);
 fiducialPointsTempAll=cell(stackLength,NSegments);
 fiducialPoints=cell(stackLength,1);
-pointStatsLookup={pointStats.stackIdx};
+pointStatsLookup={pointStats2.stackIdx};
 pointStatsLookup(cellfun(@(x) isempty(x), pointStatsLookup))={0};
 pointStatsLookup=cell2mat(pointStatsLookup);
-for i=1:length(pointStats)
+
+%%
+for i=1:length(pointStats2)
     
         currentData=pointStats2(i);
 if ~isempty(currentData.stackIdx)

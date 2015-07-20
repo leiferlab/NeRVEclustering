@@ -1,11 +1,12 @@
 % worm=stackLoad('E:\20141212\BrainScanner20141212_145951\fiducials\hiResSegmentFolder3Dtest_raw\image00500.tif');
 % activity=stackLoad('E:\20141212\BrainScanner20141212_145951\fiducials\hiResActivityFolder3Dtest_raw\image00500.tif');
 
+% load folder with data
  dataFolder=uipickfiles;
  dataFolder=dataFolder{1};
 %dataFolder='F:\20141212\BrainScanner20141212_145951\';
 %[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
-%%
+%% load video and alignemtn data
 
 
 
@@ -16,6 +17,7 @@ rows=1200;
 cols=600;
 nPix=rows*cols;
 
+
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
 
 
@@ -24,7 +26,7 @@ nPix=rows*cols;
     vidInfo.hiResData=hiResData;
     
 
-%%
+%% make time alignments
 bfIdxList=1:length(bfAll.frameTime);
 fluorIdxList=1:length(fluorAll.frameTime);
 bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'linear','extrap');
@@ -42,7 +44,28 @@ stack2fluoridx=fluorIdxLookup(diff(hiResData.stackIdx)==1);
 BF2stackIdx=interp1(stack2BFidx,1:max(hiResData.stackIdx),bfIdxList,'nearest');
 fluor2stackIdx=interp1(stack2fluoridx,1:max(hiResData.stackIdx),fluorIdxList,'nearest');
 
-minStart=max([min(BF2stackIdx) min(fluor2stackIdx)])+1;
+
+%% load centerline
+behaviorFolder=dir([dataFolder filesep 'Behavior*']);
+behaviorFolder=behaviorFolder([behaviorFolder.isdir]);
+behaviorFolder=[dataFolder filesep behaviorFolder(1).name];
+centerlineFile=dir([behaviorFolder filesep 'center*']);
+centerlineFile=[behaviorFolder filesep centerlineFile.name];
+centerline=load(centerlineFile);
+CLfieldNames=fieldnames(centerline);
+CLfieldIdx=cellfun(@(x) ~isempty(strfind(x,'centerline')),CLfieldNames);
+CLoffsetIdx=cellfun(@(x) ~isempty(strfind(x,'off')),CLfieldNames);
+if any(CLoffsetIdx)
+CLoffset=centerline.(CLfieldNames{CLoffsetIdx});
+
+
+else
+   CLoffset=0; 
+end
+
+%%
+
+minStart=max([min(BF2stackIdx(CLoffset+1)) min(fluor2stackIdx)])+1;
 
 %% load alignment data
 try
@@ -79,25 +102,6 @@ rect2=S2AHiRes.rect2;
 %%
 
 
-% lowResFluor2BF=load('Y:\CommunalCode\3dbrain\registration\20141212LowResBehavior2Fluor.mat');
-% lowResBF2FluorT=invert(lowResFluor2BF.t_concord);
-% 
-% 
-% Hi2LowResF=load('Y:\CommunalCode\3dbrain\registration\20141212HighResS2LowResFluorBeads.mat');
-% 
-% 
-% % display('Select Hi to Low Res Alignment')
-% % 
-% % Hi2LowRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
-% % Hi2LowRes=load(Hi2LowRes{1});
-% % t_concord = fitgeotrans(Hi2LowRes.Sall,Hi2LowRes.Aall,'projective');
-%  display('Select Hi Res Alignment')
-% 
-% S2AHiRes=load('Y:\CommunalCode\3dbrain\registration\20141212HiResS2A.mat');
-% rect1=S2AHiRes.rect1;
-% rect2=S2AHiRes.rect2;
-
-
 %%
 alignments.lowResFluor2BF=lowResFluor2BF;
 alignments.S2AHiRes=S2AHiRes;
@@ -106,33 +110,10 @@ alignments.Hi2LowResF=Hi2LowResF;
 save([dataFolder filesep 'alignments'],'alignments');
 
 end
-%% load Fiducials file
-fiducialFile=dir([dataFolder filesep '*iducial*']);
-fiducialFile={fiducialFile.name}';
-if length(fiducialFile)~=1
-        display('Select model file');
-
-    fiducialFile=uipickfiles('FilterSpec',dataFolder);
-    fiducialFile=load(fiducialFile{1});
-    fiducialPoints=fiducialFile.fiducialPoints;
-    z2ImageIdxOffset=fiducialFile.timeOffset;
-    
-else
-    fiducialFile=load([dataFolder filesep fiducialFile{1}]);
-    fiducialPoints=fiducialFile.fiducialPoints;
-    z2ImageIdxOffset=fiducialFile.timeOffset;
-
-end
-zOffset=z2ImageIdxOffset;
 
 
 
-%%
-
-hasPoints=cellfun(@(x) ~isempty(x{1}), fiducialPoints,'uniformoutput',0);
-hasPoints=find(cell2mat(hasPoints));
-
-%%
+%% calculate offset between frame position and zposition
 zWave=hiResData.Z;
 zWave=gradient(zWave);
 zWave=smooth(zWave,10);
@@ -144,7 +125,7 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 startStack=minStart;
 endStack=max(hiResData.stackIdx);
-destination= 'CLstraight_20150619';
+destination= 'CLstraightFigureLoad';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;
@@ -155,10 +136,11 @@ pointStats=repmat(struct(),1,length(stackRange));
 %% do first image in range
 tic
 show=1;
-counter=1;
-[~,pointStatsOut,Vtemplate,vRegion,side]=...
+
+counter=11;
+[~,pointStatsOut,Vtemplate,vRegion,side,lastOffset]=...
     WormCLStraighten_5(dataFolder,destination,vidInfo,...
-    alignments,[],[],[],zOffset,startStack,[],show);
+    alignments,[],[],[],zOffset,minStart+10,[],[],show);
 poinStatsFields=fieldnames(pointStatsOut);
 for iFields=1:length(poinStatsFields)
     field=poinStatsFields{iFields};
@@ -178,7 +160,7 @@ display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
 clusterFolder=['/scratch/tmp/jnguyen/' clusterFolder];
 save([dataFolder filesep 'startWorkspace'])
 
-%%
+%% par for through all other frames
 %subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
 
@@ -195,9 +177,9 @@ display(['Starting'  num2str(iStack,'%3.5d') ])
           tic
 %change indexing for better parfor 
          ctrlPoints=[];%subfiducialPoints{counter};
-[~,pointStatsOut,~,~]=...
+[~,pointStatsOut,~,~,~]=...
     WormCLStraighten_5(dataFolder,destination,vidInfo,...
-    alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,side,show);
+    alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,side,lastOffset,show);
 
 for iFields=1:length(poinStatsFields)
     field=poinStatsFields{iFields};

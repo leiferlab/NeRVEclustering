@@ -106,13 +106,15 @@ fluorFlashTime=fluorFrameTime(fluorFlashloc);
 
 bfFlashInterval=diff(bfFlashTime);
 fluorFlashInterval=diff(fluorFlashTime);
-
+if ~isempty(fluorFlashInterval) && ~isempty(bfFlashInterval)
 intervalDif=pdist2(bfFlashInterval,fluorFlashInterval);
 
 [min1,min2]=find(intervalDif==min(intervalDif(:)));
-
 timeDif=bfFlashTime(min1)-fluorFlashTime(min2);
 
+else
+timeDif=bfFlashTime(1)-fluorFlashTime(1);
+end
 fluorFrameTime=fluorFrameTime+timeDif;
 
 

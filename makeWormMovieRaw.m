@@ -1,4 +1,5 @@
 dataFolder='F:\20141212\BrainScanner20141212_145951\';
+%%
 imSize=[1200 600];
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
 subplot = @(m,n,p) subtightplot (m, n, p, [0.01 0.01], [0.1 0.01], [0.1 0.01]);
@@ -28,26 +29,6 @@ fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'line
 
 [hiImageIdx,ib]=unique(hiResData.imageIdx);
 hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
-%% prep vidobj for avi files and .dat file
-
-%search in dataFolder for avi's without the HUDS, one with the fluor and
-%one without.
-aviFiles=dir([dataFolder filesep '*.avi']);
-aviFiles={aviFiles.name}';
-aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
-if length(aviFiles)==2
-    aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
-    behaviorMovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
-    fluorMovie=[dataFolder filesep aviFiles{aviFluorIdx}];
-else
-    display('Select avi files, behavior and then low mag fluor');
-    movies=uipickfiles('FilterSpec',dataFolder);
-    behaviorMovie=movies{1};
-    fluorMovie=movies{2};
-end
-
-behaviorVidObj = VideoReader(behaviorMovie);
-fluorVidObj= VideoReader(fluorMovie);
 
 %%
 stack2BFidx=bfIdxLookup(diff(hiResData.stackIdx)==1);
@@ -67,14 +48,41 @@ offset=9700;
 
 
 %% load centerline data
-centerline=load([dataFolder filesep 'Behavior Analysis' filesep 'centerline_4245']);
-centerline=centerline.centerline_4245;
+centerline=load([dataFolder filesep 'Behavior Analysis' filesep 'centerline']);
 
-[dangle, f]=centerline2AngleMap(centerline);
-v=zeros(1,length(behavior));
-v(:,offset+1:offset+length(f.v))=f.v;
+if isfield(centerline,'offset')
+offset=centerline.offset;
+else
+    offset=0;
+end
+wormcentered=centerline.wormcentered;
+centerline=centerline.centerline;
+
+%[dangle, f]=centerline2AngleMap(wormcentered);
+
+%%
+close all
+wormcentered2=smooth2a(wormcentered,5,31);
+[wormcenteredx,wormcenteredy]=gradient(wormcentered2);
+subplot(3,1,1);imagesc(wormcentered);
+subplot(3,1,2);imagesc(sign(wormcenteredy./wormcenteredx))
+CLV=sum((wormcenteredy.*wormcenteredx));
+subplot(3,1,3);plot(CLV);
+xlim([0 length(wormcentered)]);
+
+%%
+if offset>0
+v= [zeros(1,offset); CLV'];
+
+else
+    v=CLV';
+end
+zeroPad=zeros(size(bfAll.frameTime,1)-length(v),1);
+v=[v;zeroPad];
+v(1)=0;
 CLV=v;
 CLbehavior=sign(smooth(-CLV,200));
+
 hiResCLbehavior=interp1(bfAll.frameTime,CLbehavior,hiResData.frameTime);
 %%
 centerLinePosition=squeeze(mean(centerline,1));
@@ -234,13 +242,13 @@ hiResSegmentFolderS1=[dataFolder filesep 'fiducials' filesep  'hiResSegmentFolde
 hiResActivityFolderS1=[dataFolder filesep 'fiducials' filesep  'hiResActivityFolder3Dtest_S1'];
 lowResFolder=[dataFolder filesep 'fiducials' filesep  'lowResFluor'];
 lowResBFFolder=[dataFolder filesep 'fiducials' filesep  'lowResBF'];
-imageFolder=[dataFolder filesep 'rawVideoFeeds2'];
 %imageFolder2=[dataFolder filesep 'imageMovieAllBalls'];
+imageFolder=[dataFolder filesep 'rawVideo2'];
 
 mkdir(imageFolder);
 %mkdir(imageFolder2);
 %%
-stackList=500:973;
+stackList=1:973;
 [XMAX] = [max(xPos)];
 XMIN=[min(xPos)];
 [YMAX] = max(yPos);
@@ -262,67 +270,56 @@ else
     
 end
 
-%%
-masterData=load([dataFolder filesep 'refStackStraight']);
-fiducials=masterData.masterFiducials;
-data=load([dataFolder  filesep 'heatData']);
 
 %%
-hiResRegistration=load('Y:\CommunalCode\3dbrain\registration\20141212HiResS2A.mat');
-lowResRegistration=load('Y:\CommunalCode\3dbrain\registration\20141212LowResBehavior2Fluor.mat');
+alignments=load([dataFolder filesep 'alignments']);
+alignments=alignments.alignments;
+S2AHiRes=alignments.S2AHiRes;
+lowResFluor2BF=alignments.lowResFluor2BF;
 
-    rect1=hiResRegistration.rect1;
-    rect2=hiResRegistration.rect2;
-    t_concord=hiResRegistration.t_concord;
-    Rsegment=hiResRegistration.Rsegment;
-    padRegion=hiResRegistration.padRegion;
+    rect1=S2AHiRes.rect1;
+    rect2=S2AHiRes.rect2;
+    t_concord=S2AHiRes.t_concord;
+    Rsegment=S2AHiRes.Rsegment;
+    padRegion=S2AHiRes.padRegion;
     
-   lowResRsegment=lowResRegistration.Rsegment;
-   lowResT=lowResRegistration.t_concord;
-%%
-figure
-possibleB=[2    61    67];
-possibleF=    [20    18    60    10] ;%old result:[20    18    42    10];
-possibleP=[14    19    35    29    33    45     7];%[  19    35    29    64    33    45     7];
+   lowResRsegment=lowResFluor2BF.Rsegment;
+   lowResT=lowResFluor2BF.t_concord;
 
-colorBalls=.3+zeros(size(fiducials));
-colorBalls(possibleP,3)=1;
-colorBalls(possibleB,1)=1;
-
-transp=.2*ones(1,length(fiducials));
-transp([possibleB possibleF possibleP])=.8;
-
-
-colorBalls(possibleF,2)=1;
-scatter3sph(fiducials(:,1)/4000,fiducials(:,2)/4000,3*fiducials(:,3)/4000,...
-    'size',.002,'color',colorBalls,'transp',transp);axis equal off tight
-
-G2=data.G2;
-G2ColorsLookup=G2;
-G2ColorsLookup=G2ColorsLookup/1.25;
-G2ColorsLookup(G2ColorsLookup>1)=1;
-G2ColorsLookup=colNanFill(G2ColorsLookup')';
-G2ColorsLookup=ceil(G2ColorsLookup*100);
-
-G2ColorsLookup(isnan(G2ColorsLookup))=1;
-G2ColorsLookup(G2ColorsLookup<1)=1;
-
-Pmap=cbrewer('seq','Blues',100);
-Bmap=cbrewer('seq','YlOrRd',100);
-Fmap=cbrewer('seq','YlGnBu',100);
-Fmap=flipud(Fmap);
 %%
 fclose all;
 
     Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
 frameRange=find(hiResData.stackIdx==stackList(1),1,'first'):find(hiResData.stackIdx==stackList(end),1,'last');
+frameRange=35747:48789;
+%% prep vidobj for avi files and .dat file
+
+%search in dataFolder for avi's without the HUDS, one with the fluor and
+%one without.
+aviFiles=dir([dataFolder filesep '*.avi']);
+aviFiles={aviFiles.name}';
+aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
+if length(aviFiles)==2
+    aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
+    behaviorMovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
+    fluorMovie=[dataFolder filesep aviFiles{aviFluorIdx}];
+else
+    display('Select avi files, behavior and then low mag fluor');
+    movies=uipickfiles('FilterSpec',dataFolder);
+    behaviorMovie=movies{1};
+    fluorMovie=movies{2};
+end
+
+behaviorVidObj = VideoReader(behaviorMovie);
+fluorVidObj= VideoReader(fluorMovie);
 
 
 %%
 pointHistory=[];
 frameCounter=1;
-
-
+imageFolder=[dataFolder filesep 'rawVideoFeeds2'];
+mkdir(imageFolder);
+startTime=hiResData.frameTime(frameRange(1));
 
 for iStack=1:length(frameRange)
     tic
@@ -345,6 +342,7 @@ for iStack=1:length(frameRange)
 % worm=normalizeRange(worm);
 % activity=normalizeRange(activity);
 
+    Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
 
     
 
@@ -381,54 +379,7 @@ bfCenterline=centerline(:,:,bfFrame-offset);
 xPosFrame=interp1(xPos,hiResIdx);
 yPosFrame=interp1(yPos,hiResIdx);
 
-% 
-% behaviorState=ethoTrack(hasPoints==hiResData.stackIdx((hiResIdx)));
-% switch behaviorState
-%     case -1
-%         color=[1 0 0];
-%         stateText='Back';
-%     case 0
-%         color = [0 0 1];
-%         stateText='Turn';
-% 
-%     case 1
-%         color = [0 .7 0];
-%         stateText='Forward';
-% 
-% end
-% %%
-%   colorT=G2ColorsLookup(:,iStack);
-% 
-% %    colorBalls=.3+zeros(size(fiducials));
-% % colorBalls(possibleP,:)=Fmap(G2ColorsLookup(possibleP,iStack),:);
-% % colorBalls(possibleB,:)=Fmap(G2ColorsLookup(possibleB,iStack),:);
-% % colorBalls(possibleF,:)=Fmap(G2ColorsLookup(possibleF,iStack),:);
-% colorBalls=Fmap(G2ColorsLookup(:,iStack),:);
-% 
-% 
-% transp=.5*ones(1,length(fiducials));
-% %transp([possibleB possibleF possibleP])=.8;
-% subplot(2,2,[1 2]);
-% 
-% scatter3sph(fiducials(:,1)/4000,fiducials(:,2)/4000,3*fiducials(:,3)/4000,...
-%     'size',.002,'color',colorBalls,'transp',transp);axis equal off tight
-% 
-% view([0,90])
-% colormap(Fmap)
-% %h=lcolorbar(0:.5:2);
-% caxis([0 1.3])
-% %set(h,'Location','westOutside')
-% sph=gca;
-% h=colorbar('peer',sph);
-% 
-% h.ColormapMode='manual';
-% htext=text(0.05,0.11,0,stateText,'parent',sph,'Color',color,'FontSize',20);
-% 
-% set(get(h2,'YLabel'),'String','\Delta F/F0')
-% 
-% freezeColors
-
-%%
+%c
     filename=[imageFolder filesep 'frame' num2str(iStack,'%3.5d')];
  %   filename2=[imageFolder2 filesep 'frame' num2str(frameCounter,'%3.5d')];
    % worm
@@ -439,7 +390,7 @@ yPosFrame=interp1(yPos,hiResIdx);
     colormap(hot)
 colorbar off
     set(gcf,'color','black');
-    caxis([0 200]);
+    caxis([0 2000]);
     freezeColors
 axis equal off tight
 
@@ -453,7 +404,7 @@ subplot(2,2,3)
     hold on
    plot( bfCenterline(:,2),bfCenterline(:,1));
 hold off
-text(150,950,['t = ' num2str(hiResData.frameTime(hiResIdx)-250,'%6.2f') 's'],'color','w','fontsize',20)
+text(150,950,['t = ' num2str(hiResData.frameTime(hiResIdx)-startTime,'%3.1f') 's'],'color','w','fontsize',20)
 
 %eigenPosture
      subplot(2,2,2);
@@ -471,7 +422,7 @@ text(150,950,['t = ' num2str(hiResData.frameTime(hiResIdx)-250,'%6.2f') 's'],'co
            text(100, 100, {'Calcium Activty' '(GCaMP6s, 40x)'},'fontsize',12,'color',[.3 .7 .3]);
 
     colormap(pmkmp(123,'LinearL'));
-        caxis([0 200]);
+        caxis([0 250]);
 
 colorbar off
    % imagesc(worm(:,:,iSlice));
@@ -495,7 +446,7 @@ imagesc(fluorImage)
 
 colormap hot
 freezeColors
-text(150, 950,['z = ' num2str(12*(hiResData.Z(hiResIdx)-6),'%6.2f') '\mum'],'color','w','fontsize',20)
+text(150, 950,['z = ' num2str(12*(hiResData.Z(hiResIdx)-6),'%6.1f') '\mum'],'color','w','fontsize',20)
 
     axis equal off
    %     xlim(xrange);
@@ -511,14 +462,15 @@ text(150, 950,['z = ' num2str(12*(hiResData.Z(hiResIdx)-6),'%6.2f') '\mum'],'col
 
 set(gcf,'color',[1 1 1])
 drawnow
-saveas(gcf,filename,'jpeg');
+%saveas(gcf,filename,'jpeg');
 
-
+fclose(Fid);
 
     display(['completed stack:' num2str(iStack) ' in ' num2str(toc) 's']);
         catch ME
       display(['error stack:' num2str(iStack) ' in ' num2str(toc) 's']);
-save(['errorStack' num2str(iStack)], 'ME') 
+ME
+      %save(['errorStack' num2str(iStack)], 'ME') 
         end
         
 end

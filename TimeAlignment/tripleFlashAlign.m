@@ -8,6 +8,7 @@ dataFolder=uipickfiles('FilterSpec',mostRecent);
 dataFolder=dataFolder{1};
 
 end
+%get data from low yamls
 [bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
 
 if exist([dataFolder filesep 'hiResData.mat'],'file')
@@ -23,6 +24,7 @@ fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
 
 [~,most]=max([length(hiResFlashTime),length(bfFlashTime),length(fluorFlashTime)]);
 
+%start with track with most flashes detected
 switch most
     case 1
         bestTime=hiResFlashTime;
@@ -36,7 +38,8 @@ switch most
 end
 
     
-
+%compare all to the best one
+%start with BrightField movie
 [~,bf2fluor]=flashTimeAlign2(bestTime,bfFlashTime);
 flashDiff=bfFlashTime-bestTime(bf2fluor);
 flashDiff=flashDiff-min(flashDiff);
@@ -48,16 +51,27 @@ bfAll.frameTime=f_bfTime(bfAll.frameTime);
 bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
 bfAll.flashTime=bfFlashTime;
 
+%align with Fluor movie
 [~,bf2fluor]=flashTimeAlign2(bestTime,fluorFlashTime);
 flashDiff=fluorFlashTime-bestTime(bf2fluor);
 flashDiff=flashDiff-min(flashDiff);
+if length(fluorFlashTime)>1
 f_fluorTime=fit(fluorFlashTime,bestTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
 if f_fluorTime.p1<.1
     f_fluorTime.p1=1;
+    fluorAll.frameTime=f_fluorTime(fluorAll.frameTime);
+
 end
 fluorAll.frameTime=f_fluorTime(fluorAll.frameTime);
+
+else 
+     fluorAll.frameTime= fluorAll.frameTime-fluorFlashTime+bestTime(bf2fluor);
+end
+
 fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
+
 fluorAll.flashTime=fluorFlashTime;
+
 
 [~,bf2fluor]=flashTimeAlign2(bestTime,hiResFlashTime);
 flashDiff=hiResFlashTime-bestTime(bf2fluor);

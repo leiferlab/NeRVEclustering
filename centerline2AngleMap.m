@@ -29,6 +29,6 @@ catch
 end
 
 end
-c=unwrap(c);
-v=diff(smooth(c,200));
+cUnwrap=unwrap(c);
+v=diff(smooth(cUnwrap,200));
 f=struct('a',a,'b',b,'c',c,'v',v);

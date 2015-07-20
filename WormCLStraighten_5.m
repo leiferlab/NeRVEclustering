@@ -1,10 +1,23 @@
 
-function [V,pointStats,Vproj,vRegion,side]=WormCLStraighten_5(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,side,show)
+function [V,pointStats,Vproj,vRegion,side,xyOffset2]=WormCLStraighten_5(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,vRegion,zOffset,iStack,side,lastOffset,show)
 
 %use different alignment than initial version, no need to crop after
 %transformation
+%added somethign to fix above
 
 imageFolder2=[dataFolder filesep destination];
+if isempty(lastOffset);
+lastOffset=[0 0];
+end
+% if ~isempty(firstFrameParam)
+% Vtemplate=firstFrameParam.Vproj
+% 
+% end
+% 
+% firstFrameParam.Vproj=Vproj;
+% firstFrameParam.vRegion=vRegion;
+% firstFrameParam.side=side;
+% firstFrameParam.lastFrame=xyOffset2;
 
 try
 %% initial parameters
@@ -12,7 +25,6 @@ outputRadius=127.5000;
 outputLength=400;
 CLsearchWindow=25;
 zRatio=1/3;
-lastOffset=[0 0];
 zindexer=@(x,s) x./(s)+1;
     options.method='invdist';
     options.radius=20;
@@ -114,6 +126,7 @@ cols=600;
 nPix=rows*cols;
 
 
+%% set up timing alignments and lookups
 bfIdxList=1:length(bfAll.frameTime);
 fluorIdxList=1:length(fluorAll.frameTime);
 bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'linear');
@@ -125,8 +138,12 @@ hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
 
 
 %% load centerline
-
-centerline=load([dataFolder filesep 'Behavior Analysis' filesep 'centerline']);
+behaviorFolder=dir([dataFolder filesep 'Behavior*']);
+behaviorFolder=behaviorFolder([behaviorFolder.isdir]);
+behaviorFolder=[dataFolder filesep behaviorFolder(1).name];
+centerlineFile=dir([behaviorFolder filesep 'center*']);
+centerlineFile=[behaviorFolder filesep centerlineFile.name];
+centerline=load(centerlineFile);
 CLfieldNames=fieldnames(centerline);
 CLfieldIdx=cellfun(@(x) ~isempty(strfind(x,'centerline')),CLfieldNames);
 CLoffsetIdx=cellfun(@(x) ~isempty(strfind(x,'off')),CLfieldNames);
@@ -142,7 +159,7 @@ end
 centerline=centerline.(CLfieldNames{CLfieldIdx});
 
 
-
+%% load images
 
          
          Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
@@ -150,7 +167,6 @@ centerline=centerline.(CLfieldNames{CLfieldIdx});
     hiResIdx=find(hiResData.stackIdx==iStack)+ zOffset;
     zRange=hiResData.Z(hiResIdx-zOffset);
     
-    %%
           bfIdx=round(bfIdxLookup(hiResIdx));
             fluorIdx=round(fluorIdxLookup(hiResIdx));
          fluorIdxRange=[min(fluorIdx) max(fluorIdx)];
@@ -186,6 +202,7 @@ cropFlag=1;
     pixelValues=fread(Fid,nPix*(length(hiResIdx)),'uint16',0,'l');
     hiResImage=reshape(pixelValues,rows,cols,length(hiResIdx));
     
+    %% crop and align hi mag images
     segmentChannel=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
     activityChannel=hiResImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
     activityChannel=imwarp(activityChannel,S2AHiRes.t_concord,'OutputView',S2AHiRes.Rsegment);
@@ -197,7 +214,7 @@ cropFlag=1;
 
 
 
-    %%
+    %% filter to find center Z (some old things here)
    worm2=segmentChannel;     
 worm3=bpass3(worm2,.5,[20 20 3]);
 worm3Smooth=smooth3(worm3,'box',[15,15,1]);
@@ -207,7 +224,6 @@ sumIm=normalizeRange(nanmean(worm2,3));
 sumIm=smooth2a(sumIm,15,15);
 sumIm=normalizeRange(sumIm);
 
-%%
 segmentChannel2=[];
 zSize=size(segmentChannel,3);
 
@@ -220,10 +236,7 @@ segmentChannel2=normalizeRange(segmentChannel2);
 
 %segmentChannel4=bsxfun(@times,segmentChannel2,sumIm);
 
-
-%%
 segmentChannel2=(segmentChannel2>graythresh(segmentChannel2(:)));
-%%
 
 for i=1:zSize;
     segmentChannel5(:,:,i)=bwdist(~segmentChannel2(:,:,i));
@@ -234,8 +247,6 @@ end
 
 midZplot=double(squeeze(sum(sum(segmentChannel5>max(segmentChannel5(:))/2,1),2)));
 midZplot=normalizeRange(midZplot(:));
-
-%%
 segmentChannel4=normalizeRange(worm3Smooth)>.05;
 midZplot3=zeros(1,zSize);
 for i=1:zSize
@@ -283,9 +294,9 @@ end
 %     midZ=round(size(segmentChannel,3)/2);
 % end
 
-%%
+%% try fix centerline alignemnt by looking at lowmag fluor and finding a correction offset
 fluorFrame3=normalizeRange(double(fluorFrame2));
-fluorFrame3=double((fluorFrame3>graythresh(fluorFrame2(:))));
+fluorFrame3=double((fluorFrame3>(graythresh(fluorFrame2(:)))));
 %fluorFrame3(fluorFrame3<.1)=.1;
 
 fluorProj=normalizeRange(sum(fluorFrame3,3));
@@ -294,6 +305,7 @@ hiResProj=normalizeRange(sum(segmentChannel,3));
 %fluorProj(fluorProj<.1)=.1;
 fluorProj=normalizeRange(fluorProj);
 fluorProj2=convnfft(fluorProj,Sfilter2,'same');
+%fluorProj2=smooth2a(fluorProj,21,21);
     corrIm=xcorr2(fluorProj,hiResProj);
     [CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
 CLoffsetX=CLoffsetX-rect1(3)+rect1(1);
@@ -301,7 +313,6 @@ CLoffsetY=CLoffsetY-rect1(4)+rect1(2);
 
 
 fluorProj2(fluorProj2<0)=0;
-%%
 hiResIdxStretch=min(hiResIdx)-CLsearchWindow:max(hiResIdx)+CLsearchWindow;
 bfIdx=round(bfIdxLookup(hiResIdxStretch));
 CLIdx=bfIdx-CLoffset;
@@ -322,17 +333,17 @@ CL2(:,2,:)=CL2(:,2,:)-(rect1(2)-1);
 end
 %[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(hiResFix.t_concord,CL2(:,2,:),CL2(:,1,:));
 
-%%
 CL2X=reshape(CL2(:,1,CLsearchWindow:end-CLsearchWindow),[],1,1);
 CL2Y=reshape(CL2(:,2,CLsearchWindow:end-CLsearchWindow),[],1,1);
-[xyOffset3,fval]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),lastOffset);
+[xyOffset2,fval]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),lastOffset);
 %limit translation fix
 % lastOffset=xyOffset3;
 %   lastOffset(lastOffset>50)=50;
 %   lastOffset(lastOffset<-50)=-50;
-xyOffset3=xyOffset3-[CLoffsetX CLoffsetY];
-%  xyOffset3(xyOffset3>50)=50;
-%  xyOffset3(xyOffset3<-50)=-50;
+
+xyOffset3=xyOffset2-[CLoffsetX CLoffsetY];
+  %xyOffset3(xyOffset3>50)=50;
+  %xyOffset3(xyOffset3<-50)=-50;
 CL2(:,2,:)=CL2(:,2,:)+xyOffset3(2);
 CL2(:,1,:)=CL2(:,1,:)+xyOffset3(1);
 
@@ -349,7 +360,7 @@ end
 
 
 
-%%
+%% interpolate to parameterize by length
 
 %
 % CL3all=CL2(1:30,:,:);
@@ -378,7 +389,7 @@ CL3temp=interp1(s,CL3temp,0:1:2500,'linear','extrap');
 end
 
 
-%%
+%% align centerlines parameterizations by correlation
 % align centerlines using plotMatch (correlations) to account for
 % centerline sliding
 shiftVec=0;
@@ -397,7 +408,7 @@ end
 
 shiftVec=cumsum(shiftVec);
 shiftVec=shiftVec-shiftVec(round(length(shiftVec)/2));
-%%
+
 CL3all2=[];
 
 for iCL=1:size(CL2,3)
@@ -425,9 +436,6 @@ cc_inImage=bwconncomp(inImage);
 inImageRange=round(mean(cc_inImage.PixelIdxList{1}))+(-outputLength:outputLength);
 %%
 CL3all=interp1(CL3all2,inImageRange,'*linear','extrap');
-
-    
-
 
 %xyzs_avg = ActiveRevolutionFit(im, cline_para, CL3);
 
@@ -508,7 +516,7 @@ end
 % hold off
 
 
-%% make coordinate system
+%% make coordinate system around the worm
 pixel_interp=1;
 Tv=zeros(size(CL3all,1),3,size(CL3all,3));
 Bv=Tv; Nv=Tv;
@@ -549,7 +557,7 @@ if isempty(side)
         
     end
 else
-    if strfind(side,'eft')
+    if ~isempty(strfind(side,'eft'))
           Bv=-Bv;
         Nv=-Nv;
     end
@@ -624,7 +632,7 @@ if sign(nanmean(diff(zRange)))==-1
     
     zRange2=unique(cummin(zRange));
     zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadius+1))/10);
-
+zInterp=flipud(zInterp);
   zLevels=flipud(zLevels);  
 else
     zRange2=unique(cummax(zRange));
@@ -712,6 +720,8 @@ temp=imwarp(cat(3,xslice(:,:,iSlice),yslice(:,:,iSlice)),R,tformAll{iSlice},'nea
   V=Vsmooth;
  Vsmooth(inImageMap)=worm3(inImageMapIdx);
   V(inImageMap)=worm2(inImageMapIdx);
+% Asmooth=zeros(size(xslice));
+%  Asmooth(inImageMap)=activityChannel(inImageMapIdx);
 
    %%
    
@@ -720,7 +730,7 @@ temp=imwarp(cat(3,xslice(:,:,iSlice),yslice(:,:,iSlice)),R,tformAll{iSlice},'nea
 %Vproj2=squeeze(nansum(V2,3));
 Vproj=squeeze(nansum(V,3));
 
-%%
+%% fit nervchord and try to align it
 
 
 wormProj=smooth2a(max(V(:,:,round(outputRadius+(-100:100))),[],3),1,1);
@@ -821,7 +831,7 @@ else
 wormWidth=wormProj(maxPos,:);
 wormWidth=normalizeRange(wormWidth);
 wormWidth=abs(diff(minmax(find(wormWidth>graythresh(wormWidth)))));
-yshift=yshift-2*yshift(maxPos)+outputRadius+wormWidth/2;
+yshift=yshift-outputRadius-wormWidth/2;
 
 %yshift=-yshift;
     lags=[maxPos-outputLength,0];
@@ -852,7 +862,7 @@ end
 
 
 
-%% 
+%% find different parts of worm brain
 
 V1=Vtemplate;
 V1f=bpass(V1,.1,[30 30]);
@@ -931,7 +941,7 @@ xVecRange=(floor(outputRadius)-fitCutOff):(floor(outputRadius+1)+fitCutOff);
 
 aOut1=fminsearch(@(a) CLsearch(V2f,[xVec2 xVec1] ,[a(1)*(xVec2-outputRadius)+nring1 ,...
     a(2)*(xVec1-outputRadius-1)+nring1] ...
-,show),[ -3 3]);
+,show),[ 0 0]);
 aOut1=[0 aOut1(1) 0 aOut1(2)];
 boundary1=zeros(1,outputRadius*2+1);
 boundary1(xVecRange)=[aOut1(1)*(xVec2-outputRadius-1).^2+aOut1(2)*(xVec2-outputRadius-1)+nring1 ...

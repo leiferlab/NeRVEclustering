@@ -441,3 +441,84 @@ view([90,90])
 
 pause(.02)
 end
+
+
+
+
+%% anyFolder
+dataFolder=uipickfiles('filterspec', 'V:');
+dataFolder=dataFolder{1};
+%%
+masterData=load([dataFolder filesep 'tempFiducials']);
+corrandPossibleC=uipickfiles('filterspec',dataFolder);
+
+%%
+fiducialsAll=masterData.fiducialPoints;
+
+data=load([dataFolder filesep 'heatData']);
+possibleCorrData=load(corrandPossibleC{1});
+possibleB=possibleCorrData.possibleB;
+possibleT=possibleCorrData.possibleT;
+possibleP=possibleCorrData.possibleP;
+possibleF=possibleCorrData.possibleF;
+
+%%
+masterIdx=80;
+figur
+fiducials=fiducialsAll{masterIdx};
+fiducials(rejects(1:length(fiducials)),:)=[];
+fiducials(cellfun(@(x) isempty(x),fiducials))={nan};
+fiducials=cell2mat(fiducials);
+fiducials=fiducials(:,[1 2 3]);
+% possibleB=[6    65    48    27    40    29];
+% possibleF=[     45    46 ];
+% possibleP=[  24    37    13    11    75    59];
+
+colorBalls=.3+zeros(size(fiducials));
+colorBalls(possibleT,3)=1;
+colorBalls(possibleB,1)=1;
+colorBalls(possibleF,2)=1;
+fiducials([possibleB possibleT possibleF])
+
+fiducials(:,2:3)=(-fiducials(:,2:3));
+%%
+figure;
+transp=.2*ones(1,length(fiducials));
+transp([possibleB possibleF possibleT])=.8;
+
+zFactor=50;
+
+scatter3sph(fiducials(:,1)/4000,fiducials(:,2)/4000,zFactor*fiducials(:,3)/4000,...
+    'size',.002,'color',colorBalls,'transp',transp);axis equal off tight
+% set(gca,'cameraviewanglemode','manual','ZLimMode','manual','XLimMode'...
+%     ,'manual','YLimMode','manual','ALimMode','manual');
+ax1=gca;
+savefig([dataFolder filesep 'wormBallsAll'])
+figure
+transp=.2*zeros(1,length(fiducials));
+transp([possibleB possibleF possibleT])=.8;
+
+scatter3sph(fiducials(:,1)/4000,fiducials(:,2)/4000,zFactor*fiducials(:,3)/4000,...
+    'size',.002,'color',colorBalls,'transp',transp);axis equal off tight
+ax2=gca;
+set([ax1 ax2],'cameraviewanglemode','manual','ZLimMode','manual','XLimMode'...
+    ,'manual','YLimMode','manual','ALimMode','manual');
+%  linkprop([ax1,ax2],{'CameraPosition','CameraUpVector','CameraTarget','CameraViewAngle',...
+%      'Xlim','YLim','ZLim'})
+%  
+text(fiducials(possibleT,1)/4000+.004,fiducials(possibleT,2)/4000+.004,zFactor*fiducials(possibleT,3)/4000+.004,...
+    cellfun(@(x) num2str(x),(mat2cell(cgIdxRev(possibleT)',1,possibleT./possibleT)),'uniformOutput',0)...
+    , 'HorizontalAlignment','left','FontSize',12);
+
+text(fiducials(possibleB,1)/4000+.004,fiducials(possibleB,2)/4000+.004,zFactor*fiducials(possibleB,3)/4000+.004,...
+    cellfun(@(x) num2str(x),(mat2cell(cgIdxRev(possibleB)',1,possibleB./possibleB)),'uniformOutput',0)...
+    , 'HorizontalAlignment','left','FontSize',12);
+text(fiducials(possibleF,1)/4000+.004,fiducials(possibleF,2)/4000+.004,zFactor*fiducials(possibleF,3)/4000+.004,...
+    cellfun(@(x) num2str(x),(mat2cell(cgIdxRev(possibleF)',1,possibleF./possibleF)),'uniformOutput',0)...
+    , 'HorizontalAlignment','left','FontSize',12);
+savefig([dataFolder filesep 'wormBallsLabel'])
+
+
+
+ 
+ 
