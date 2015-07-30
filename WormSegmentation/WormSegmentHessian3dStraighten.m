@@ -104,13 +104,13 @@ for iblob=1:cc.NumObjects;
 
 % smooth image and calculate hessian and eigenvalues for segmentation
 
-if ~prefilter
-subIm=smooth3(subIm,'gaussian',2*gaussFilter+1,gaussFilter);
-else
-subIm=bpass3(subIm,2,filterSize);
-end
+ if ~prefilter
+ subIm=smooth3(subIm,'gaussian',2*gaussFilter+1,gaussFilter);
+ else
+ subIm=bpass3(subIm,2,filterSize);
+ end
 H=hessianMatrix(subIm,8);
-Heig=hessianEig(H,subIm);
+Heig=hessianEig(H,subBW);
 Heig(isnan(Heig))=0;
 Htrace=real(Heig(:,:,:,1));
 % Jm= Heig(:,:,:,1)<-hthresh & Heig(:,:,:,2)<-hthresh & ...

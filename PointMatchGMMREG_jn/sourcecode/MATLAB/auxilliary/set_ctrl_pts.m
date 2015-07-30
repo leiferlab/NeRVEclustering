@@ -23,7 +23,7 @@ if (d==2)
     n_pts = interval*interval;
     ctrl_pts = [reshape(x,n_pts,1) reshape(y,n_pts,1)];
 end
-if (d==3)
+if (d>=3)
     z_min = axis_limits(3,1);
     z_max = axis_limits(3,2);
     [x,y,z] = ndgrid(linspace(x_min,x_max,interval), linspace(y_min,y_max,interval),linspace(z_min,z_max,interval));

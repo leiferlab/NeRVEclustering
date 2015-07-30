@@ -10,6 +10,10 @@ config.scene = scene;
 config.motion = motion;
 % estimate the scale from the covariance matrix
 [n,d] = size(model);
+if d>3
+    d=3;
+end
+    
 config.scale = power(det(model'*model/n), 1/(2^d));
 config.display = showFlag;
 config.init_param = [ ];

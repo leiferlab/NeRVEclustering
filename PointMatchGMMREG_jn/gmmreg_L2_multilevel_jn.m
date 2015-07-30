@@ -1,6 +1,7 @@
 %%  gmmreg_L2_multilevel implements gmmreg algorithm going through several length scales
 function [model, multilevel_ctrl_pts, multilevel_param] = gmmreg_L2_multilevel_jn(model, scene, level, scales, lambdas, fiducial_indices, spring_constant,showFlag)
-  % warps first input set to seconds
+  % warps first input set to seconds, currently STRINCTLY 3D, this can be
+  % changed though
   
 
 

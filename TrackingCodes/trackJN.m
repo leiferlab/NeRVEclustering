@@ -178,6 +178,8 @@ function tracks = trackJN(xyzs,maxdisp,param)
 % ;     displayed output. Changed difficult/excessive combinatorics to
 % ;     warnings instead of just displayed warning text. 
 % ; 10/14 JN added option for 'excessive' to spit out a nan. 
+% ; 07/15 JN added param option timeLimit, if elapsed time > timeLimit (in s),
+% track will exit with normal error response. Default is Inf. 
 %
 % ; This code 'track.pro' is copyright 1999, by John C. Crocker. 
 % ; It should be considered 'freeware'- and may be distributed freely 
@@ -185,7 +187,7 @@ function tracks = trackJN(xyzs,maxdisp,param)
 % ; when properly attributed.
 % ;
 % ;-
-
+tic
 dd = length(xyzs(1,:));
 
 % use default parameters if none given
@@ -207,6 +209,10 @@ else
         else difficult = 5.e+4; end
     if isfield(param,'excessive'); excessive = param.excessive;
         else excessive = 1; end
+    if isfield(param,'timeLimit'); timeLimit = param.timeLimit;
+        else timeLimit = Inf; end
+        
+        
 end
 
 % checking the input time vector
@@ -843,7 +849,6 @@ for i=istart:z
 %                end
                 checkflag = 0;
                 while checkflag ~= 2
-                    
                     pt = st -1;
                     lost = zeros(nnew,1);
                     who = 0;
@@ -852,7 +857,32 @@ for i=istart:z
                     
                     
                     while who ~= -1
-                    
+                        if toc>timeLimit
+                            
+                            switch excessive
+                                case 1 % automatically exit
+                                    return
+                                case 2 % just continue even though it is slow
+                                case 3 % prompt user
+                                    choice = questdlg(...
+                                        ['Excessive combinatorics encountered. ', ...
+                                        'What would you like to do?'], ...
+                                        'Excessive combinatorics', ...
+                                        'Continue','Exit track','Exit track');
+                                    switch choice
+                                        case 'Continue'
+                                            tic
+                                        case 'Exit track'
+                                            return
+                                        otherwise
+                                            return
+                                    end
+                                case 4
+                                    tracks=NaN;
+                                    return
+                            end
+                        end
+                        
                         if pt(who+1) ~= fi(who+1)
                             
                             

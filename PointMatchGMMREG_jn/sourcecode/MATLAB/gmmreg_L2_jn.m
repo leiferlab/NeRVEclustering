@@ -8,7 +8,7 @@
 %   'display': display the intermediate steps or not.
 %   'init_param':  initial parameter
 
-function [param, transformed_model, history, config] = gmmreg_L2(config)
+function [param, transformed_model, history, config] = gmmreg_L2_jn(config)
 %%=====================================================================
 %% $Author: bing.jian $
 %% $Date: 2009-02-10 02:13:49 -0500 (Tue, 10 Feb 2009) $
@@ -23,6 +23,10 @@ if nargin<1
     error('Usage: gmmreg_L2(config)');
 end
 [n,d] = size(config.model); % number of points in model set
+if d>3
+    d=3;
+end
+
 if (d~=2)&&(d~=3)
     error('The current program only deals with 2D or 3D point sets.');
 end
@@ -38,12 +42,16 @@ switch lower(config.motion)
         scale = config.scale;
         alpha = config.alpha;
         beta = config.beta;
-        
+        model=config.model;
         [n,d] = size(config.ctrl_pts);
         [m,d] = size(config.model);
-        [K,U] = compute_kernel(config.ctrl_pts, config.model);
-        Pm = [ones(m,1) config.model];
-        Pn = [ones(n,1) config.ctrl_pts];
+        if d>3
+            d=3;
+        end
+        
+        [K,U] = compute_kernel(config.ctrl_pts, config.model(:,1:d));
+        Pm = [ones(m,1) config.model(:,1:d)];
+        Pn = [ones(n,1) config.ctrl_pts(:,1:d)];
         PP = null(Pn');  % or use qr(Pn)
         basis = [Pm U*PP];
         kernel = PP'*K*PP;
@@ -60,11 +68,16 @@ switch lower(config.motion)
             init_affine = config.init_affine;
             x0 = init_tps(end+1-d*(n-d-1):end);
         end
-        try
              %           [param,Emin,exitflag] = fminunc(@(x)gmmreg_L2_tps_costfunc(x, init_affine, basis, kernel, scene, scale, alpha, beta, n, d, config.fiducial_indices, config.spring_constant), x0,  options);
-
+%if extra fiducial data is present, use it, otherwise, do not
+             if size(model,2)>d
+            [param,Emin,exitflag] = fminunc(@(x)gmmreg_L2_tps_costfunc_jn(x, init_affine, basis, kernel, scene, scale, alpha, beta, n, d, config.fiducial_indices, config.spring_constant,model), x0,  options);
+else
             [param,Emin,exitflag] = fminunc(@(x)gmmreg_L2_tps_costfunc_jn(x, init_affine, basis, kernel, scene, scale, alpha, beta, n, d, config.fiducial_indices, config.spring_constant), x0,  options);
-% param2=param;
+
+end
+
+            % param2=param;
 % for i=1:100
 %             [E(i),Egrad]=gmmreg_L2_tps_costfunc_jn(param2, init_affine, basis, kernel, ...
 %     scene, scale, alpha, beta, n, d, config.fiducial_indices,...
@@ -80,15 +93,12 @@ switch lower(config.motion)
 
             
             
-            
-            
-        catch err
-            %catch rounding errors
-            err
-            display('rounding error found');
-            param = x0;
-        end
-        transformed_model = transform_pointset(config.model, config.motion, param, config.ctrl_pts, init_affine);
+ 
+        transformed_model = transform_pointset(config.model(:,1:d), config.motion, param, config.ctrl_pts(:,1:d), init_affine);
+if size(model,2)>d
+    transformed_model=[transformed_model model(:,end-1:end)];
+end
+        
         if config.opt_affine
             config.init_tps = param(end+1-d*(n-d-1):end);
             config.init_affine = param(1:d*(d+1));
@@ -104,6 +114,14 @@ end
 
     function stop = outfun(x,optimValues,state,varargin)
      stop = false;
+     displayCounter=getappdata(0,'displaycounter');
+     if isempty(displayCounter)
+         displayCounter=0;
+     else
+         displayCounter=displayCounter+1;
+     end
+          setappdata(0,'displaycounter',round(displayCounter));
+
      switch state
          case 'init'
              if config.display>0
@@ -112,16 +130,16 @@ end
          case 'iter'
                history.fval = [history.fval; optimValues.fval];
                history.x = [history.x; reshape(x,1,length(x))];
-               if config.display>0
+               if config.display>0 && ~mod(displayCounter,config.display)
                    hold off
                    switch lower(config.motion)
                        case 'tps'
-                           transformed = transform_pointset(config.model, config.motion, x, config.ctrl_pts, init_affine);
+                           transformed = transform_pointset(config.model(:,1:d), config.motion, x, config.ctrl_pts(:,1:d), init_affine);
                        otherwise
-                           transformed = transform_pointset(config.model, config.motion, x);
+                           transformed = transform_pointset(config.model(:,1:d), config.motion, x);
                    end
                    dist = L2_distance(transformed,config.scene,config.scale);
-                   DisplayPoints(transformed,config.scene,d);
+                   DisplayPoints(transformed(:,1:d),config.scene(:,1:d),d);
                    title(sprintf('L2distance: %f',dist));
                    drawnow;
                end
@@ -137,7 +155,7 @@ end
 
 
 function [dist] = L2_distance(model, scene, scale)
-    dist = GaussTransform(model,model,scale) + GaussTransform(scene,scene,scale) - 2*GaussTransform(model,scene,scale);
+    dist = gaussOverlap(model,model,scale) + gaussOverlap(scene,scene,scale) - 2*gaussOverlap(model,scene,scale);
 end
 
 

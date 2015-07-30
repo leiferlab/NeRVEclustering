@@ -52,12 +52,12 @@ end;
 
 
 function [f, g] = rigid_costfunc(A, B, scale)
-[f, g] =  GaussTransform(A,B,scale);
+[f, g] =  gaussOverlap(A,B,scale);
 f = -f; g = -g;
 
 
 function [f, g] = general_costfunc(A, B, scale)
-[f1, g1] = GaussTransform(A,A,scale);
-[f2, g2] = GaussTransform(A,B,scale);
+[f1, g1] = gaussOverlap(A,A,scale);
+[f2, g2] = gaussOverlap(A,B,scale);
 f =  f1 - 2*f2;
 g = 2*g1 - 2*g2;

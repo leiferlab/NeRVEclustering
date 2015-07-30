@@ -312,7 +312,7 @@ figure;
 plot(hiResData.frameTime(hiResRange)-hiResData.frameTime(hiResRange(1)),hiResV(hiResRange),...
     'color',[106 61 154]/256,'linew',2);
 axis tight;
-ylim([-.1, .1])
+ylim([-.15, .15])
 xlabel('Time (s)');
 ylabel('Velocity (mm/s)');
 set(gca,'box','off');
@@ -465,7 +465,7 @@ timeVec=1:(i)*500;
 
 %h=colorplot(hiResFrameTime/max(hiResFrameTime)*2500,1,hiResFrameTime);
 
-set(h,'linew',50);
+%set(h,'linew',50);
 
     axis equal tight off
     

@@ -1,4 +1,4 @@
-function clusterWormTracker(filePath,startIdx)
+function clusterWormTracker2(filePath,startIdx)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
  
 if nargin==0
@@ -51,7 +51,7 @@ T2temp=pointStats(j).straightPoints(:,1:3);
     gmmreg_L2_multilevel_jn(T2...
     ,T1, 4, [10 3, 1,.1], ...
     [0.008,.0008, 0.0008, 0.08],[0 0],...
-    [ 0.00001 0.0001 0.001 0.001],0);
+    [ 0.00001 0.0001 0.001 0.001],30);
 trackInput=[T1temp T1temp  (1:length(T1temp))'  ones(size(T1temp(:,1))); ...
     Transformed_M(:,1:3) T2temp  (1:length(T2temp))' 2*ones(size(Transformed_M(:,1)))];
 TrackOut=nan;
@@ -67,7 +67,7 @@ for iRegions=1:max(idx)
     gmmreg_L2_multilevel_jn(...
     Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:),  4, [10 3, 1,.1], ...
     [0.008,.0008, 0.0008, 0.08],[0 0],...
-    [ 0.00001 0.0001 0.001 0.001],0);
+    [ 0.00001 0.0001 0.001 0.001],30);
 
 
 
@@ -112,39 +112,38 @@ end
                 
                 
 presentIJ=TrackMatrixi(:,runIdx-outRange(1)+1)>0;
-points1=T1temp(track1,1:3);
-points2=Transformed_M(track2,1:3);
+points1=T1temp(track1,:);
+points2=Transformed_M(track2,:);
 pointsDiff=abs(points1-points2);
-
 DMatrixi_x(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,1);
 DMatrixi_y(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,2);
 DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 
-% 
-% figure;
-% scat3(T1temp);
-% hold on
-% scat3(Transformed_M);
-% % track1=matchedPairs(:,1);
-% % track2=matchedPairs(:,2);
-% 
-% plot3([T1temp(track1,1),Transformed_M(track2,1)]',...
-%     [T1temp(track1,2),Transformed_M(track2,2)]',...
-%     [T1temp(track1,3),Transformed_M(track2,3)]','linewidth',4)
-% axis equal
-% 
-% 
-% figure
-% scat3(T1temp);
-% hold on
-% scat3(T2temp);
-% % track1=matchedPairs(:,1);
-% % track2=matchedPairs(:,2);
-% 
-% plot3([T1temp(track1,1),T2temp(track2,1)]',...
-%     [T1temp(track1,2),T2temp(track2,2)]',...
-%     [T1temp(track1,3),T2temp(track2,3)]','linewidth',4)
-% axis equal
+
+figure;
+scat3(T1temp);
+hold on
+scat3(Transformed_M);
+% track1=matchedPairs(:,1);
+% track2=matchedPairs(:,2);
+
+plot3([T1temp(track1,1),Transformed_M(track2,1)]',...
+    [T1temp(track1,2),Transformed_M(track2,2)]',...
+    [T1temp(track1,3),Transformed_M(track2,3)]','linewidth',4)
+axis equal
+
+
+figure
+scat3(T1temp);
+hold on
+scat3(T2temp);
+% track1=matchedPairs(:,1);
+% track2=matchedPairs(:,2);
+
+plot3([T1temp(track1,1),T2temp(track2,1)]',...
+    [T1temp(track1,2),T2temp(track2,2)]',...
+    [T1temp(track1,3),T2temp(track2,3)]','linewidth',4)
+axis equal
 
 
 
