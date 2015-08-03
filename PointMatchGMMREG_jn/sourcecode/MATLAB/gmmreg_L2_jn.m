@@ -114,6 +114,7 @@ end
 
     function stop = outfun(x,optimValues,state,varargin)
      stop = false;
+     if config.display
      displayCounter=getappdata(0,'displaycounter');
      if isempty(displayCounter)
          displayCounter=0;
@@ -121,16 +122,19 @@ end
          displayCounter=displayCounter+1;
      end
           setappdata(0,'displaycounter',round(displayCounter));
-
+     else
+         displayCounter=0;
+     end
      switch state
          case 'init'
              if config.display>0
                set(gca,'FontSize',16);
              end
          case 'iter'
+            if config.display>0 && ~mod(displayCounter,config.display)
+
                history.fval = [history.fval; optimValues.fval];
                history.x = [history.x; reshape(x,1,length(x))];
-               if config.display>0 && ~mod(displayCounter,config.display)
                    hold off
                    switch lower(config.motion)
                        case 'tps'

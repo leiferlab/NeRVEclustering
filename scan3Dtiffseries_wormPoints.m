@@ -212,12 +212,20 @@ displayRange=str2double(get(handles.displayRange,'String'));
 imFolder=getappdata(0,'imFolder');
 iImage=round(get(handles.slider1,'Value'));
 iSlice=round(get(handles.slider2,'Value'));
+
+set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
+imFiles=getappdata(0,'imFiles');
 if isempty(iSlice)
     iSlice=1;
     set(handles.slider2,'Value',1);
 end
 
 TrackData=getappdata(handles.figure1,'TrackData');
+imageName=imFiles(iImage).name;
+nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
+nIdx=find(~isnan(nIdx) & ~imag(nIdx));
+set(handles.currentFolder,'string', imageName);
+imageNumber=str2double(imageName(nIdx));
 
 % try
 % neuronId=round(str2double(get(handles.trackNeuron,'String')));
@@ -227,50 +235,11 @@ TrackData=getappdata(handles.figure1,'TrackData');
 % catch
 % end
 
-stackSize=get(handles.slider2,'max');
-
-set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
-set(handles.sliceIdx,'string',['z=' num2str(iSlice,'%6.2f')]);
-imFiles=getappdata(0,'imFiles');
-rawImFolder=getappdata(0,'rawImFolder');
-if mod(iImage,2)==1 && get(handles.flipOdd,'Value')
-    imSlice=stackSize-iSlice+1;
-elseif mod(iImage,2)==0 && get(handles.flipEven,'Value')
-        imSlice=stackSize-iSlice+1;
-else
-    imSlice=iSlice;
-end
-imageName=imFiles(iImage).name;
-nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
-nIdx=find(~isnan(nIdx) & ~imag(nIdx));
-set(handles.currentFolder,'string', imageName);
-imageNumber=str2double(imageName(nIdx));
-
-baseImg=double(imread([rawImFolder filesep imFiles(iImage).name],'tif',...
-    'Index',imSlice));
-hold(handles.axes1,'off')
-%clear current axes
-arrayfun(@(x) delete(x),get(handles.axes1,'children'))
-
-setappdata(handles.figure1,'baseImg',baseImg);
-newContrast=getappdata(handles.figure1,'newContrast');
-if isempty(newContrast)
-    newContrast=[min(baseImg(:)),max(baseImg(:))];
-end
-baseImg(baseImg<newContrast(1)) = newContrast(1);
-baseImg(baseImg>newContrast(2)) = newContrast(2);
-baseImg = (baseImg-newContrast(1))./diff(newContrast);
-ax1=imagesc(baseImg,'parent',handles.axes1);
-caxis(handles.axes1,[0 1]);
 
 % plot points if they're there
-
-try
-
 trackRange={TrackData.stackIdx}';
 trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
 iTrack=find(cell2mat(trackRange)==imageNumber);
-hold(handles.axes1,'on')
 shapeVector='so^d<>';
         %show only points that have been assigned an ID
 pointsi=TrackData(iTrack).straightPoints;
@@ -286,16 +255,66 @@ pointID=TrackData(iTrack).matchIdx;
     otherwise
 pointID=TrackData(iTrack).trackIdx;
 end
-pointsRegion=TrackData(iTrack).regionLabel;
+
+   nselect=str2double(get(handles.trackNeuron,'String'));
+       regionSelect=pointID==round(nselect);
+ 
+% if any(regionSelect)
+%     iSlice=round(pointsi(regionSelect,3));
+%     
+% end
+set(handles.sliceIdx,'string',['z=' num2str(iSlice,'%6.2f')]);
+
+
+%show image 
+stackSize=get(handles.slider2,'max');
+
+
+rawImFolder=getappdata(0,'rawImFolder');
+if mod(iImage,2)==1 && get(handles.flipOdd,'Value')
+    imSlice=stackSize-iSlice+1;
+elseif mod(iImage,2)==0 && get(handles.flipEven,'Value')
+        imSlice=stackSize-iSlice+1;
+else
+    imSlice=iSlice;
+end
+ 
+
+baseImg=double(imread([rawImFolder filesep imFiles(iImage).name],'tif',...
+    'Index',imSlice));
+hold(handles.axes1,'on')
+%clear current axes
+arrayfun(@(x) delete(x),get(handles.axes1,'children'))
+
+setappdata(handles.figure1,'baseImg',baseImg);
+newContrast=getappdata(handles.figure1,'newContrast');
+if isempty(newContrast)
+    newContrast=[min(baseImg(:)),max(baseImg(:))];
+end
+baseImg(baseImg<newContrast(1)) = newContrast(1);
+baseImg(baseImg>newContrast(2)) = newContrast(2);
+baseImg = (baseImg-newContrast(1))./diff(newContrast);
+ax1=imagesc(baseImg,'parent',handles.axes1);
+caxis(handles.axes1,[0 1]);
+
+
+
+
     if ~get(handles.showAllPoints,'Value')
 showPoints=abs(pointsi(:,3)-iSlice)<=displayRange & ~isnan(pointID(:,end));
     else
    showPoints=abs(pointsi(:,3)-iSlice)<=displayRange & TrackData(iTrack).Rintensities>40;
     end
-     
+
 pointsi=pointsi(showPoints,[2 1 3:end]);
 pointID=pointID(showPoints,:);
+    if isfield('TrackData','regionLabel')
+ pointsRegion=TrackData(iTrack).regionLabel;
 pointsRegion=pointsRegion(showPoints);
+    else
+        pointsRegion=ones(1,length(pointID));
+    end
+    
 pointID=cellstr(num2str(pointID));
 pointID=cellfun(@(x) strrep(x,'   ','-'),pointID,'uniform',0);
 pointID=cellfun(@(x) strrep(x,'NaN',''),pointID,'uniform',0);
@@ -316,15 +335,9 @@ text(pointsi(errIdx,1),pointsi(errIdx,2),pointID(errIdx),...
    
 end
    
-    nselect=str2double(get(handles.trackNeuron,'String'));
-       regionSelect=pointsi(:,4)==nselect;
- 
-   text(pointsi(regionSelect,1),pointsi(regionSelect,2),pointID(regionSelect),...
-    'color','r','parent',handles.axes1); 
-    
-
-catch
-end
+% 
+%    text(pointsi(:,1),pointsi(:,2),pointID,...
+%     'color','r','parent',handles.axes1); 
 hold(handles.axes1,'off')
 
 
@@ -407,19 +420,55 @@ function goBack_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 FPS=getappdata(handles.figure1,'FPS');
+
 iImage=round(get(handles.slider1,'Value'));
 iSlice=round(get(handles.slider2,'Value'));
+set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
+imFiles=getappdata(0,'imFiles');
+if isempty(iSlice)
+    iSlice=1;
+    set(handles.slider2,'Value',1);
+end
+
+TrackData=getappdata(handles.figure1,'TrackData');
+imageName=imFiles(iImage).name;
+nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
+nIdx=find(~isnan(nIdx) & ~imag(nIdx));
+set(handles.currentFolder,'string', imageName);
+imageNumber=str2double(imageName(nIdx));
+trackRange={TrackData.stackIdx}';
+trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
+iTrack=find(cell2mat(trackRange)==imageNumber);
+
+
 TrackData=getappdata(handles.figure1,'TrackData');
 try
 neuronId=round(str2double(get(handles.trackNeuron,'String')));
-TrackDatai=TrackData(iImage-FPS);
-neuronIdx=(TrackDatai.trackIdx==neuronId);
+TrackDatai=TrackData(iTrack-FPS);
+
+switch get(handles.pointShowType,'Value')
+    case 1
+pointID=TrackDatai.trackIdx;
+    case 2
+pointID=TrackDatai.pointIdx;
+    case 3
+pointID=TrackDatai.matchIdx;
+    case 4
+      pointID=  [TrackDatai.trackIdx TrackDatai.pointIdx];
+    otherwise
+pointID=TrackDatai.trackIdx;
+end
+
+
+
+neuronIdx=(pointID==neuronId);
 if any(neuronIdx)
         set(handles.trackNeuron,'backgroundColor',[1 1 1]);
 
 iSlice=round(TrackDatai.straightPoints(neuronIdx,3));
 else
     set(handles.trackNeuron,'backgroundColor',[1 0 0]);
+    
 end
 catch
 end
@@ -441,11 +490,45 @@ FPS=getappdata(handles.figure1,'FPS');
 
 iImage=round(get(handles.slider1,'Value'));
 iSlice=round(get(handles.slider2,'Value'));
+set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
+imFiles=getappdata(0,'imFiles');
+if isempty(iSlice)
+    iSlice=1;
+    set(handles.slider2,'Value',1);
+end
+
+TrackData=getappdata(handles.figure1,'TrackData');
+imageName=imFiles(iImage).name;
+nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
+nIdx=find(~isnan(nIdx) & ~imag(nIdx));
+set(handles.currentFolder,'string', imageName);
+imageNumber=str2double(imageName(nIdx));
+trackRange={TrackData.stackIdx}';
+trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
+iTrack=find(cell2mat(trackRange)==imageNumber);
+
+
 TrackData=getappdata(handles.figure1,'TrackData');
 try
 neuronId=round(str2double(get(handles.trackNeuron,'String')));
-TrackDatai=TrackData(iImage+FPS);
-neuronIdx=(TrackDatai.trackIdx==neuronId);
+TrackDatai=TrackData(iTrack+FPS);
+
+switch get(handles.pointShowType,'Value')
+    case 1
+pointID=TrackDatai.trackIdx;
+    case 2
+pointID=TrackDatai.pointIdx;
+    case 3
+pointID=TrackDatai.matchIdx;
+    case 4
+      pointID=  [TrackDatai.trackIdx TrackDatai.pointIdx];
+    otherwise
+pointID=TrackDatai.trackIdx;
+end
+
+
+
+neuronIdx=(pointID==neuronId);
 if any(neuronIdx)
         set(handles.trackNeuron,'backgroundColor',[1 1 1]);
 

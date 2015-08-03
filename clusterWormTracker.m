@@ -38,6 +38,7 @@ for iIdx=iIdxList%length(TrackData)
     for runIdx=1:length(runIdxList)%outRange;
         %%
         j=runIdxList(runIdx);
+        tic
         try
 P1=pointStats(i);
 P2=pointStats(j);
@@ -49,8 +50,8 @@ T2temp=pointStats(j).straightPoints(:,1:3);
 
 [Transformed_M, multilevel_ctrl_pts, multilevel_param] = ...
     gmmreg_L2_multilevel_jn(T2...
-    ,T1, 4, [10 3, 1,.1], ...
-    [0.008,.0008, 0.0008, 0.08],[0 0],...
+    ,T1, 3, [ 2, 2,.1], ...
+    [0.0008,.00008, 0.000008, 0.0008],[0 0],...
     [ 0.00001 0.0001 0.001 0.001],0);
 trackInput=[T1temp T1temp  (1:length(T1temp))'  ones(size(T1temp(:,1))); ...
     Transformed_M(:,1:3) T2temp  (1:length(T2temp))' 2*ones(size(Transformed_M(:,1)))];
@@ -59,14 +60,13 @@ idx = kmeans(trackInput(:,1:3),3);
 idx1=idx(1:length(T1temp));
 idx2=idx(length(T1temp)+1:end);
 %%
-close all
 
 for iRegions=1:max(idx)
 
     [Transformed_M(idx2==iRegions,:), ~, multilevel_param] = ...
     gmmreg_L2_multilevel_jn(...
-    Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:),  4, [10 3, 1,.1], ...
-    [0.008,.0008, 0.0008, 0.08],[0 0],...
+    Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:),  3, [ 3, 1,.1], ...
+    [0.0008,.00008, 0.00008, 0.08],[0 0],...
     [ 0.00001 0.0001 0.001 0.001],0);
 
 
@@ -146,12 +146,12 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 %     [T1temp(track1,3),T2temp(track2,3)]','linewidth',4)
 % axis equal
 
+      display(['Finished match' [num2str(runIdx)] ' in ' num2str((toc)) 's']);
 
 
         catch ME
             ME
         end
-        
     end
     if isempty(TrackMatrixi)
         TrackMatrixi=[];

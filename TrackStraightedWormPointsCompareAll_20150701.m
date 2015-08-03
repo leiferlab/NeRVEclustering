@@ -58,7 +58,8 @@ for i=1:N%:length(TrackMatrix)-windowSearch
     %transitionMatrix=false(size(cell2mat(TrackMatrix(outRange2{1})),1));
 %take individual match matrix
         TrackMatrixTemp=pointStats(i).TrackMatrixi;
-        DMatrixTemp=pointStats(i).DMatrixi;
+        DMatrixTemp=pointStats(i).DMatrixi_x.^2+pointStats(i).DMatrixi_y.^2 ...
+        +pointStats(i).DMatrixi_z.^2;
 
         if size(TrackMatrixTemp,1)>10 && any(TrackMatrixTemp(:)) 
 TrackMatrixTemp=TrackMatrixTemp(:,:);

@@ -41,8 +41,8 @@ noNans=~any(isnan([moving model]),2);
 moving=moving(noNans,:);
 model=model(noNans,:);
 
-[moving,ia]=unique(moving,'rows');
-model=model(ia,:);
+%[moving,ia]=unique(moving,'rows');
+%model=model(ia,:);
 %% Algebra of Thin-plate splines
 
 % Compute thin-plate spline mapping [W|a1 ax ay] using landmarks
