@@ -255,7 +255,7 @@ pointID=TrackData(iTrack).matchIdx;
     otherwise
 pointID=TrackData(iTrack).trackIdx;
 end
-
+pointID=pointID(:);
    nselect=str2double(get(handles.trackNeuron,'String'));
        regionSelect=pointID==round(nselect);
  
@@ -303,11 +303,11 @@ caxis(handles.axes1,[0 1]);
     if ~get(handles.showAllPoints,'Value')
 showPoints=abs(pointsi(:,3)-iSlice)<=displayRange & ~isnan(pointID(:,end));
     else
-   showPoints=abs(pointsi(:,3)-iSlice)<=displayRange & TrackData(iTrack).Rintensities>40;
+   showPoints=abs(pointsi(:,3)-iSlice)<=displayRange ;
     end
 
 pointsi=pointsi(showPoints,[2 1 3:end]);
-pointID=pointID(showPoints,:);
+pointID=pointID(showPoints);
     if isfield('TrackData','regionLabel')
  pointsRegion=TrackData(iTrack).regionLabel;
 pointsRegion=pointsRegion(showPoints);
