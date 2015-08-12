@@ -1,5 +1,5 @@
 
-function [V,pointStats,Vproj,side,xyOffset2]=WormCLStraighten_6(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show)
+function [V,pointStats,Vproj,side,xyOffset2,wormBW2]=WormCLStraighten_6(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show)
 
 %use different alignment than initial version, no need to crop after
 %transformation
@@ -30,7 +30,9 @@ zindexer=@(x,s) x./(s)+1;
     options.radius=20;
     options.power=1;
     options.thresh1=.05;
-    options.minObjSize=30;
+    options.minObjSize=25;
+    options.maxObjSize=300;
+    options.minSphericity=.87;
 options.filterSize=[10 10 4];
 options.power=1;
     options.prefilter=1;
@@ -875,8 +877,8 @@ end
 %     end
     
     imsize=size(V);
-    [wormBW2,wormtop]=WormSegmentHessian3dStraighten(Vsmooth,options);
-%     
+    [wormBW2,wormtop]=WormSegmentHessian3dStraighten(V,options,Vsmooth);
+     %%
     BWplot=(squeeze(sum(sum(imdilate(wormBW2,true(10,10,10)),1),2)));
     BWplot=smooth(BWplot,20);
     [~,locs]=findpeaks(BWplot);
@@ -893,7 +895,7 @@ end
     botpoint2(botpoint2<imsize(3)*3/4)=imsize(3);
     
     
-    cc=bwconncomp(wormBW2);
+    cc=bwconncomp(wormBW2,6);
     
     badRegions=(cellfun(@(x) any(zindexer(x,imsize(1)*imsize(2))<=botpoint1),cc.PixelIdxList)...
         |cellfun(@(x) any(zindexer(x,imsize(1)*imsize(2))>=botpoint2),cc.PixelIdxList))';
@@ -901,13 +903,11 @@ end
     wormBW2(cell2mat(cc.PixelIdxList(badRegions)'))=false;
     cc.PixelIdxList=cc.PixelIdxList(~badRegions);
     cc.NumObjects=nnz(~badRegions);
-     cc=bwconncomp(wormBW2);
+     cc=bwconncomp(wormBW2,6);
     stats=regionprops(cc,V,'Centroid','MeanIntensity',...
         'Area');
     
-     intensities=[stats.MeanIntensity]';
-    centroids=cell2mat({stats.Centroid}');
-  
+     intensities=[stats.MeanIntensity]';  
     P=[cell2mat({stats.Centroid}'),iStack*ones(cc.NumObjects,1)...
         (1:cc.NumObjects)'  intensities];
     P(:,[1 2])=P(:,[2 1]);
@@ -927,6 +927,10 @@ Areas=[stats.Area]';
     pointStats.pointIdx=(1:cc.NumObjects)';
     pointStats.Rintensities=intensities;
     pointStats.Volume=Areas;
+    pointStats.baseImg=logical(wormBW2);
+    pointStats.transformx=uint16(xslice);
+    pointStats.transformy=uint16(yslice);
+    pointStats.transformz=uint16(zslice);
  %   pointStats(counter).Gintensities=intensities;
  
  %% tran

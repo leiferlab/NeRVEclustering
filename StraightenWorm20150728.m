@@ -111,6 +111,10 @@ save([dataFolder filesep 'alignments'],'alignments');
 
 end
 
+%% 
+fiducialFile=uipickfiles('filterspec',dataFolder);
+fiducialPoints=load(fiducialFile{1});
+fiducialPoints=fiducialPoints.fiducialPoints;
 
 
 %% calculate offset between frame position and zposition
@@ -125,7 +129,7 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 startStack=minStart;
 endStack=max(hiResData.stackIdx);
-destination= 'CLstraight20150728';
+destination= 'CLstraight_20150812';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;
@@ -138,10 +142,12 @@ tic
 show=1;
 
 counter=11;
-[~,pointStatsOut,Vtemplate,side,lastOffset]=...
+[V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
     WormCLStraighten_6(dataFolder,destination,vidInfo,...
     alignments,[],[],zOffset,minStart+10,[],[],show);
-poinStatsFields=fieldnames(pointStatsOut);
+poinStatsFields={'straightPoints','rawPoints','stackIdx','pointIdx',...
+    'Rintensities','Volume','controlPoints'};
+%poinStatsFields=fieldnames(pointStatsOut);
 for iFields=1:length(poinStatsFields)
     field=poinStatsFields{iFields};
     pointStats(counter).(field)=pointStatsOut.(field);
@@ -161,12 +167,12 @@ clusterFolder=['/scratch/tmp/jnguyen/' clusterFolder];
 save([dataFolder filesep 'startWorkspace'])
 
 %% par for through all other frames
-%subfiducialPoints=fiducialPoints(stackRange);
+subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
 
-missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+%missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
 %stackRange2=stackRange(missingIdx);
-parfor counter=1:length(stackRange);
+parfor counter=1:300%length(stackRange);
     if  missingIdx(counter)
     
  %   parforprogress
@@ -176,7 +182,7 @@ display(['Starting'  num2str(iStack,'%3.5d') ])
      try
           tic
 %change indexing for better parfor 
-         ctrlPoints=[];%subfiducialPoints{counter};
+         ctrlPoints=subfiducialPoints{counter};
 [~,pointStatsOut,~,~]=...
     WormCLStraighten_6(dataFolder,destination,vidInfo,...
     alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show);

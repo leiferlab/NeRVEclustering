@@ -1,10 +1,10 @@
-function [wormBW2,wormtop]=WormSegmentHessian3dStraighten(worm,options)
+function [wormBW2,wormtop]=WormSegmentHessian3dStraighten(worm,options,wormtop)
 
 %% Initialize default parameters, all of these can also be fields in options
 thresh1=.03; %initial Threshold
 hthresh=-.0; %threshold for trace of hessian.
 minObjSize=80; % min object size
-maxObjSize=5000; % max object size
+maxObjSize=350; % max object size
 valleyRatio=.75;
 watershedFilter=0; % watershed filter object shapes? is also the value for imhmin
 filterSize=[10,10,4]; %bp filter size low f
@@ -12,12 +12,12 @@ noise=1; % bp filter hi f
 pad=10; % pad to take around each sub blob
 show=0; %show fits (deactivated)
 maxSplit=0; % split objects using regional maxima
-minSphericity=.55; % minimum sphericity for splitting.
+minSphericity=.84; % minimum sphericity for splitting.
 prefilter=0;
 gaussFilter=1;
 
 % parse options to load fields
-if nargin==2
+if nargin>=2
     Fnames=fieldnames(options);
     for i=1:length(Fnames)
         eval([Fnames{i} '= options.' Fnames{i} ';']);
@@ -38,7 +38,9 @@ if ~prefilter
 %wormtop=imtophat(worm,strel('ball',25,25,0)); %top hat filter (SLOW!!!)
 wormtop=bpass3(worm,noise,filterSize);
 else
+    if nargin<3
     wormtop=worm;
+    end
 end
 
 wormtop=normalizeRange(wormtop);
@@ -164,56 +166,8 @@ end
 %%
 Jm=Jm.*subBW;
 Jm=AreaFilter(Jm,minObjSize,[],6);
-
-subCC=bwconncomp(Jm>0,6);
-
-%check size, if size is too large, increase watershedding
-for isubBlob=1:subCC.NumObjects
-    if length(subCC.PixelIdxList{isubBlob})>minObjSize
-        %calculate volume and sphericity for checking before further
-        %watershed
-        blank=false(size(subBW));
-        blank(subCC.PixelIdxList{isubBlob})=true;
-        [blanky,blankx,blankz]=ind2sub(size(blank),subCC.PixelIdxList{isubBlob});
-        
- %       [x,y,z]=ind2sub(size(subBW),subCC.PixelIdxList{isubBlob});
-        subblobP=bwperim(blank(min(blanky):max(blanky),...
-            min(blankx):max(blankx),min(blankz):max(blankz)),26);
-        subblobP=sum(subblobP(:));
-        
-        subblobV=sum(blank(:));
-        subblobS=(pi*36*subblobV.^2)^(1/3)/subblobP;
-        
-        
-        
- %       [coeff,score,latent,~,explianed]=pca([x,y,z]);
-%        sp=sum((latent-circshift(latent,1)).^2)./sum(latent.^2);
-      %  Jm(subCC.PixelIdxList{isubBlob})=length(x);
-        if subblobV>maxObjSize || subblobS<minSphericity
-%            [subblobV>maxObjSize , subblobS<minSphericity]
-            Jw=ones(size(Jm));
-            watershedthresh=.7;
-            while((all(Jw(:))) || ~sum(~Jw(blank))) && watershedthresh>.4
-            Jd=-bwdist(~blank);
-            %Jd=smooth3(Jd,'gaussian',5,2);
-            Jd=imhmin(Jd,watershedthresh);
-            Jd(~blank)=Inf;
-            subsubcc=bwconncomp(imregionalmin(Jd));
-            if subsubcc.NumObjects>1
-            Jw=watershed(Jd);
-            end
-
-            watershedthresh=watershedthresh-.1;
-            end
-            Jm(blank)=~~Jw(blank);
-            
-        end
-    end
-    
-end
-
+Jm=regionSplit(Jm,options);
 % remove small objects in subImage
-Jm=Jm.*subBW;
 Jm=AreaFilter(Jm,minObjSize,[],6);
 %Jm=xyzConvHull(Jm,3);
 % centerPnts=round([subBlobStats.Centroid]);

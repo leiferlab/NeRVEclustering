@@ -5,8 +5,9 @@ function varargout=  stackLoad(stack_name, stack_z_size,Z_scale)
 % default stack_z_size is size of entire stack. If there are no outputs,
 % will display matrix with sliceBrowser.
 [row, col] = size(imread(stack_name, 'tif', 1));
-totalStack=length(imfinfo(stack_name));
 if nargin==1;
+
+totalStack=length(imfinfo(stack_name));
 stack_z_size =totalStack;
 Z_scale=1;         %.6   %scaling between distance in the slide to distance moved in the image
 end
@@ -14,7 +15,10 @@ end
 if nargin==2
 Z_scale=1;         %.6   %scaling between distance in the slide to distance moved in the image
 if isempty(stack_z_size)
-    stack_z_size =totalStack;
+    totalStack=length(imfinfo(stack_name));
+    stack_z_size=totalStack;
+else
+    totalStack=stack_z_size;
 end
 end
 

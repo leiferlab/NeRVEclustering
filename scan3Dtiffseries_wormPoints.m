@@ -131,7 +131,8 @@ imageInfo=imfinfo([rawImFolder filesep imFiles(1).name]);
 setappdata(0,'imFiles',imFiles);
 setappdata(0,'rawImFolder',rawImFolder);
 setappdata(0,'imFolder',rawImFolder);
-
+setappdata(0,'ndigits',nDigits);
+setappdata(0,'fileNameRoot',fileNameRoot);
 %setting slider parameters
 set(handles.slider1,'Min',1)
 
@@ -204,16 +205,20 @@ end
 
 function plotter(hObject,eventdata)
 handles=guidata(get(hObject,'Parent'));
+currentFrame=getappdata(handles.figure1,'currentFrame');
+dataFrame=getappdata(handles.figure1,'dataFrame');
 timeStep=str2double(get(handles.timeStep,'string'));
 smoothWindow=str2double(get(handles.smoothingWindow,'String'));
 startTime=str2double(get(handles.startTime,'String'));
 normalizeFlag=get(handles.normalizeButton,'value');
 displayRange=str2double(get(handles.displayRange,'String'));
+ndigits=getappdata(0,'ndigits');
+fileNameRoot=getappdata(0,'fileNameRoot');
 imFolder=getappdata(0,'imFolder');
 iImage=round(get(handles.slider1,'Value'));
 iSlice=round(get(handles.slider2,'Value'));
+rawImFolder=getappdata(0,'rawImFolder');
 
-set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
 imFiles=getappdata(0,'imFiles');
 if isempty(iSlice)
     iSlice=1;
@@ -221,7 +226,7 @@ if isempty(iSlice)
 end
 
 TrackData=getappdata(handles.figure1,'TrackData');
-imageName=imFiles(iImage).name;
+imageName=[fileNameRoot num2str(iImage,['%6.' num2str(ndigits) 'd'])];
 nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
 nIdx=find(~isnan(nIdx) & ~imag(nIdx));
 set(handles.currentFolder,'string', imageName);
@@ -240,14 +245,18 @@ imageNumber=str2double(imageName(nIdx));
 trackRange={TrackData.stackIdx}';
 trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
 iTrack=find(cell2mat(trackRange)==imageNumber);
-shapeVector='so^d<>';
+set(handles.FrameIdx,'string',['t=' num2str(iTrack,'%6.2f')]);
+if exist([rawImFolder filesep imageName '.tif'],'file') && any(iTrack)
+
+%iTrack=iImage;
+shapeVector='xso^d<>';
         %show only points that have been assigned an ID
 pointsi=TrackData(iTrack).straightPoints;
 switch get(handles.pointShowType,'Value')
     case 1
 pointID=TrackData(iTrack).trackIdx;
     case 2
-pointID=TrackData(iTrack).pointIdx;
+pointID=1:length(TrackData(iTrack).straightPoints);
     case 3
 pointID=TrackData(iTrack).matchIdx;
     case 4
@@ -270,7 +279,6 @@ set(handles.sliceIdx,'string',['z=' num2str(iSlice,'%6.2f')]);
 stackSize=get(handles.slider2,'max');
 
 
-rawImFolder=getappdata(0,'rawImFolder');
 if mod(iImage,2)==1 && get(handles.flipOdd,'Value')
     imSlice=stackSize-iSlice+1;
 elseif mod(iImage,2)==0 && get(handles.flipEven,'Value')
@@ -279,12 +287,12 @@ else
     imSlice=iSlice;
 end
  
-
-baseImg=double(imread([rawImFolder filesep imFiles(iImage).name],'tif',...
+baseImg=double(imread([rawImFolder filesep imageName],'tif',...
     'Index',imSlice));
-hold(handles.axes1,'on')
+
+
 %clear current axes
-arrayfun(@(x) delete(x),get(handles.axes1,'children'))
+%arrayfun(@(x) delete(x),get(handles.axes1,'children'))
 
 setappdata(handles.figure1,'baseImg',baseImg);
 newContrast=getappdata(handles.figure1,'newContrast');
@@ -294,12 +302,52 @@ end
 baseImg(baseImg<newContrast(1)) = newContrast(1);
 baseImg(baseImg>newContrast(2)) = newContrast(2);
 baseImg = (baseImg-newContrast(1))./diff(newContrast);
+hold(handles.axes1,'on')
+objCounter=1;
+while objCounter<length(handles.axes1.Children)
+    if ~isa(handles.axes1.Children(objCounter),'matlab.graphics.primitive.Image')
+        delete(handles.axes1.Children(objCounter))
+    else
+        objCounter=objCounter+1;
+    end
+    
+    
+    
+    
+end
+
+if isempty(getappdata(handles.figure1,'ax'))
 ax1=imagesc(baseImg,'parent',handles.axes1);
+setappdata(handles.figure1,'ax',ax1);
+else
+    ax1=(getappdata(handles.figure1,'ax'));
+  %  ax1=imagesc(baseImg,'parent',handles.axes1);
+
+    set(ax1,'CData',baseImg);
+setappdata(handles.figure1,'ax',ax1);
+end
+
 caxis(handles.axes1,[0 1]);
 
+if get(handles.channelSelect,'Value')==3 || get(handles.channelSelect,'Value')==4
 
+if dataFrame==currentFrame || isempty(dataFrame);
+    ps=getappdata(handles.figure1,'ps');
+else
+    ps=load([rawImFolder filesep 'pointStats' imageName(6:end) '.mat']);
+    ps=ps.pointStats;
+    setappdata(handles.figure1,'ps',ps);
+end
+    baseMask=ps.baseImg(:,:,imSlice);
 
+    contour(handles.axes1,baseMask,'black','LineWidth',.4);
+end
+ if get(handles.channelSelect,'Value')==4
+    baseImg=bwlabeln(ps.baseImg,6);
+    baseImg=baseImg(:,:,imSlice);
+  set(ax1,'CData',baseImg);
 
+ end
     if ~get(handles.showAllPoints,'Value')
 showPoints=abs(pointsi(:,3)-iSlice)<=displayRange & ~isnan(pointID(:,end));
     else
@@ -315,16 +363,26 @@ pointsRegion=pointsRegion(showPoints);
         pointsRegion=ones(1,length(pointID));
     end
     
-pointID=cellstr(num2str(pointID));
-pointID=cellfun(@(x) strrep(x,'   ','-'),pointID,'uniform',0);
-pointID=cellfun(@(x) strrep(x,'NaN',''),pointID,'uniform',0);
+pointIDstr=cellstr(num2str(pointID));
+pointIDstr=cellfun(@(x) strrep(x,'   ','-'),pointIDstr,'uniform',0);
+pointIDstr=cellfun(@(x) strrep(x,'NaN',''),pointIDstr,'uniform',0);
 pointsIdx=0:5;
 for i=1:length(pointsIdx);
     regionSelect=pointsRegion==pointsIdx(i);
+    if any(regionSelect)
 scatter(handles.axes1,pointsi(regionSelect,1),pointsi(regionSelect,2),shapeVector(1));
-text(pointsi(regionSelect,1),pointsi(regionSelect,2),pointID(regionSelect),...
+text(pointsi(regionSelect,1),pointsi(regionSelect,2),pointIDstr(regionSelect),...
     'color','w','parent',handles.axes1);
+    end
 
+if any(pointID(regionSelect)==nselect)
+    nSelectIdx=pointID(regionSelect)==nselect;
+    
+    text(pointsi(nSelectIdx,1),pointsi(nSelectIdx,2),pointIDstr(nSelectIdx),...
+    'color','g','parent',handles.axes1);
+    
+    
+end
 
 end
 if isfield(TrackData(iImage),'errIdx')
@@ -339,6 +397,8 @@ end
 %    text(pointsi(:,1),pointsi(:,2),pointID,...
 %     'color','r','parent',handles.axes1); 
 hold(handles.axes1,'off')
+end
+setappdata(handles.figure1,'dataFrame',currentFrame)
 
 
 
@@ -431,15 +491,9 @@ if isempty(iSlice)
 end
 
 TrackData=getappdata(handles.figure1,'TrackData');
-imageName=imFiles(iImage).name;
-nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
-nIdx=find(~isnan(nIdx) & ~imag(nIdx));
-set(handles.currentFolder,'string', imageName);
-imageNumber=str2double(imageName(nIdx));
 trackRange={TrackData.stackIdx}';
 trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
-iTrack=find(cell2mat(trackRange)==imageNumber);
-
+iTrack=find(cell2mat(trackRange)==iImage);
 
 TrackData=getappdata(handles.figure1,'TrackData');
 try
@@ -465,7 +519,11 @@ neuronIdx=(pointID==neuronId);
 if any(neuronIdx)
         set(handles.trackNeuron,'backgroundColor',[1 1 1]);
 
-iSlice=round(TrackDatai.straightPoints(neuronIdx,3));
+iSliceTemp=round(TrackDatai.straightPoints(neuronIdx,3));
+if ~isnan(iSliceTemp)
+iSlice=iSliceTemp;
+end
+
 else
     set(handles.trackNeuron,'backgroundColor',[1 0 0]);
     
@@ -498,14 +556,9 @@ if isempty(iSlice)
 end
 
 TrackData=getappdata(handles.figure1,'TrackData');
-imageName=imFiles(iImage).name;
-nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
-nIdx=find(~isnan(nIdx) & ~imag(nIdx));
-set(handles.currentFolder,'string', imageName);
-imageNumber=str2double(imageName(nIdx));
 trackRange={TrackData.stackIdx}';
 trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
-iTrack=find(cell2mat(trackRange)==imageNumber);
+iTrack=find(cell2mat(trackRange)==iImage);
 
 
 TrackData=getappdata(handles.figure1,'TrackData');
@@ -531,8 +584,10 @@ end
 neuronIdx=(pointID==neuronId);
 if any(neuronIdx)
         set(handles.trackNeuron,'backgroundColor',[1 1 1]);
-
-iSlice=round(TrackDatai.straightPoints(neuronIdx,3));
+iSliceTemp=round(TrackDatai.straightPoints(neuronIdx,3));
+if ~isnan(iSliceTemp)
+iSlice=iSliceTemp;
+end
 else
     set(handles.trackNeuron,'backgroundColor',[1 0 0]);
     

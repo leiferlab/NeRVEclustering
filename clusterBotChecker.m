@@ -14,6 +14,8 @@ end
 if nargin<3
     stepSize=0;
 end
+         outputName=fileparts(filePath);
+
 load(filePath);
 %%
 %select number of points, 
@@ -73,9 +75,8 @@ comparePointEstimate_z(iCounter,iFrame)=newEstimatePoint(3);
 end
 
 end
-         outputName=fileparts(filePath);
-    outputName=[outputName filesep 'botChecker' num2str(iPointIdx,'%3.5d')];
-    save(outputName,'comparePointEstimate_x','comparePointEstimate_y',...
+    outputNameFile=[outputName filesep 'botChecker' num2str(iPointIdx,'%3.5d')];
+    save(outputNameFile,'comparePointEstimate_x','comparePointEstimate_y',...
         'comparePointEstimate_z','xyzRefAll');
     
     

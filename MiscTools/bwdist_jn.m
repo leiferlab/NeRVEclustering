@@ -2,8 +2,15 @@ function D = bwdist_jn(BW, scale)
 
 %use the regular bwdist with a euclidean distance function with scaling
 %factor in each dimension. By default, the scaling factor is [1,1,1];
+%boundary counts as 0.
+BW=padarray(BW,ones(1,ndims(BW)),1,'both');
 if nargin==1
     D=bwdist(BW);
+    if ndims(BW)==2
+    D=D(2:end-1,2:end-1);
+    elseif ndims(BW)==3
+    D=D(2:end-1,2:end-1,2:end-1);
+    end
     return
 end
 oldsize=size(BW);
@@ -26,11 +33,21 @@ if ndims(BW)==3 && length(scale)==3
 D=bwdist(BW);
 %D=image_resize(D,oldsize(1),oldsize(2),oldsize(3));
 
-D=interp3(YI,XI,ZI,D,Y,X,Z,'*cubic');
+D=interp3(YI,XI,ZI,D,Y,X,Z,'*cubic',0);
+    if ndims(BW)==2
+    D=D(2:end-1,2:end-1);
+    elseif ndims(BW)==3
+    D=D(2:end-1,2:end-1,2:end-1);
+    end
 elseif ismatrix(BW) && length(scale)==2
     BW=(imresize(BW,newsize));
     D=bwdist(BW);
 D=imresize(D,oldsize);
+    if ndims(BW)==2
+    D=D(2:end-1,2:end-1);
+    elseif ndims(BW)==3
+    D=D(2:end-1,2:end-1,2:end-1);
+    end
 else
     error('Binary Image must be 2D or 3D and scale must be length ndims(BW)')
 end
