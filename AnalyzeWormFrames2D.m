@@ -8,8 +8,9 @@
     params.dim=2;
     minTrack=1000;
     params.good=2;
+    params.quiet=1;
 files=dir([trackFolder filesep 'output*.mat']);
-nfiles=min(length(files), 99999);
+nfiles=(length(files));
 % strLength=cellfun(@(x) length(x), {files.name});
 % files=files(strLength==mode(strLength));
 
@@ -17,8 +18,8 @@ trackData=[];
 trackIdx=0;
 %%
 close all
-for imat=round(1:100:length(files))
-    fileName=['output' num2str(imat,'%5.5d') '.mat'];
+for imat=round(1:30:length(files))
+    fileName=['output' num2str(imat,'%5.6d') '.mat'];
       data=load([trackFolder filesep fileName]);
     data=data.outputDataTemp;
     centroids=data.centroids;
@@ -32,7 +33,7 @@ for imat=round(1:100:length(files))
          h.YData=centroids(:,2);
      end
     drawnow
-    pause(2);
+ %   pause(2);
 end
 
 %%
@@ -42,15 +43,18 @@ tracksi=repmat({[]},1,length(matSearch));
 
 parfor i=1:length(matSearch)
     imat=matSearch(i);
-  fileName=[trackFolder filesep 'output' num2str(imat,'%5.5d') '.mat'];
+  fileName=[trackFolder filesep 'output' num2str(imat,'%5.6d') '.mat'];
   if exist(fileName,'file')
       data=load(fileName);
      data=data.outputDataTemp;
     centroids=data.centroids;
-    Gintensities=data.Gintensities;
-    Rintensities=data.Rintensities;
+    Gintensities=data.Gintensities-90;
+    Rintensities=data.Rintensities-90;
     Volume=data.Volume;
-    tracksi{i}=[centroids,Gintensities,Rintensities,Volume,i*ones(size(Volume))];
+    trackIData=[centroids,Gintensities,Rintensities,Volume,i*ones(size(Volume))];
+ %   trackIData=trackIData(Rintensities>50,:);
+    tracksi{i}=trackIData;
+    
    % progressbar((1+imat)/length(files));
    display(['completed frame' num2str(i)]);
   end
@@ -63,8 +67,9 @@ trackData=cell2mat({tracksi{:}}');
 nTimes=length(tracksi);
 nPoints=cellfun(@(x) length(x), tracksi);
 nRef=max(nPoints);
-refIdx=10000;%find(nPoints==nRef);
-refData=tracksi{refIdx};
+%refIdx=find(nPoints==nRef);
+refIdx=100;
+refData=tracksi{refIdx(end)};
 nRef=size(refData,1);
 refData(:,end)=1;
 refData(:,5)=1:length(refData);
@@ -76,7 +81,7 @@ if ~show
     progressbar(0)
 
 end
-
+%%
 offsetAll=[-1 10];
 for i=1:nTimes;
 currentData=tracksi{i};
@@ -137,9 +142,11 @@ if ~mod(i,100)
 %      ylim(minmax(currentCentroids(:,2)'));axis equal;
 end
 else
-        progressbar(i/nTimes)
 
 end
+end
+if ~mod(i,100)
+display(['Finished ' num2str(i)]);
 end
 end
 trackOutput=double(cell2mat(tracksOutputi'));
@@ -172,11 +179,11 @@ for i=1:max(unique(ib))
     b=((trackOutput(ib==i,4)));
     amat(i,t)=a;
     bmat(i,t)=b;
-    good=t>10;
-    t=t(good);a=a(good);
+   % good=t>10;
+    %t=t(good);a=a(good);b=b(good);
     a=normalizeRange(a);
-    b=normalizeRange(b(good));
-    t=t/13;
+    b=normalizeRange(b);
+%    t=t/13;
     if show
              plot(t,a,'g')%./ ...
              hold on
@@ -187,15 +194,123 @@ for i=1:max(unique(ib))
              pause(.1);
      %        hold off;
     end
-end
-
-
     
+    
+end
+%%
 
-         
+    amat(mean(~isnan(bmat),2)<.75,:)=[];
+    bmat(mean(~isnan(bmat),2)<.75,:)=[];
+
+         GvalsAll=amat;
+RvalsAll=bmat;
 
       
-
+%%
     
+    
+    
+    photoBleachingR=zeros(size(RvalsAll));
+photoBleachingG=zeros(size(RvalsAll));
+
+%Fexponent =@(x,xdata) x(1)*exp(x(2)*xdata)+x(3);
+Fexponent=fittype('a*exp(b*x)+c','dependent',{'y'},'independent',...
+    {'x'},'coefficients',{'a', 'b', 'c'});
+fitOptions=fitoptions(Fexponent);
+fitOptions.Lower=[0,-.2,0];
+fitOptions.Upper=[1001,0,10000];
+
+progressbar(0)
+
+
+for i=1:size(RvalsAll,1)
+    
+    try
+        %%
+     
+    progressbar(i/size(RvalsAll,1));
+    xVals=round(linspace(1,size(RvalsAll,2),10000));
+    
+    present=(~isnan(RvalsAll(i,xVals)+GvalsAll(i,xVals))') ;
+    xVals=xVals(present);
+    rVals=RvalsAll(i,xVals)';
+    minWindow=2500;
+    gVals=GvalsAll(i,xVals)';
+    gVals=ordfilt2(gVals,1,true(minWindow,1));
+    rVals=ordfilt2(rVals,1,true(minWindow,1));
+    gVals(1:(minWindow/2))=gVals((minWindow/2));
+    rVals(1:(minWindow/2))=rVals((minWindow/2));
+    gVals(end-(minWindow/2):end)=gVals(end-(minWindow/2));
+    rVals(end-(minWindow/2):end)=rVals(end-(minWindow/2));
+       fitOptions.StartPoint=[1,-.1,min(rVals)];
+
+
+f=fit(xVals,rVals,Fexponent,fitOptions);
+   fitOptions.StartPoint=[1,-.1,min(gVals)];
+
+g=fit(xVals,gVals,Fexponent,fitOptions);
+if f(1)>(max(RvalsAll(i,:))+100)
+    f=fit(xVals,rVals,'poly1');
+if f.p1>0
+    f.p1=0;
+end
+    
+end
+if g(1)>(max(GvalsAll(i,:))+100)
+    g=fit(xVals,gVals,'poly1');
+if g.p1>0
+    g.p1=0;
+end
+
+  %  g.a=0;
+end
+%[f.b g.b]
+% plot(GvalsAll(i,:))
+% hold on
+% plot(g)
+% imagesc([],[0 1000],ethoTrack')
+% alpha(.2);
+% ylim([0 max(GvalsAll(i,:))]);
+% hold off
+% subplot(2,1,2);
+% plot(RvalsAll(i,:))
+% hold on
+% plot(f)
+% imagesc([],[0 1000],ethoTrack')
+% alpha(.2);
+% ylim([0 max(RvalsAll(i,:))]);
+% hold off
+% drawnow
+
+photoBleachingR(i,:)=f((1:size(RvalsAll,2)))-f(size(RvalsAll,2));
+
+photoBleachingG(i,:)=g((1:size(RvalsAll,2)))-g(size(RvalsAll,2));
+    catch
+    end
+    
+
+end
+% photoBleachingR=bsxfun(@minus,photoBleachingR,photoBleachingR(:,end));
+% photoBleachingG=bsxfun(@minus,photoBleachingG,photoBleachingG(:,end));
+Rvalstemp=RvalsAll-photoBleachingR ;
+Rvalstemp(bsxfun(@le,Rvalstemp,quantile(Rvalstemp,.1,2)))=nan;
+Rvalstemp=colNanFill(Rvalstemp')';
+
+Gvalstemp=GvalsAll-photoBleachingG ;
+Gvalstemp(bsxfun(@le,Gvalstemp,quantile(Gvalstemp,.1,2)))=nan;
+Gvalstemp=colNanFill(Gvalstemp')';
+
+%%
+
+RatioVals=Gvalstemp./Rvalstemp;
+RvalsPhotoCorr=Rvalstemp;
+GvalsPhotoCorr=Gvalstemp;
+
+dataFolder=fileparts(trackFolder);
+
+
+%%
+save([dataFolder filesep 'singlePlaneData'],'RatioVals','RvalsPhotoCorr','GvalsPhotoCorr',...
+    'RvalsAll','GvalsAll');
     
     

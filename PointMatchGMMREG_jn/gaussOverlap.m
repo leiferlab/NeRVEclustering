@@ -27,7 +27,7 @@ nPoints=Apoints*Bpoints;
 
 
 if nargin<5
-    limit=inf;
+    limit=50; %should normally be Inf
 end
 if nargin<4
     if size(A,2)>4
@@ -60,32 +60,34 @@ else
      varMat=bsxfun(@plus,scales{1}.^2,(scales{2}').^2);
 end
 
-   
 
-dmatx=bsxfun(@minus,A(:,1),B(:,1)');
-dmaty=bsxfun(@minus,A(:,2),B(:,2)');
-dmatz=bsxfun(@minus,A(:,3),B(:,3)');
-dmat=sqrt(dmatx.^2+dmaty.^2+dmatz.^2);
+A1=A(:,1:3);B1=B(:,1:3);
+A1=permute(A1,[1,3,2]);B1=permute(B1,[3,1,2]);
+dmatAll=bsxfun(@minus,A1,B1);
+dmat2=sum(dmatAll.^2,3);
+
+
 %% overlap of gaussians is a gaussian of the distance with variance as the sum
 % of variances
 
 % gradient of that overlap (d expMat/ dA) is force
 
  %expMat=peaksMat./sqrt(2*pi*varMat).*exp(-1/2 * dmat.^2./varMat);
-  expMat=peaksMat.*exp(-2 * dmat.^2./varMat);
+  expMat=peaksMat.*exp(-2 * dmat2./varMat);
 
-    f=sum(sum(expMat));
-
-expMat(dmat>limit)=0;
+    f=sum(expMat(:));
+if ~isinf(limit)
+expMat(dmat2>limit.^2)=0;
+end
 % fmatx=(1./(2*pi*varMat)).*expMat.*2.*dmatx;
 % fmaty=(1./(2*pi*varMat)).*expMat.*2.*dmaty;
 % fmatz=(1./(2*pi*varMat)).*expMat.*2.*dmatz;
-
-fmatx=-(1./(varMat)).*expMat.*4.*dmatx;
-fmaty=-(1./(varMat)).*expMat.*4.*dmaty;
-fmatz=-(1./(varMat)).*expMat.*4.*dmatz;
-
-g=[sum(fmatx,2),sum(fmaty,2),sum(fmatz,2)];
+% fmatx=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,1);
+% fmaty=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,2);
+% fmatz=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,3);
+expMat2=-(4./(varMat)).*expMat;
+fmat=bsxfun(@times,expMat2,dmatAll);
+g=reshape(sum(fmat,2),Apoints,3);
 
 
 

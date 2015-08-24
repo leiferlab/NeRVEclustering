@@ -30,9 +30,9 @@ zindexer=@(x,s) x./(s)+1;
     options.radius=20;
     options.power=1;
     options.thresh1=.05;
-    options.minObjSize=25;
-    options.maxObjSize=300;
-    options.minSphericity=.87;
+    options.minObjSize=50;
+    options.maxObjSize=400;
+    options.minSphericity=.80;
 options.filterSize=[10 10 4];
 options.power=1;
     options.prefilter=1;
@@ -229,26 +229,26 @@ sumIm=normalizeRange(sumIm);
 segmentChannel2=[];
 zSize=size(segmentChannel,3);
 
-for i=1:zSize;
-    segmentChannel2(:,:,i)=imtophat(-smooth2a(worm3(:,:,i),15,15),se);
-
-end
-segmentChannel2=normalizeRange(segmentChannel2);
+% for i=1:zSize;
+%     segmentChannel2(:,:,i)=imtophat(-smooth2a(worm3(:,:,i),15,15),se);
+% 
+% end
+% segmentChannel2=normalizeRange(segmentChannel2);
 
 
 %segmentChannel4=bsxfun(@times,segmentChannel2,sumIm);
 
-segmentChannel2=(segmentChannel2>graythresh(segmentChannel2(:)));
+%segmentChannel2=(segmentChannel2>graythresh(segmentChannel2(:)));
 
-for i=1:zSize;
-    segmentChannel5(:,:,i)=bwdist(~segmentChannel2(:,:,i));
-
-end
+% for i=1:zSize;
+%     segmentChannel5(:,:,i)=bwdist(~segmentChannel2(:,:,i));
+% 
+% end
 
 %midZplot=double(squeeze(max(max(segmentChannel5,[],1),[],2)));
 
-midZplot=double(squeeze(sum(sum(segmentChannel5>max(segmentChannel5(:))/2,1),2)));
-midZplot=normalizeRange(midZplot(:));
+%midZplot=double(squeeze(sum(sum(segmentChannel5>max(segmentChannel5(:))/2,1),2)));
+%midZplot=normalizeRange(midZplot(:));
 segmentChannel4=normalizeRange(worm3Smooth)>.05;
 midZplot3=zeros(1,zSize);
 for i=1:zSize
@@ -260,8 +260,8 @@ for i=1:zSize
 end
 midZplot3=normalizeRange(midZplot3(:));
 [~,midZ1]=max(smooth(midZplot3,3));
-[~,midZ2]=max(smooth(midZplot,3));
-midZ=(mean([midZ1 midZ2]));
+%[~,midZ2]=max(smooth(midZplot,3));
+midZ=(mean([midZ1]));
 if midZ>zSize/2
     midZ=floor(midZ);
 else
@@ -760,14 +760,18 @@ if maxY(1)>maxY(2)
     locs=[1;locs];
 end
 locs=union(locs,find(maxY>max(maxY(locs))));
+locs=union(locs,find(maxX>500));
 %locs=union(locs,find(maxX>maxPos+30));
 maxY=maxY(locs);
 maxX=maxX(locs);
 wormProjMaxI=wormProjMaxI(locs);
 
 %%
-W=max(0,(maxY-min(outputRadius*.75,mean(find(normalizeRange(sum(wormProj))>.5))))...
-    .*wormProjMaxI);
+W=max(0,(maxY-min(outputRadius*.75,mean(find(normalizeRange(sum(wormProj))>.5)))));
+
+W(W>100)=0;
+    W=W.*wormProjMaxI;
+
 maxX(W==0)=[];
 maxY(W==0)=[];
 W(W==0)=[];
@@ -798,7 +802,7 @@ if show
     close all
     imagesc(wormProj)
     hold on
-    scatter(maxY,maxX);
+    scatter(maxY,maxX,'rx');
     plot(yshift,x);
 end
 

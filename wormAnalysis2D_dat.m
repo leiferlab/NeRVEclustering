@@ -16,12 +16,15 @@ load([regFolder filesep regFile]);
 
 
 
+
+
 %%
 
 %% segment subimages and create masks
 [folderList] = uipickfiles; %select folders to analyze
 se=strel('disk',5);
 %%
+
 %looping through folders to analyze
 for iFolder=1:length(folderList)
     
@@ -85,7 +88,7 @@ mkdir(matFolder);
                     %         worm=temp((rect1(1)+1):rect1(3),(1+rect1(2)):rect1(4));
                     
                     temp_activity=imwarp(temp_activity,t_concord,'OutputView',Rsegment);
-                    temp_activity(padRegion)=median(temp_activity(~padRegion));
+                    %temp_activity(padRegion)=median(temp_activity(~padRegion));
                     %    activity=bpass_jn((temp_activity),1,[20,20]);
                     activity=temp_activity;
                     imsize=size(worm);
@@ -163,7 +166,7 @@ mkdir(matFolder);
         end
         for j=1:length(saveChunkI)
             iImage=saveChunkI(j);
-            outputFile=[imFolder filesep 'stackData' filesep 'output'  num2str(iImage,'%3.5d'),'.mat'];
+            outputFile=[imFolder filesep 'stackData' filesep 'output'  num2str(iImage,'%3.6d'),'.mat'];
             outputDataTemp=outputData(j);
             save(outputFile,'outputDataTemp');
         end

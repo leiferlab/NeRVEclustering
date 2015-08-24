@@ -121,7 +121,7 @@ fiducialPoints=fiducialPoints.fiducialPoints;
 zWave=hiResData.Z;
 zWave=gradient(zWave);
 zWave=smooth(zWave,10);
-[ZSTDcorrplot,lags]=(crosscorr(abs(zWave),hiResData.imSTD,20));
+[ZSTDcorrplot,lags]=(crosscorr(abs(zWave),hiResData.imSTD,40));
 ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
@@ -129,7 +129,7 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 startStack=minStart;
 endStack=max(hiResData.stackIdx);
-destination= 'CLstraight_20150812';
+destination= 'CLstraight_20150813';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;
@@ -141,10 +141,10 @@ pointStats=repmat(struct(),1,length(stackRange));
 tic
 show=1;
 
-counter=11;
+counter=50;
 [V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
     WormCLStraighten_6(dataFolder,destination,vidInfo,...
-    alignments,[],[],zOffset,minStart+10,[],[],show);
+    alignments,[],[],zOffset,minStart+counter,[],[],show);
 poinStatsFields={'straightPoints','rawPoints','stackIdx','pointIdx',...
     'Rintensities','Volume','controlPoints'};
 %poinStatsFields=fieldnames(pointStatsOut);
@@ -167,12 +167,15 @@ clusterFolder=['/scratch/tmp/jnguyen/' clusterFolder];
 save([dataFolder filesep 'startWorkspace'])
 
 %% par for through all other frames
-subfiducialPoints=fiducialPoints(stackRange);
+%subfiducialPoints=fiducialPoints(stackRange);
 %parforprogress(length(stackRange)-1);
-
-%missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+if ~isfield(pointStats(1),'stackIdx')
+    missingIdx=ones(1,length(pointStats));
+else
+missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
+end
 %stackRange2=stackRange(missingIdx);
-parfor counter=1:300%length(stackRange);
+parfor counter=1:500%length(stackRange);
     if  missingIdx(counter)
     
  %   parforprogress
@@ -182,7 +185,7 @@ display(['Starting'  num2str(iStack,'%3.5d') ])
      try
           tic
 %change indexing for better parfor 
-         ctrlPoints=subfiducialPoints{counter};
+         ctrlPoints=[];%subfiducialPoints{counter};
 [~,pointStatsOut,~,~]=...
     WormCLStraighten_6(dataFolder,destination,vidInfo,...
     alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show);

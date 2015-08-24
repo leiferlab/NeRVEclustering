@@ -589,24 +589,24 @@ end
   %  g.a=0;
 end
 %[f.b g.b]
-figure(8)
-subplot(2,1,1);
-plot(GvalsAll(i,:))
-hold on
-plot(g)
-imagesc([],[0 1000],ethoTrack')
-alpha(.2);
-ylim([0 max(GvalsAll(i,:))]);
-hold off
-subplot(2,1,2);
-plot(RvalsAll(i,:))
-hold on
-plot(f)
-imagesc([],[0 1000],ethoTrack')
-alpha(.2);
-ylim([0 max(RvalsAll(i,:))]);
-hold off
-drawnow
+% figure(8)
+% subplot(2,1,1);
+% plot(GvalsAll(i,:))
+% hold on
+% plot(g)
+% imagesc([],[0 1000],ethoTrack')
+% alpha(.2);
+% ylim([0 max(GvalsAll(i,:))]);
+% hold off
+% subplot(2,1,2);
+% plot(RvalsAll(i,:))
+% hold on
+% plot(f)
+% imagesc([],[0 1000],ethoTrack')
+% alpha(.2);
+% ylim([0 max(RvalsAll(i,:))]);
+% hold off
+% drawnow
 
 photoBleachingR(i,:)=f((1:size(RvalsAll,2)))-f(size(RvalsAll,2));
 
@@ -616,13 +616,16 @@ photoBleachingG(i,:)=g((1:size(RvalsAll,2)))-g(size(RvalsAll,2));
     
 
 end
+%%
 % photoBleachingR=bsxfun(@minus,photoBleachingR,photoBleachingR(:,end));
 % photoBleachingG=bsxfun(@minus,photoBleachingG,photoBleachingG(:,end));
 Rvalstemp=RvalsAll-photoBleachingR ;
+
 Rvalstemp(bsxfun(@le,Rvalstemp,quantile(Rvalstemp,.1,2)))=nan;
 Rvalstemp=colNanFill(Rvalstemp')';
 
 Gvalstemp=GvalsAll-photoBleachingG ;
+
 Gvalstemp(bsxfun(@le,Gvalstemp,quantile(Gvalstemp,.1,2)))=nan;
 Gvalstemp=colNanFill(Gvalstemp')';
 

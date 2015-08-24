@@ -15,7 +15,9 @@ if nargin>=2
 else
     options=struct;
 end
-
+options2=options;
+options2.minSphericity=minSphericity*.9;
+options2.maxObjSize=maxObjSize*1.5;
 
 if isstruct(BW)
     cc=BW;
@@ -38,6 +40,7 @@ aspectRatioCheck=Ddiff>max(6,D(:,1)*.7);
 
 sizeCheck=vol>maxObjSize;
 sphereCheck= sphericity<minSphericity;
+%sphereCheck2=vol>maxObjSize*.8 && sphericity<minSphericity*
 check=(aspectRatioCheck' | sphereCheck | sizeCheck) & ...
     vol>minObjSize & sphericity<1;
 
@@ -56,7 +59,7 @@ for iRegion=1:(cc.NumObjects)
         [blankCrop,cropLookup]=imcrop3d(subIm,stats(iRegion).BoundingBox);
         Vsub=squeeze(V(iRegion,:,:));
         Jw=ones(size(blankCrop));
-        while((all(Jw(:))) || ~sum(~Jw(blankCrop))) && watershedthresh>0
+        while((all(Jw(:))) || ~sum(~Jw(blankCrop))) && watershedthresh>.2
             
             
             
@@ -113,19 +116,19 @@ for iRegion=1:(cc.NumObjects)
             subIm(blank)=blank2(blankCrop(:));
             subIm=regionSplit(subIm,options);
                     BW(cc.PixelIdxList{iRegion})=subIm(blank);
-        elseif nObjs==1 && ( aspectRatioCheck(iRegion) || newS<minSphericity)
+        elseif nObjs==1 && ( aspectRatioCheck(iRegion) || newS<minSphericity ||vol(iRegion)>maxObjSize*1.5)
             [blanky,blankx,blankz]=ind2sub(cc.ImageSize,cc.PixelIdxList{iRegion});
             blankCentered=bsxfun(@minus,[blankx blanky blankz],Centroids(iRegion,:));
             %  blankCentered=blankCentered.^2
             blankProj=abs(blankCentered*Vsub([2 1 3],end));
             subIm(cc.PixelIdxList{iRegion}(blankProj<.6))=false;
-                        subIm=regionSplit(subIm,options);
+                        subIm=regionSplit(subIm,options2);
         BW(cc.PixelIdxList{iRegion})=subIm(blank);
         end
         
     end
     
 end
-BW=areaFilter(BW,minObjSize,[],6);
+BW=AreaFilter(BW,minObjSize,[],6);
 BWout=BW;
 

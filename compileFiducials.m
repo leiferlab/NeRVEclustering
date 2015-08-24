@@ -1,6 +1,6 @@
 % select all the fiducial users
 totalPoints=20;
-fiducialFiles=uipickfiles('filterspec','V:\');
+fiducialFiles=uipickfiles();
 %%
 
     data=load(fiducialFiles{1});

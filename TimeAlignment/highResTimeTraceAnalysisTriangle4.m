@@ -37,7 +37,9 @@ imageWave=imageWave<.5;
 %us func gen trigger signal (square) , smooth it out (makes it traingle) and
 %use that to sepearte stacks;
 zTrigger=labJackData(:,3);
-zTrigger=smooth(zTrigger,500);
+zTrigger2=normalizeRange(zTrigger)>.5;
+smoothKernal=median(diff(find(diff(zTrigger2)==1)))/2;
+zTrigger=smooth(zTrigger,smoothKernal);
 zWave=labJackData(:,2);
 
 daqSaveFrame=labJackData(:,5);
@@ -48,10 +50,15 @@ imageSpikes=[0;diff(single(imageWave))>.2]>0;
 
 % for triangles, find up and down
 %sepearte rising (1) and falling(0) part of wave
-zgrad=medfilt1(gradient(zTrigger,5),3)>0;
-zgrad=zgrad(saveSpikes); 
+%zTrigger=normalizeRange(zTrigger);
+%zTrigger=double(zTrigger>.5);
+zgrad=zTrigger(saveSpikes); 
+zgrad=(gradient(zgrad));
+zgrad=abs([0 ;(diff(zgrad))]);
+zgrad=normalizeRange(zgrad)>.1;
+%zgrad=zgrad>max(zgrad/2);
 %cumsum the changes in direction, 
-stackIdx=[0;cumsum(abs(diff(zgrad)))];
+stackIdx=[0;cumsum(zgrad)];
 stackAccum=((accumarray(stackIdx+1,ones(size(stackIdx)))));
 % get rid of stacks with less than 10 images more than 200 (possibly
 % turning off of the zwave);
@@ -59,8 +66,8 @@ badIdx=find(stackAccum<30 |stackAccum>200)-1;
 sOld=stackIdx;
 stackIdx(ismember(sOld,badIdx))=0;
 dstackIdx=diff(stackIdx);
-dstackIdx(abs(dstackIdx)>1)=0;
-stackIdx=[0;cumsum(dstackIdx)];
+%dstackIdx((dstackIdx)>1)=0;
+stackIdx=[0;cumsum(dstackIdx>0)];
 stackIdx(ismember(sOld,badIdx))=0;
 
 imageZ=zWave(saveSpikes);

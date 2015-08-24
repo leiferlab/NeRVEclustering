@@ -1,4 +1,4 @@
-dataFolder='F:\20141212\BrainScanner20141212_145951\';
+dataFolder='V:\20150617\BrainScanner20150617_143621 - GFP - worm1';
 %%
 imSize=[1200 600];
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
@@ -48,7 +48,7 @@ offset=9700;
 
 
 %% load centerline data
-centerline=load([dataFolder filesep 'Behavior Analysis' filesep 'centerline']);
+centerline=load([dataFolder filesep 'BehaviorAnalysis' filesep 'centerlines']);
 
 if isfield(centerline,'offset')
 offset=centerline.offset;
@@ -115,6 +115,8 @@ nTimes=length(hasPoints);
 
 hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
 hasPointsTime=hasPointsTime(hasPoints);
+
+
 hasPointsTime=hasPointsTime-min(hasPointsTime);
 frameTime=hiResData.frameTime;
 
@@ -291,7 +293,7 @@ fclose all;
 
     Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
 frameRange=find(hiResData.stackIdx==stackList(1),1,'first'):find(hiResData.stackIdx==stackList(end),1,'last');
-frameRange=35747:48789;
+frameRange=68000:100000;
 %% prep vidobj for avi files and .dat file
 
 %search in dataFolder for avi's without the HUDS, one with the fluor and
@@ -321,7 +323,7 @@ imageFolder=[dataFolder filesep 'rawVideoFeeds2'];
 mkdir(imageFolder);
 startTime=hiResData.frameTime(frameRange(1));
 
-for iStack=1:length(frameRange)
+for iStack=1:10:length(frameRange)
     tic
   
         %%
@@ -341,7 +343,7 @@ for iStack=1:length(frameRange)
 % end
 % worm=normalizeRange(worm);
 % activity=normalizeRange(activity);
-
+%%
     Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'] );
 
     

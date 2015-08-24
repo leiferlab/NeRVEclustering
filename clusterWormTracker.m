@@ -1,6 +1,6 @@
 function clusterWormTracker(filePath,startIdx)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
- 
+ show=100;
 if nargin==0
     filePath=uipickfiles;
     startIdx=1;
@@ -50,9 +50,9 @@ T2temp=pointStats(j).straightPoints(:,1:3);
 
 [Transformed_M, multilevel_ctrl_pts, multilevel_param] = ...
     gmmreg_L2_multilevel_jn(T2...
-    ,T1, 3, [ 2, 2,.1], ...
-    [0.0008,.00008, 0.000008, 0.0008],[0 0],...
-    [ 0.00001 0.0001 0.001 0.001],0);
+    ,T1,3, [ 2, 2,.5], ...
+    [0.0008,.00008, 0.0000008, 0.0008],[0 0],...
+    [ 0.00001 0.0001 0.001 0.001],show);
 trackInput=[T1temp T1temp  (1:length(T1temp))'  ones(size(T1temp(:,1))); ...
     Transformed_M(:,1:3) T2temp  (1:length(T2temp))' 2*ones(size(Transformed_M(:,1)))];
 TrackOut=nan;
@@ -67,7 +67,7 @@ for iRegions=1:max(idx)
     gmmreg_L2_multilevel_jn(...
     Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:),  3, [ 3, 1,.1], ...
     [0.0008,.00008, 0.00008, 0.08],[0 0],...
-    [ 0.00001 0.0001 0.001 0.001],0);
+    [ 0.00001 0.0001 0.001 0.001],show);
 
 
 
@@ -88,7 +88,7 @@ for iRegions=1:max(idx)
     if any(idx==iRegions)
     trackInputi=trackInput(idx==iRegions,:);
  %   trackInputi(:,3)=trackInputi(:,3)*0;
-    counter=25;
+    counter=18;
     TrackOut=nan;
     while(all(isnan(TrackOut(:))))
         TrackOut=trackJN(trackInputi,counter,param);

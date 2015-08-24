@@ -59,6 +59,8 @@ hasPoints=cellfun(@(x) size(cell2mat(x),1), fiducialPoints,'uniformoutput',0);
 hasPoints=cell2mat(hasPoints);
 hasPoints=find(hasPoints>max(hasPoints)*.9);
 hasPoints=hasPoints(hasPoints<max(BF2stackIdx));
+
+%%
 bfRange=[1 find(diff(BF2stackIdx)==1)];
 hasPoints=hasPoints(hasPoints<length(bfRange));
 hasPoints=min(hasPoints):max(hasPoints);
@@ -544,7 +546,7 @@ Fexponent=fittype('a*exp(b*x)+c','dependent',{'y'},'independent',...
     {'x'},'coefficients',{'a', 'b', 'c'});
 fitOptions=fitoptions(Fexponent);
 fitOptions.Lower=[0,-.2,0];
-fitOptions.Upper=[1000,0,10000];
+fitOptions.Upper=[1001,0,10000];
 
 progressbar(0)
 for i=1:size(RvalsAll,1)
@@ -591,24 +593,22 @@ end
   %  g.a=0;
 end
 %[f.b g.b]
-figure(8)
-subplot(2,1,1);
-plot(GvalsAll(i,:))
-hold on
-plot(g)
-imagesc([],[0 1000],ethoTrack')
-alpha(.2);
-ylim([0 max(GvalsAll(i,:))]);
-hold off
-subplot(2,1,2);
-plot(RvalsAll(i,:))
-hold on
-plot(f)
-imagesc([],[0 1000],ethoTrack')
-alpha(.2);
-ylim([0 max(RvalsAll(i,:))]);
-hold off
-drawnow
+% plot(GvalsAll(i,:))
+% hold on
+% plot(g)
+% imagesc([],[0 1000],ethoTrack')
+% alpha(.2);
+% ylim([0 max(GvalsAll(i,:))]);
+% hold off
+% subplot(2,1,2);
+% plot(RvalsAll(i,:))
+% hold on
+% plot(f)
+% imagesc([],[0 1000],ethoTrack')
+% alpha(.2);
+% ylim([0 max(RvalsAll(i,:))]);
+% hold off
+% drawnow
 
 photoBleachingR(i,:)=f((1:size(RvalsAll,2)))-f(size(RvalsAll,2));
 
