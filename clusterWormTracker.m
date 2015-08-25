@@ -1,6 +1,6 @@
 function clusterWormTracker(filePath,startIdx)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
- show=100;
+ show=0;
 if nargin==0
     filePath=uipickfiles;
     startIdx=1;
@@ -38,7 +38,7 @@ for iIdx=iIdxList%length(TrackData)
     for runIdx=1:length(runIdxList)%outRange;
         %%
         j=runIdxList(runIdx);
-        tic
+        itic=tic;
         try
 P1=pointStats(i);
 P2=pointStats(j);
@@ -50,7 +50,7 @@ T2temp=pointStats(j).straightPoints(:,1:3);
 
 [Transformed_M, multilevel_ctrl_pts, multilevel_param] = ...
     gmmreg_L2_multilevel_jn(T2...
-    ,T1,1, [ 2,.5], ...
+    ,T1,2, [ 2,.5], ...
     [.000008, 0.0000008, 0.0008],[0 0],...
     [ 0.000001 0.0001 0.001 0.001],show);
 trackInput=[T1temp T1temp  (1:length(T1temp))'  ones(size(T1temp(:,1))); ...
@@ -146,7 +146,7 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 %     [T1temp(track1,3),T2temp(track2,3)]','linewidth',4)
 % axis equal
 
-      display(['Finished match' [num2str(runIdx)] ' in ' num2str((toc)) 's']);
+      display(['Finished match' [num2str(runIdx)] ' in ' num2str((toc(itic))) 's']);
 
 
         catch ME
