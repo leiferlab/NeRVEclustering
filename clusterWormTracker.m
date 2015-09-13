@@ -158,7 +158,7 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 %     [T1temp(track1,3),T2temp(track2,3)]','linewidth',4)
 % axis equal
 
-      display(['Finished match' [num2str(runIdx)] ' in ' num2str((toc(itic))) 's']);
+      display(['Finished match' [num2str(j)] ' in ' num2str((toc(itic))) 's']);
 
 
         catch ME
