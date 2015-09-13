@@ -13,7 +13,7 @@ end
 
 load(filePath);
 %%
- matchesPerSegment=300;
+ matchesPerSegment=200;
 matchesPerSegment=matchesPerSegment*nGroups;
 startIdx=floor((nGroups+startIdx)/nGroups);
 itIdx=mod(startIdx,nGroups);
