@@ -1,9 +1,10 @@
-atlas=load('Y:\Jeff\NeuronPositions');
+%load neuron datafile
+atlas=load('Y:\Jeff\NeuronPositions'); %load data from leiferdata
 backNeurons={'AVA','AVE','AIB','RIM','VA1'};
 forwardNeurons={'AVB','VB1'};
 deepVentralNeurons={'DD1','RIV','VA4','VB5','VC6','DA4','RIB','SMD'};
 
-
+%pull out back, forward, and turn neurons Ids
 A=cellfun(@(x)strncmp(x,backNeurons,3),atlas.ID,...
     'uniformOutput',0);
 A=cell2mat(A);
@@ -20,7 +21,7 @@ A=cell2mat(A);
 deepIdx=any(A,2);
 
 
-%%
+%% plot only a select range of neurons
 figure
 select=atlas.y<-2.3 & atlas.x<0.1;
 

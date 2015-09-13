@@ -55,7 +55,7 @@ function scan3Dtiffseries_wormPoints_OpeningFcn(hObject, eventdata, handles, var
 % Choose default command line output for scan3Dtiffseries_wormPoints
 handles.output = hObject;
 hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
-    @plotter);
+    @goForward_Callback);
 setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'SliderStep',[1,1]);
 
@@ -543,6 +543,7 @@ function goForward_Callback(hObject, eventdata, handles)
 % hObject    handle to goForward (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles=guidata(get(hObject,'Parent'));
 
 FPS=getappdata(handles.figure1,'FPS');
 

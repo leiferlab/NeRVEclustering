@@ -143,7 +143,7 @@ show=1;
 
 counter=150;
 [V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
-    WormCLStraighten_6(dataFolder,destination,vidInfo,...
+    WormCLStraighten_7(dataFolder,destination,vidInfo,...
     alignments,[],[],zOffset,minStart+counter,[],[],show);
 poinStatsFields={'straightPoints','rawPoints','stackIdx','pointIdx',...
     'Rintensities','Volume','controlPoints'};
@@ -175,7 +175,7 @@ else
 missingIdx=cellfun(@(x) isempty(x),{pointStats.stackIdx})';
 end
 %stackRange2=stackRange(missingIdx);
-parfor counter=1:500%length(stackRange);
+parfor counter=1:length(stackRange);
     if  missingIdx(counter)
     
  %   parforprogress
@@ -187,7 +187,7 @@ display(['Starting'  num2str(iStack,'%3.5d') ])
 %change indexing for better parfor 
          ctrlPoints=[];%subfiducialPoints{counter};
 [~,pointStatsOut,~,~]=...
-    WormCLStraighten_6(dataFolder,destination,vidInfo,...
+    WormCLStraighten_7(dataFolder,destination,vidInfo,...
     alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show);
 
 for iFields=1:length(poinStatsFields)

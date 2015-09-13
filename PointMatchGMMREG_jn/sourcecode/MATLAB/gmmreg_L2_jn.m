@@ -31,7 +31,7 @@ if (d~=2)&&(d~=3)
     error('The current program only deals with 2D or 3D point sets.');
 end
 
-options = optimset( 'display','off', 'LargeScale','off','GradObj','on', 'TolFun',1e-99, 'TolX',1e-0100, 'TolCon', 1e-10);
+options = optimset( 'display','off', 'LargeScale','off','GradObj','on', 'TolFun',1e-10, 'TolX',1e-010, 'TolCon', 1e-10);
 options = optimset(options, 'outputfcn',@outfun);
 options = optimset(options, 'MaxFunEvals', config.max_iter);
 options = optimset(options, 'GradObj', 'on');
@@ -159,7 +159,7 @@ end
 
 
 function [dist] = L2_distance(model, scene, scale)
-    dist = gaussOverlap(model,model,scale) + gaussOverlap(scene,scene,scale) - 2*gaussOverlap(model,scene,scale);
+    dist = gaussOverlapSelf(model,scale) + gaussOverlapSelf(scene,scale) - 2*gaussOverlap(model,scene,scale);
 end
 
 

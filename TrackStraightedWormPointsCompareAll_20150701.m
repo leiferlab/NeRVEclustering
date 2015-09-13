@@ -3,6 +3,8 @@
 imFolder=uipickfiles%'F:\20141212\BrainScanner20141212_145951\CLstraight_20150525_2';
 imFolder=imFolder{1};
 %%
+dataFolder=fileparts(imFolder);
+%%
 zindexer=@(x,s) x./(s)+1;
 
 options.thresh1=0.05;
@@ -116,7 +118,8 @@ subWMatrix=WMatrixi(nSelectRange,:);
 % transitionMatrixi=normr(transitionMatrixi);
 % subTranstionMatrix=transitionMatrixi(nSelectRange,:);
 normTransitionMatrixi=normr(transitionMatrixi);
-      %%
+      
+%%
 %tcorr2=full(tcorr2);
    % tcorr2=tcorr2.*~speye(size(tcorr2));
     tcorr2(speye(size(tcorr2))>0)=0;
@@ -178,6 +181,7 @@ normTransitionMatrixi=normr(transitionMatrixi);
     caccumN=find(caccum<nTraining*.4|caccum>nTraining*1.2); %bad clusters
     
     c2(ismember(c2,caccumN))=1;
+    c2(isnan(c2))=1;
     caccum=accumarray(c2,ones(size(c))); %how many in each cluster
 
                 [~,iaAccum]=sort(caccum,'descend'); %the rank of each cluster
@@ -285,6 +289,8 @@ for i=1:length(ccell)
 end
 pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
+
+save([dataFolder filesep 'pointStats20150903'],'pointStats2');
 %%
 % pointStats3=pointStats2;
 % %for iIteration=1:3

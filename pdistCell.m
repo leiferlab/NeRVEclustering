@@ -21,6 +21,7 @@ DmatAll=nan(length(pointsIdx),length(pointsIdx),length(pointsCell));
 
 for i=1:length(pointsCell);
     points=pointsCell{i};
+    if ~isempty(points)
     points=points(:,dims);
     
     emptyX=cellfun(@(x) ~isempty(x),points(:,1));
@@ -34,6 +35,7 @@ X0=nan(length(pointsIdx));
    points=cell2mat(points);
    
     Dmat=squareform(pdist(points));
+    end
     if ~isempty(Dmat);
 X0(ic,ic)=Dmat; 
     end

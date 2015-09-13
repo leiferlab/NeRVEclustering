@@ -263,5 +263,5 @@ end
 
 
 %%
-save([dataFolder filesep 'wormFiducialIntensities'],'Rcrop','Gcrop');
+save([dataFolder filesep 'wormFiducialIntensities_bot'],'Rcrop','Gcrop');
 

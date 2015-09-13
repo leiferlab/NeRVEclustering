@@ -31,7 +31,7 @@ imsize=size(worm);
 imsize=imsize([2,1,3]);
 %% subtract pedistal, normalize, filter
 
-worm=pedistalSubtract(worm);
+%worm=pedistalSubtract(worm);
 worm(worm<0)=0;
 
 if ~prefilter

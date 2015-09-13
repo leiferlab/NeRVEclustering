@@ -1,4 +1,4 @@
-function  [f, g]= gaussOverlap(A,B,scales,peaks,limit)
+function  [fself, gself,f2,g2]= gaussOverlapDouble(A,B,scales,peaks,limit)
 
 
 %Jeff N's version of the mex_GaussTransform from GMM mixturemodel code. I'm
@@ -22,6 +22,9 @@ function  [f, g]= gaussOverlap(A,B,scales,peaks,limit)
 % outputs : f total overlap integrals
 %            g gradient in energy of the points in A
    
+% GaussOverlapDouble also calculates the self energy and repulsion, as if
+% you used gaussOverlap twice, once with the model to itself and then again
+% from model to scene, this has a small speed boost.
 Apoints=size(A,1);Bpoints=size(B,1);
 nPoints=Apoints*Bpoints;
 
@@ -35,7 +38,7 @@ if nargin<4
         peaksB=B(:,5);
         peaksA=peaksA/sum(peaksA);
         peaksB=peaksB/sum(peaksB);
-        peaksMat=bsxfun(@times, peaksA,peaksB');
+        peaksMat=bsxfun(@times, peaksA,[peaksA;peaksB]');
 
     else
     peaksMat=1/nPoints;
@@ -43,13 +46,13 @@ if nargin<4
 else
             peaksA=peaks{1};peaksB=peaks{2};
 
-    peaksMat=bsxfun(@times, peaksA,peaksB');
+    peaksMat=bsxfun(@times, peaksA,[peaksA;peaksB]');
 end
 if ~iscell(scales)
         if size(A,2)>3
         scaleA=A(:,4)*scales;
         scaleB=B(:,4)*scales;
-        varMat=bsxfun(@plus,scaleA.^2,(scaleB').^2);
+        varMat=bsxfun(@plus,scaleA.^2,([scaleA; scaleB]').^2);
 
         else
     varMat=2*scales.^2;
@@ -57,13 +60,14 @@ if ~iscell(scales)
     
 else
 
-     varMat=bsxfun(@plus,scales{1}.^2,(scales{2}').^2);
+     varMat=bsxfun(@plus,scales{1}.^2,([scales{1}; scales{2}]').^2);
 end
 
 
 A1=A(:,1:3);B1=B(:,1:3);
-A1=permute(A1,[1,3,2]);B1=permute(B1,[3,1,2]);
-dmatAll=bsxfun(@minus,A1,B1);
+Bp=permute([A1;B1],[3,1,2]);
+A1=permute(A1,[1,3,2]);
+dmatAll=bsxfun(@minus,A1,Bp);
 dmat2=sum(dmatAll.^2,3);
 
 
@@ -77,7 +81,11 @@ dmat2=sum(dmatAll.^2,3);
 if ~isinf(limit)
 expMat(dmat2>limit.^2)=0;
 end
-    f=sum(expMat(:));
+    expMatSelf=expMat(:,1:Apoints);
+    expMat1=expMat(:,Apoints+1:end);
+    
+    fself=sum(expMatSelf(:));
+    f2=sum(expMat1(:));
 
 % fmatx=(1./(2*pi*varMat)).*expMat.*2.*dmatx;
 % fmaty=(1./(2*pi*varMat)).*expMat.*2.*dmaty;
@@ -87,8 +95,8 @@ end
 % fmatz=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,3);
 expMat2=-(4./(varMat)).*expMat;
 fmat=bsxfun(@times,expMat2,dmatAll);
-g=reshape(sum(fmat,2),Apoints,3);
-
+gself=reshape(sum(fmat(:,1:Apoints,:),2),Apoints,3);
+g2=reshape(sum(fmat(:,Apoints+1:end,:),2),Apoints,3);
 
 
 

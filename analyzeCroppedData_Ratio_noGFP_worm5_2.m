@@ -704,10 +704,15 @@ end
 X0=X0(~rejects,:);
 Y0=Y0(~rejects,:);
 %%
+%make distance matrix, 
 try
 DmatAll=pdistCell(fiducialPoints(hasPoints),find(~rejects),2);
-DmatAll=nanmean(DmatAll,3);
-
+DmatMean=nanmean(DmatAll,3);
+DmatSTD=nanmean(DmatAll,3);
+ZmatAll=bsxfun(@minus,DmatAll,DmatMean);
+ZmatAll=bsxfun(@rdivide,ZmatAll,DmatSTD);
+Zmat2=sort(ZmatAll,2,'descend');
+Zmat2=Zmat2(:,1:10,:);
 
 corrEdge=-1:.1:1;
 dEdge=0:10:370;

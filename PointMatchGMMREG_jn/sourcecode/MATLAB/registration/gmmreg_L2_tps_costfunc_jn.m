@@ -63,8 +63,7 @@ if any(fiducial_indices)
 else
 end
 %JN: just usiung all points for now
-[f1, g1] = gaussOverlap(model,model,scale);
-[f2, g2] = gaussOverlap(model,scene,scale);
+[f1, g1, f2, g2]=gaussOverlapDouble(model,scene,scale);
 non_fiducial_g = 2*g1 - 2*g2; %calculate the non-fiducial gradient
 
 g = non_fiducial_g(:,1:3); %the gradient array returned will be the same size as model, so initialize it as model

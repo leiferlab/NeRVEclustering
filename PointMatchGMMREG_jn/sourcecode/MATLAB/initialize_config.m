@@ -17,7 +17,7 @@ end
 config.scale = power(det(model'*model/n), 1/(2^d));
 config.display = showFlag;
 config.init_param = [ ];
-config.max_iter = 500;
+config.max_iter = 400;
 config.normalize = 0;
 config.fiducial_indices = fiducial_indices;
 config.spring_constant = spring_constant;

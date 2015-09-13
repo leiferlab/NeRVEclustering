@@ -1,5 +1,5 @@
 
-function [V,pointStats,Vproj,side,xyOffset2,wormBW2]=WormCLStraighten_6(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show)
+function [V,pointStats,Vproj,side,xyOffset2,wormBW2]=WormCLStraighten_7(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show)
 
 %use different alignment than initial version, no need to crop after
 %transformation
@@ -21,8 +21,9 @@ end
 
 try
 %% initial parameters
-outputRadius=127.5000;
-outputLength=400;
+outputRadius=63.5;
+outputRadiusZ=63.5;
+outputLength=300;
 CLsearchWindow=25;
 zRatio=1/3;
 zindexer=@(x,s) x./(s)+1;
@@ -39,29 +40,10 @@ options.power=1;
     options.hthresh=0;
     
 %% set up different kernals
-% gaussKernal=gausswin(30);
-% gaussKernal=convnfft(gaussKernal,gaussKernal');
-% gaussKernal=convnfft(gaussKernal,permute(gausswin(3),[2,3,1]));
-% gaussKernal=gaussKernal/sum(gaussKernal(:));
-% 
+
  gaussKernal2=gausswin(200);
  gaussKernal2=convnfft(gaussKernal2,gaussKernal2');
-se=strel('disk',50);
 
-
-gaussKernal50=gausswin(30);
-gaussKernal50=convnfft(gaussKernal50,gaussKernal50');
-%gaussKernal50=del2(gaussKernal50);
-gaussKernal50=gradient(gaussKernal50)';
-gaussKernal50(gaussKernal50<0)=gaussKernal50(gaussKernal50<0)*10;
-%gaussKernal50(gaussKernal50>0)=gaussKernal50(gaussKernal50>0)*3;
-
-sphereKernal=gausswin(80);
-sphereKernal=convnfft(sphereKernal,sphereKernal');
-sphereKernal=convnfft(sphereKernal,permute(gausswin(20),[2,3,1]));
-sphereKernal=sphereKernal/max(sphereKernal(:));
-sphereKernal(sphereKernal>.5)=0;
-sphereKernal(sphereKernal>.2)=1;
 
 
 Sfilter=max(gaussKernal2(:))-gaussKernal2;
@@ -98,21 +80,24 @@ aviFiles={aviFiles.name}';
 aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
 if length(aviFiles)==2
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
-    behaviorMovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
+    %behaviorMovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
     fluorMovie=[dataFolder filesep aviFiles{aviFluorIdx}];
 else
     display('Select avi files, behavior and then low mag fluor');
     movies=uipickfiles('FilterSpec',dataFolder);
-    behaviorMovie=movies{1};
+    %behaviorMovie=movies{1};
     fluorMovie=movies{2};
 end
 
-behaviorVidObj = VideoReader(behaviorMovie);
+%behaviorVidObj = VideoReader(behaviorMovie);
 fluorVidObj= VideoReader(fluorMovie);
 
 
 
 %% set up high mag videos
+rows=1200;
+cols=600;
+nPix=rows*cols;
 if isempty(vidInfo)
 
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
@@ -123,9 +108,7 @@ else
     
 end
 
-rows=1200;
-cols=600;
-nPix=rows*cols;
+
 
 
 %% set up timing alignments and lookups
@@ -134,8 +117,6 @@ fluorIdxList=1:length(fluorAll.frameTime);
 bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'linear');
 fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'linear');
 
-[hiImageIdx,ib]=unique(hiResData.imageIdx);
-hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
 
 
 
@@ -169,12 +150,9 @@ centerline=centerline.(CLfieldNames{CLfieldIdx});
     hiResIdx=find(hiResData.stackIdx==iStack)+ zOffset;
     zRange=hiResData.Z(hiResIdx-zOffset);
     
-          bfIdx=round(bfIdxLookup(hiResIdx));
             fluorIdx=round(fluorIdxLookup(hiResIdx));
          fluorIdxRange=[min(fluorIdx) max(fluorIdx)];
-        bfIdxRange=[min(bfIdx) max(bfIdx)];
-[~,ia,ib]=unique(fluorIdx);
-          fluorFrame=read(fluorVidObj,fluorIdxRange);
+               fluorFrame=read(fluorVidObj,fluorIdxRange);
 %             bfFrame = read(behaviorVidObj,bfIdxRange);
              fluorFrame=squeeze(fluorFrame(:,:,1,:));
 %             bfFrame=squeeze(bfFrame(:,:,1,:));
@@ -192,25 +170,17 @@ cropFlag=1;
              else 
                  cropFlag=0;
              end
-%  fluorFrame2=double(fluorFrame2(:,:,ib));   
-%  
-%  bfFrame=double(bfFrame(:,:,ib));           
-%             
 
-
-%    inPlaneFiducials=currentFiducials(ib==i,:);
-    
     status=fseek(Fid,2*(hiResIdx(1))*nPix,-1);
     pixelValues=fread(Fid,nPix*(length(hiResIdx)),'uint16',0,'l');
     hiResImage=reshape(pixelValues,rows,cols,length(hiResIdx));
     
     %% crop and align hi mag images
     segmentChannel=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
-    activityChannel=hiResImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
-    activityChannel=imwarp(activityChannel,S2AHiRes.t_concord,'OutputView',S2AHiRes.Rsegment);
     segmentChannel=pedistalSubtract(segmentChannel);
-    activityChannel=pedistalSubtract(activityChannel);
-    
+%     activityChannel=hiResImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
+%     activityChannel=imwarp(activityChannel,S2AHiRes.t_concord,'OutputView',S2AHiRes.Rsegment);
+%     activityChannel=pedistalSubtract(activityChannel);
 %ctrlPoints=fiducialPoints{iStack};
 
 
@@ -220,35 +190,10 @@ cropFlag=1;
    worm2=segmentChannel;     
 worm3=bpass3(worm2,.5,[20 20 3]);
 worm3Smooth=smooth3(worm3,'box',[15,15,1]);
-segmentChannel3=convnfft(worm3,sphereKernal,'same');
 
-sumIm=normalizeRange(nanmean(worm2,3));
-sumIm=smooth2a(sumIm,15,15);
-sumIm=normalizeRange(sumIm);
 
-segmentChannel2=[];
 zSize=size(segmentChannel,3);
 
-% for i=1:zSize;
-%     segmentChannel2(:,:,i)=imtophat(-smooth2a(worm3(:,:,i),15,15),se);
-% 
-% end
-% segmentChannel2=normalizeRange(segmentChannel2);
-
-
-%segmentChannel4=bsxfun(@times,segmentChannel2,sumIm);
-
-%segmentChannel2=(segmentChannel2>graythresh(segmentChannel2(:)));
-
-% for i=1:zSize;
-%     segmentChannel5(:,:,i)=bwdist(~segmentChannel2(:,:,i));
-% 
-% end
-
-%midZplot=double(squeeze(max(max(segmentChannel5,[],1),[],2)));
-
-%midZplot=double(squeeze(sum(sum(segmentChannel5>max(segmentChannel5(:))/2,1),2)));
-%midZplot=normalizeRange(midZplot(:));
 segmentChannel4=normalizeRange(worm3Smooth)>.05;
 midZplot3=zeros(1,zSize);
 for i=1:zSize
@@ -261,7 +206,7 @@ end
 midZplot3=normalizeRange(midZplot3(:));
 [~,midZ1]=max(smooth(midZplot3,3));
 %[~,midZ2]=max(smooth(midZplot,3));
-midZ=(mean([midZ1]));
+midZ=(mean(midZ1));
 if midZ>zSize/2
     midZ=floor(midZ);
 else
@@ -269,32 +214,7 @@ else
 end
 
     
-%%
 
-%midZplot=squeeze(mean(nanmean(segmentChannel4,1),2));
-% %midZplot3=squeeze(mean(nanmean(segmentChannel3,1),2));
-% %midZplot3=normalizeRange(midZplot3);
-% pl=smooth(midZplot,1);
-% pl=normalizeRange(pl);
-% [pks,locs,w,p] = findpeaks(pl);
-% if any(pks>.75)
-% locs(pks<.75)=[];
-% pks(pks<.75)=[];
-% end
-% %pks=midZplot3(locs);
-% if any(~(locs<10 |locs>30))
-% pks(locs<10 |locs>30)=0;
-% end
-% 
-% 
-% %midZ=locs(pks==max(pks));
-% 
-%     [~,locPos]=max(pks);
-%     midZ=locs(locPos);
-% 
-% if isempty(midZ)
-%     midZ=round(size(segmentChannel,3)/2);
-% end
 
 %% try fix centerline alignemnt by looking at lowmag fluor and finding a correction offset
 fluorFrame3=normalizeRange(double(fluorFrame2));
@@ -308,11 +228,11 @@ hiResProj=normalizeRange(sum(segmentChannel,3));
 fluorProj=normalizeRange(fluorProj);
 fluorProj2=convnfft(fluorProj,Sfilter2,'same');
 %fluorProj2=smooth2a(fluorProj,21,21);
-    corrIm=xcorr2(fluorProj,hiResProj);
-    [CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
-CLoffsetX=CLoffsetX-rect1(3)+rect1(1);
-CLoffsetY=CLoffsetY-rect1(4)+rect1(2);
 
+corrIm=conv2(fluorProj,rot90(hiResProj,2),'same');
+[CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
+CLoffsetX=CLoffsetX-round(size(fluorProj,2)/2);
+CLoffsetY=CLoffsetY-round(size(fluorProj,1)/2);
 
 fluorProj2(fluorProj2<0)=0;
 hiResIdxStretch=min(hiResIdx)-CLsearchWindow:max(hiResIdx)+CLsearchWindow;
@@ -322,8 +242,7 @@ CL=centerline(:,:,CLIdx);
 
 
 CLIdx=CLIdx-min(CLIdx)+1;
-ia2=accumarray(CLIdx,1:length(CLIdx),[],@mean);
-[CLIdxUnique,ia,ic]=unique(CLIdx);
+[~,ia,ic]=unique(CLIdx);
 
 CL2=[];
 [CL2(:,2,:),CL2(:,1,:)]=transformPointsInverse(lowResFluor2BF.t_concord,CL(:,2,:),CL(:,1,:));
@@ -337,7 +256,7 @@ end
 
 CL2X=reshape(CL2(:,1,CLsearchWindow:end-CLsearchWindow),[],1,1);
 CL2Y=reshape(CL2(:,2,CLsearchWindow:end-CLsearchWindow),[],1,1);
-[xyOffset2,fval]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),lastOffset);
+[xyOffset2,~]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),lastOffset);
 %limit translation fix
 % lastOffset=xyOffset3;
 %   lastOffset(lastOffset>50)=50;
@@ -367,7 +286,8 @@ end
 %
 % CL3all=CL2(1:30,:,:);
 % CL3all=interp1(CL3all,linspace(1,size(CL3all,1),300),'pchip');
-CL3all=[];
+CLlengthRange=2500;
+CL3all=zeros(CLlengthRange,2,size(CL2,3));
 
 %reinterpolate centerline by length
 
@@ -376,7 +296,7 @@ for iCL=1:size(CL2,3)
     CL3temp=CL2(:,:,iCL);
     s=[0; cumsum(squeeze(sqrt(sum((diff(CL3temp,[],1)).^2,2))))];
 %CL3temp=interp1(s,CL3temp,0:10:40000);
-CL3temp=interp1(s,CL3temp,0:1:2500,'linear','extrap');
+CL3temp=interp1(s,CL3temp,1:1:CLlengthRange,'linear','extrap');
     CL3all(:,:,iCL)=CL3temp;
     if show
         if iCL==1
@@ -394,14 +314,14 @@ end
 %% align centerlines parameterizations by correlation
 % align centerlines using plotMatch (correlations) to account for
 % centerline sliding
-shiftVec=0;
+shiftVec=zeros(1,length(ia)-1);
 for i=2:length(ia);
     CL1temp=CL3all(:,:,ia(i));
     CL2temp=CL3all(:,:,ia(i-1));
   %  CL1temp=bsxfun(@minus,CL1temp,mean(CL1temp));
    % CL2temp=bsxfun(@minus,CL2temp,mean(CL2temp));
     
-    [corrtemp,r]=plotMatch(CL1temp,CL2temp,1250);
+    [corrtemp,r]=plotMatch(CL1temp,CL2temp,600);
     %[shift,~]=find(corrtemp==max(corrtemp(:)));
     [~,shift]=min(corrtemp);
     shiftVec(i)=r(shift);
@@ -411,11 +331,11 @@ end
 shiftVec=cumsum(shiftVec);
 shiftVec=shiftVec-shiftVec(round(length(shiftVec)/2));
 
-CL3all2=[];
+CL3all2=zeros(CLlengthRange+501,2,size(CL2,3));
 
 for iCL=1:size(CL2,3)
     CL3temp=CL3all(:,:,iCL);
-CL3temp=interp1(CL3temp,shiftVec(ic(iCL))+(-500:2500),'linear','extrap');
+CL3temp=interp1(CL3temp,shiftVec(ic(iCL))+(-500:CLlengthRange),'linear','extrap');
     CL3all2(:,:,iCL)=CL3temp;
     
     if show
@@ -431,24 +351,30 @@ CL3temp=interp1(CL3temp,shiftVec(ic(iCL))+(-500:2500),'linear','extrap');
     
 end
  % center around head portion of worm that is in image
-inImage=sum(all(CL3all2>0 & CL3all2<600,2),3);
-inImage=inImage>max(inImage)/2;
-cc_inImage=bwconncomp(inImage);
+% inImage=sum(all(CL3all2>0 & CL3all2<600,2),3);
+% inImage=inImage>max(inImage)/2;
+% cc_inImage=bwconncomp(inImage);
 
-inImageRange=round(mean(cc_inImage.PixelIdxList{1}))+(-outputLength:outputLength);
+CLcenter=sum(bsxfun(@minus, CL3all2,rect1(3:4)/2).^2,2);
+[~,CLcenter]=min(CLcenter,[],1);
+
+
+inImageRange=mean(CLcenter(:))+(-outputLength:outputLength);
+
+
 %%
 CL3all=interp1(CL3all2,inImageRange,'*linear','extrap');
 
 %xyzs_avg = ActiveRevolutionFit(im, cline_para, CL3);
 
-midIm=normalizeRange(mean(worm2(:,:,midZ+[-1:1]),3));
+midIm=normalizeRange(mean(worm2(:,:,midZ+(-1:1)),3));
 midIm=double(midIm);
 midIm=bpass(midIm,2,[20,20]);
 midImS=imfilter(midIm,Sfilter);
 %midImS2=imfilter(midIm,Sfilter2);
 
 
-%%
+%% more xy fixes
 %minSearch=zeros(size(CL3all,1),length(ia));
 CL3allX=(CL3all(:,1,CLsearchWindow:end-CLsearchWindow));
 CL3allY=(CL3all(:,2,CLsearchWindow:end-CLsearchWindow));
@@ -458,43 +384,6 @@ minSearch=squeeze(nansum(minSearch,1));
 minY=find(minSearch==max(minSearch));
 midZCL=round(mean(minY))+CLsearchWindow;
 CL3=CL3all(:,:,midZCL);
-%midImS2=(midImS);
-%midImS2(midImS2<0)=0;
-% [xyOffset3,fval]=fminsearch(@(x) CLsearch(smooth2a((midImS2),55,55),CL3(:,1)+x(1),CL3(:,2)+x(2),show),xyOffset3);
-% 
-% [xyOffset3,fval]=fminsearch(@(x) CLsearch((midImS),CL3(:,1)+x(1),CL3(:,2)+x(2),show),xyOffset3);
-
-
-
-
-%%
-minSearch2=[];
-close all
-lowLevel=max(1,midZ-20);
-hiLevel=min(size(segmentChannel3,3),midZ+20);
-for i=1:size(CL3all,3)
-    minSearch2(i)=CLsearch(segmentChannel3(:,:,lowLevel),CL3all(:,1,i),...
-        CL3all(:,2,i),show);
-    
-%         minSearch(i)=CLsearch(sum(segmentChannel2,3),CL3(:,1)-CL3(i,1)+offset2(1),...
-%         CL3(:,2)-CL3(i,2)+offset2(2),1);
-end
-minSearch2=smooth(minSearch2,4);
-
-minZCL=find(minSearch2==min(minSearch2(1:round(size(CL3all,3)/2))),1,'first');
-minZCL=min(minZCL,midZCL);
-%%
-for i=1:size(CL3all,3)
-    minSearch2(i)=CLsearch(segmentChannel3(:,:,hiLevel),CL3all(:,1,i),...
-        CL3all(:,2,i),show);
-    
-%         minSearch(i)=CLsearch(sum(segmentChannel2,3),CL3(:,1)-CL3(i,1)+offset2(1),...
-%         CL3(:,2)-CL3(i,2)+offset2(2),1);
-end
-minSearch2=smooth(minSearch2,4);
-maxZCL=find(minSearch2==min(minSearch2(round(size(CL3all,3)/2):end)),1,'first');
-maxZCL=max(maxZCL,midZCL);
-
 
 
 %%
@@ -599,7 +488,6 @@ for iSlice=1:size(worm2,3);
     
     imagesc(worm2(:,:,iSlice));colormap hot
 hold on
-    clSlice=interp1([lowLevel midZ hiLevel],[minZCL midZCL maxZCL], iSlice,'linear','extrap');
     clSlice=CLsearchWindow+iSlice;
     clSlice=round(clSlice);
     clSlice(clSlice<1)=1;
@@ -620,7 +508,7 @@ end
  %% straighten interpolation
 
         [J,K]=meshgrid(-outputRadius:1/pixel_interp:outputRadius,...
-            -outputRadius:1/pixel_interp:outputRadius);
+            -outputRadiusZ:1/pixel_interp:outputRadiusZ);
 
 
         zslice=bsxfun(@times,J,permute(Nv(:,3,1),[3,2,1]))*zRatio+...
@@ -633,26 +521,21 @@ zLevels=((zslice(:,1,1)));
 if sign(nanmean(diff(zRange)))==-1
     
     zRange2=unique(cummin(zRange));
-    zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadius+1))/10);
+    zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadiusZ+1))/10);
 zInterp=flipud(zInterp);
   zLevels=flipud(zLevels);  
 else
     zRange2=unique(cummax(zRange));
 
-    zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadius+1))/10);
+    zInterp=interp1(zRange2-zRange2(midZ),1:length(zRange2),zLevels/10-zLevels(round(outputRadiusZ+1))/10);
 
 end
 
-% zInterp
-% outputRadius
-% Bv
-% length(Bv)
-%zInterp=permute(zInterp,[2,3,1]);
+
 zslice=repmat(zInterp,1,2*outputRadius+1,size(Bv,1));
 
 zLevels(zLevels<min(ia))=min(ia);
 zLevels(zLevels>size(worm2,3))=size(worm2,3);
-%zLevels=interp1([lowLevel midZ hiLevel],[minZCL midZCL maxZCL], zLevels,'linear','extrap');
 zLevels=zLevels+CLsearchWindow;
 CLzLevels=zLevels;
 % zLevels=interp1(ia,CLIdxUnique,zLevels,'linear','extrap');
@@ -678,7 +561,7 @@ xslice=permute(xslice,[3,2,1]);
 yslice=permute(yslice,[3,2,1]);
 zslice=permute(zslice,[3,2,1]);
 
-        
+%%
         %use points to interpolate, XY in matlab is messed me up.. but this
         %works
         %if using gradient, convolve stack with sobel operator in each
@@ -689,7 +572,7 @@ zslice=permute(zslice,[3,2,1]);
  xslice=round(xslice);yslice=round(yslice);zslice=round(zslice);
  inImageMap=xslice>0 & zslice>0 & yslice>0 & xslice<size(worm2,2) &...
      yslice<size(worm2,1) &  zslice<size(worm2,3);
- inImageMapIdx=sub2ind(size(worm2),(yslice(inImageMap)),...
+ inImageMapIdx=sub2ind_nocheck(size(worm2),(yslice(inImageMap)),...
      (xslice(inImageMap)),(zslice(inImageMap)));
  V=zeros(size(xslice));
  V(inImageMap)=worm2(inImageMapIdx);
@@ -722,105 +605,27 @@ temp=imwarp(cat(3,xslice(:,:,iSlice),yslice(:,:,iSlice)),R,tformAll{iSlice},'nea
   V=Vsmooth;
  Vsmooth(inImageMap)=worm3(inImageMapIdx);
   V(inImageMap)=worm2(inImageMapIdx);
-% Asmooth=zeros(size(xslice));
-%  Asmooth(inImageMap)=activityChannel(inImageMapIdx);
 
    %%
    
 
-%V2=normalizeRange(V)-normalizeRange(A);
-%Vproj2=squeeze(nansum(V2,3));
 Vproj=squeeze(nansum(V,3));
 
-%% fit nervchord and try to align it
 
-
-wormProj=smooth2a(max(V(:,:,round(outputRadius+(-100:100))),[],3),1,1);
-wormProj=normalizeRange(wormProj);
-
-wormProjMask=wormProj>.05;
-wormProjMask=imclearborder(wormProjMask);
-wormProj=wormProj.*(wormProj>.07).*(wormProjMask);
-%wormProj(:,1:end/2)=0;
-
-%%
-wormProjMax=imregionalmax(wormProj);
-wormProjMaxI=wormProj(wormProjMax);
-%wormProjMaxI(wormProjMaxI>.8)=0;
-[maxX,maxY]=find(wormProjMax);
-[maxX,ia2]=sort(maxX);
-maxY=maxY(ia2);
-wormProjMaxI=wormProjMaxI(ia2);
-maxPos=find(sum(wormProj,2)==max(sum(wormProj,2)));
-wormProjMaxI(maxX>(maxPos-20) & maxX<(maxPos+20))=0;
-wormProjMaxI(maxX>(maxPos+outputLength) | maxX<(maxPos-outputLength))=0;
-
-[~,locs]=findpeaks(maxY,'MinPeakHeight',outputRadius*0);
-if maxY(1)>maxY(2)
-    locs=[1;locs];
-end
-locs=union(locs,find(maxY>max(maxY(locs))));
-locs=union(locs,find(maxX>500));
-%locs=union(locs,find(maxX>maxPos+30));
-maxY=maxY(locs);
-maxX=maxX(locs);
-wormProjMaxI=wormProjMaxI(locs);
-
-%%
-W=max(0,(maxY-min(outputRadius*.75,mean(find(normalizeRange(sum(wormProj))>.5)))));
-
-W(W>100)=0;
-    W=W.*wormProjMaxI;
-
-maxX(W==0)=[];
-maxY(W==0)=[];
-W(W==0)=[];
-if ~isempty(maxX)
-if nnz(wormProjMaxI)>4 
-f=fit(maxX,maxY,'poly3','Weights',W);
-
-polyCoeff=[f.p1 f.p2 f.p3 f.p4];
-polyCoeff = polyder(polyCoeff);
-polyRoots=roots(polyCoeff);
-polyCritPoints=f(polyRoots);
-%[p,S,mu] = polyfit(maxX,maxY,2);
-x=1:(2*outputLength+1);
-yshift=f(x);
-if any(isnan(yshift)) 
-        yshift=ones(2*outputLength+1,1);
-
-end
-else
-    yshift=ones(2*outputLength+1,1);
-end
-
-end
-yshift(yshift>(outputRadius*2))=(outputRadius*2);
-yshift(yshift<(outputRadius*.1))=(outputRadius*.1);
-
-if show
-    close all
-    imagesc(wormProj)
-    hold on
-    scatter(maxY,maxX,'rx');
-    plot(yshift,x);
-end
-
-
-%%
+%% Correlation algin with template image
 
 if ~isempty(Vtemplate)
-    yshift=yshift-yshift(maxPos);
-
-    xIm=xcorr2(Vproj,Vtemplate);
+% repalced xcorr with conv2 for small speed boost, search area is decreased
+xIm=conv2(Vproj,rot90(Vtemplate,2),'same');
 [xlag,ylag]=find(xIm==max(xIm(:)));
-lags=[xlag,ylag]-size(Vtemplate);
+lags=[xlag,ylag]-round(size(Vproj)/2);
+
 [ndX,ndY,ndZ]=ndgrid(1:size(V,1),1:size(V,2),1:size(V,3));
 ndX=ndX+lags(1);
-ndY=bsxfun(@plus,ndY,circshift(yshift,-lags(1)))+lags(2);
+ndY=ndY+lags(2);
 ndX=round(ndX);ndY=round(ndY);
 inImage=(ndY>0 & ndX>0 & ndX<(2*outputLength+1) & ndY<(2*outputRadius+1));
-inImageIdx=sub2ind(size(V),ndX(inImage),ndY(inImage),ndZ(inImage));
+inImageIdx=sub2ind_nocheck(size(V),ndX(inImage),ndY(inImage),ndZ(inImage));
 temp=zeros(size(V));
 temp(inImage)=V(inImageIdx);
 V=temp;
@@ -834,36 +639,7 @@ temp(inImage)=Vsmooth(inImageIdx);
 Vsmooth=temp;
 
 else
-wormWidth=wormProj(maxPos,:);
-wormWidth=normalizeRange(wormWidth);
-wormWidth=abs(diff(minmax(find(wormWidth>graythresh(wormWidth)))));
-yshift=yshift-outputRadius-wormWidth/2;
-
-%yshift=-yshift;
-    lags=[maxPos-outputLength,0];
-    [ndX,ndY,ndZ]=ndgrid(1:size(V,1),1:size(V,2),1:size(V,3));
-    
-ndX=ndX+lags(1);
-ndY=bsxfun(@plus,ndY,circshift(yshift,-lags(1)))+lags(2);
-ndX=round(ndX);ndY=round(ndY);
-inImage=(ndY>0 & ndX>0 & ndX<(2*outputLength+1) & ndY<(2*outputRadius+1));
-inImageIdx=sub2ind(size(V),ndX(inImage),ndY(inImage),ndZ(inImage));
-temp=zeros(size(V));
-temp(inImage)=V(inImageIdx);
-V=temp;
-temp(inImage)=xslice(inImageIdx);
-xslice=temp;
-temp(inImage)=yslice(inImageIdx);
-yslice=temp;
-temp(inImage)=zslice(inImageIdx);
-zslice=temp;
-temp(inImage)=Vsmooth(inImageIdx);
-Vsmooth=temp;
-
-
-    Vproj=squeeze(nansum(V,3));
-
-    Vtemplate=Vproj;
+Vproj=squeeze(nansum(V,3));
 end
 
 
@@ -873,17 +649,10 @@ end
 
     V(isnan(V))=0;
     Vsmooth(isnan(Vsmooth))=0; % option, to use presmoothed version, much faster but may not be a s good
-%     if mod(iStack,2)==0;
-%         image=flip(image,3);
-%         mapImage=flip(mapImage,3);
-%         Fpoints2(:,3)=201-Fpoints2(:,3);l
-%         
-%     end
-    
     imsize=size(V);
-    [wormBW2,wormtop]=WormSegmentHessian3dStraighten(V,options,Vsmooth);
+    [wormBW2,~]=WormSegmentHessian3dStraighten(V,options,Vsmooth);
      %%
-    BWplot=(squeeze(sum(sum(imdilate(wormBW2,true(10,10,10)),1),2)));
+    BWplot=(squeeze(sum(sum(wormBW2,1),2)));
     BWplot=smooth(BWplot,20);
     [~,locs]=findpeaks(BWplot);
     endpts=locs([1,length(locs)]);
@@ -919,12 +688,6 @@ Areas=[stats.Area]';
     Poriginal=[interp3(xslice,P(:,2),P(:,1),P(:,3)) ...
         interp3(yslice,P(:,2),P(:,1),P(:,3)) ...
         interp3(zslice,P(:,2),P(:,1),P(:,3))];
-%     minLength=min(length(Fpoints2),length(refPoints));
-%     noNans=~any(isnan([Fpoints2(1:minLength,:), refPoints(1:minLength,:)]),2);
-%     moving=Fpoints2(noNans,:);
-%     model=refPoints(noNans,:);
-%     fiducialsAll(iStack).moving=moving;
-%     fiducialsAll(iStack).model=model;
     pointStats.straightPoints=P(:,1:3);
     pointStats.rawPoints=Poriginal;
     pointStats.stackIdx=iStack;
@@ -963,7 +726,8 @@ fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d')];
 
 %tiffwrite(fileName,Vproj,'tif');
 tiffwrite(fileName2,single(V),'tif');
-save(fileName3,'pointStats');
+save(fileName3,'pointStats'); 
+%save with compression reduces file size by more than 70%
 
 %save(fileName3,'wormRegions');
 

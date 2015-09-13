@@ -12,7 +12,7 @@ pointStatsNew=pointStats2;
 imageFolder=uipickfiles('filterSpec','V:');
 imageFolder=imageFolder{1};
 
-%%
+%% 
     iPoint=str2double(fileList(1).name(11:15));
     data=load([submissionFolder filesep fileList(10).name]);
     
@@ -82,36 +82,6 @@ end
 
 
 
-%% create pointStatsfor just one point
-
-pointStatFolder=[dataFolder filesep 'PointStatFolder'];
-mkdir(pointStatFolder);
-for pointIdx=1:size(compareAllX,3);
-P1stats=pointStats2;
-
-parfor iTime=1:length(P1stats)
-    trackIdx=pointStats2(iTime).trackIdx;
-    allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...
-        compareAllZ(:,iTime,pointIdx)];
-    idxList=nan(length(allPoints),1);
-    if any(trackIdx==pointIdx);
-        allPoints=[allPoints;  pointStats2(iTime).straightPoints(trackIdx==pointIdx,:)];
-        idxList=[idxList; pointIdx];
-    end
-    
-    
-    P1stats(iTime).straightPoints=allPoints;
-      P1stats(iTime).trackIdx=idxList;
-    P1stats(iTime).DMatrixi_x=[];
-    P1stats(iTime).DMatrixi_y=[];
-    P1stats(iTime).DMatrixi_z=[];
-    
-end
-
-
-save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
-
-end
 %%
 
 %%
@@ -126,7 +96,9 @@ newXAll2=nan(size(newXAll));
 newYAll2=nan(size(newXAll));
 newZAll2=nan(size(newXAll));
 detAll=nan(size(newXAll));
+
 for iTime=1:length(pointStats2)
+    %%
     display(['Starting ' num2str(iTime)]);
     if ~isempty(pointStats2(iTime).stackIdx)
     imageFile=[imageFolder filesep 'image' num2str(pointStats2(iTime).stackIdx,'%4.5d') '.tif'];
@@ -135,7 +107,7 @@ for iTime=1:length(pointStats2)
     imSize=size(currentImageStack);
     newVec=nan(size(compareAllX,3),3);
     detTemp=nan(size(compareAllX,3),1);
-    for pointIdx=1:size(compareAllX,3)
+    parfor pointIdx=1:size(compareAllX,3)
         currentPoint=[oldXAll(pointIdx,iTime),oldYAll(pointIdx,iTime),...
             oldZAll(pointIdx,iTime)];
     allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...
@@ -154,6 +126,7 @@ for iTime=1:length(pointStats2)
     floorLvl=quantile(pointW,.4);
     pointW=pointW-floorLvl;
     pointW(pointW<0)=0;
+    if any(pointW)
     newMean=pointW'*allPoints/sum(pointW);
     newCov=bsxfun(@minus, allPoints,newMean);
     
@@ -163,15 +136,23 @@ for iTime=1:length(pointStats2)
     E=sum(((newCov)\ctrlPoints')'.*ctrlPoints,2);
     P=exp(-E);
     ctrlPoints2=round(bsxfun(@plus, ctrlPoints,newMean));
-    ctrlPoints2Idx=sub2ind(imSize,ctrlPoints2(:,1),ctrlPoints2(:,2),ctrlPoints2(:,3));
+    inImage=~any(bsxfun(@gt, ctrlPoints2,imSize)| bsxfun(@lt, ctrlPoints2,[1 1 1]),2);
+    ctrlPoints2Idx=sub2ind(imSize,ctrlPoints2(inImage,1),ctrlPoints2(inImage,2),ctrlPoints2(inImage,3));
+    P=P(inImage);
     intensityWeight=currentImageStack(ctrlPoints2Idx);
     intensityWeight=intensityWeight-floorLvl;
     intensityWeight(intensityWeight<0)=0;
     totalWeight=P.*intensityWeight;
     totalWeight=totalWeight./sum(totalWeight);
-    newMean2=newMean+[sum(searchX.*totalWeight) sum(searchY.*totalWeight) sum(searchZ.*totalWeight)];
+    newMean2=newMean+[sum(searchX(inImage).*totalWeight),...
+        sum(searchY(inImage).*totalWeight),...
+        sum(searchZ(inImage).*totalWeight)];
     newVec(pointIdx,:)=newMean2;
 detTemp(pointIdx)=det(newCov/10);
+    else
+        newVec(pointIdx,:)=nan;
+        detTemp(pointIdx)=nan;
+    end
     
     end
     end
@@ -182,18 +163,61 @@ detTemp(pointIdx)=det(newCov/10);
     
     end
 end
+%% make comparison distance matrices
+nanmat=isnan(newXAll2);
+limit1=find(sum(~nanmat,2),1,'last');
+limit2=find(sum(~nanmat,1),1,'last');
+
+newXAll2=newXAll2(1:limit1,1:limit2);
+newYAll2=newYAll2(1:limit1,1:limit2);
+newZAll2=newZAll2(1:limit1,1:limit2);
+
+for iTime=1:limit2
+    P=[newXAll2(:,iTime), newYAll2(:,iTime), newZAll2(:,iTime)];
+    Pold=[oldXAll(:,iTime), oldYAll(:,iTime), oldZAll(:,iTime)];
+    dMat=squareform(pdist(P));
+    dMatAll(:,:,iTime)=dMat;
+    dMatOld=squareform(pdist(Pold));
+    dMatAllOld(:,:,iTime)=dMat;
+    
+end
+
+%% calculate zscores of distance matrices for new points, take average of highest 10
+zMatAll=bsxfun(@minus, dMatAll,nanmean(dMatAll,3));
+zMatSTD=nanstd(zMatAll,[],3);
+zMatAll=bsxfun(@rdivide,zMatAll, zMatSTD);
+
+zMatAll=sort(zMatAll,1,'descend');
+zMatAll=zMatAll(1:10,:,:);
+zMatAll=squeeze(nanmean(zMatAll,1));
+imagesc(zMatAll)
+
+zMatAllOld=bsxfun(@minus, dMatAllOld,nanmean(dMatAllOld,3));
+zMatSTDOld=nanstd(zMatAllOld,[],3);
+zMatAllOld=bsxfun(@rdivide,zMatAllOld, zMatSTDOld);
+
+zMatAllOld=sort(zMatAllOld,1,'descend');
+zMatAllOld=zMatAllOld(1:10,:,:);
+zMatAllOld=squeeze(nanmean(zMatAllOld,1));
+figure
+imagesc(zMatAllOld)
+
+
+
 %%
+logDet=log(detAll);
 
-check=(zScoreAll>3);
-
-for iTime=1:length(pointStatsNew);
+check=(zScoreAll>3) & (logDet>6);
+check(1:limit1,1:limit2)=check & zMatAll>6;
+for i=1:length(pointStatsNew);
+    iTime=i;%pointStatsNew(i).stackIdx;
     if any(check(:,iTime))
         replaceIdx=find(check(:,iTime));
         
         for iReplace=replaceIdx'
-            lookupIdx=pointStatsNew(iTime).trackIdx==iReplace;
+            lookupIdx=pointStatsNew(i).trackIdx==iReplace;
             if any(lookupIdx)
-                pointStatsNew(iTime).straightPoints(lookupIdx,:)=...
+                pointStatsNew(i).straightPoints(lookupIdx,:)=...
 [newXAll2(iReplace,iTime),newYAll2(iReplace,iTime),newZAll2(iReplace,iTime)];
                 display([' Success? at ' num2str(iTime) ' ' num2str(iReplace)]);
             else
@@ -203,17 +227,17 @@ for iTime=1:length(pointStatsNew);
         end
     end
         newIdx=find(isnan(zScoreAll(:,iTime)));
-        newIdx=newIdx(~ismember(newIdx,pointStatsNew(iTime).trackIdx));
+        newIdx=newIdx(~ismember(newIdx,pointStatsNew(i).trackIdx));
         for iNew=newIdx'
-            lookupIdx=pointStatsNew(iTime).trackIdx==iNew;
+            lookupIdx=pointStatsNew(i).trackIdx==iNew;
             if ~any(lookupIdx)
-          pointStatsNew(iTime).straightPoints=[  pointStatsNew(iTime).straightPoints;...
+          pointStatsNew(i).straightPoints=[  pointStatsNew(iTime).straightPoints;...
                [newXAll(iNew,iTime),newYAll(iNew,iTime),newZAll(iNew,iTime)]];
-           pointStatsNew(iTime).trackIdx=[pointStatsNew(iTime).trackIdx;...
+           pointStatsNew(i).trackIdx=[pointStatsNew(i).trackIdx;...
                iNew];
            display('New Point');
             elseif sum(lookupIdx)==1
-        pointStatsNew(iTime).straightPoints(lookupIdx,:)=...
+        pointStatsNew(i).straightPoints(lookupIdx,:)=...
                     [newXAll2(iNew,iTime),newYAll2(iNew,iTime),newZAll2(iNew,iTime)];
            display('Replace Point');
             end   
@@ -228,6 +252,7 @@ end
 %% make average mindist matrix
 
 dminAll=nan(size(newXAll2));
+
 for iTime=1:size(newXAll2,2);
    currentData=[newXAll2(:,iTime) newYAll2(:,iTime) newZAll2(:,iTime)];
    D=squareform(pdist((currentData)));
@@ -250,9 +275,46 @@ newYAll(newXAll==0)=nan;
 newZAll(newZAll==0)=nan;
 
 for i=1:length(pointStatsNew);
+    iTime=i;% pointStatsNew(i).
     pointStatsNew(i).straightPoints=[newXAll(:,i),newYAll(:,i),newZAll(:,i)];
 pointStatsNew(i).trackIdx=1:size(newXAll,1);
 pointStatsNew(i).stackIdx=i;
+
+end
+
+
+%% create pointStatsfor just one point
+
+pointStatFolder=[dataFolder filesep 'PointStatFolder'];
+mkdir(pointStatFolder);
+for pointIdx=1:size(compareAllX,3);
+P1stats=pointStats2;
+display(['Starting ' num2str(pointIdx)]);
+parfor iTime=1:length(P1stats)
+    trackIdx=pointStats2(iTime).trackIdx;
+    allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...
+        compareAllZ(:,iTime,pointIdx)];
+    idxList=nan(length(allPoints),1);
+    if any(trackIdx==pointIdx);
+        allPoints=[allPoints;  pointStats2(iTime).straightPoints(trackIdx==pointIdx,:)];
+        idxList=[idxList; pointIdx];
+    end
+        trackIdx=pointStatsNew(iTime).trackIdx;
+
+    allPoints=[allPoints;  pointStatsNew(iTime).straightPoints(trackIdx==pointIdx,:)];
+    idxList=[idxList; 1];
+
+    
+    P1stats(iTime).straightPoints=allPoints;
+      P1stats(iTime).trackIdx=idxList;
+    P1stats(iTime).DMatrixi_x=[];
+    P1stats(iTime).DMatrixi_y=[];
+    P1stats(iTime).DMatrixi_z=[];
+    
+end
+
+
+save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
 
 end
 

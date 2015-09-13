@@ -27,6 +27,7 @@ Vtop=V(:,:,floor(imSize(3)/2+1):end);
 Vbot=V(:,:,1:floor(imSize(3)/2));
 Vout={Vbot,Vtop};
 maxI=max(V(:));
+%split image in half and do stabilization starting at the center.
 for iHalf=1:2
     if iHalf==1
         Vtemp=flip(Vbot,3);
@@ -45,6 +46,7 @@ for iHalf=1:2
         imgBRaw=(Vtemp(:,:,iSlice))/maxI;
         imgBRaw(isnan(imgBRaw))=0;
         imgB=imgBRaw;
+        if nnz(imgB)
         imgB=bpass(imgB,3,20);
         imgB=(imgB);
         imgB(imgB<thresh)=0;
@@ -63,6 +65,11 @@ for iHalf=1:2
 
         else
             imgA=0;
+        end
+        else
+            imgA=0;
+            
+            imgB=0;
         end
         
         if  nnz(imgB) && nnz(imgA) && iSlice>sliceLag

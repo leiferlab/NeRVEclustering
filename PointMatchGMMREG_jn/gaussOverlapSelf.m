@@ -1,4 +1,4 @@
-function  [f, g]= gaussOverlap(A,B,scales,peaks,limit)
+function  [f, g]= gaussOverlapSelf(A,scales,peaks,limit)
 
 
 %Jeff N's version of the mex_GaussTransform from GMM mixturemodel code. I'm
@@ -21,9 +21,11 @@ function  [f, g]= gaussOverlap(A,B,scales,peaks,limit)
 
 % outputs : f total overlap integrals
 %            g gradient in energy of the points in A
+
+% self version treates A and B as the same for small speed boost,  see gaussOverlap
    
-Apoints=size(A,1);Bpoints=size(B,1);
-nPoints=Apoints*Bpoints;
+Apoints=size(A,1);
+nPoints=Apoints.^2;
 
 
 if nargin<5
@@ -32,24 +34,22 @@ end
 if nargin<4
     if size(A,2)>4
         peaksA=A(:,5);
-        peaksB=B(:,5);
         peaksA=peaksA/sum(peaksA);
-        peaksB=peaksB/sum(peaksB);
-        peaksMat=bsxfun(@times, peaksA,peaksB');
+        peaksMat=peaksA*peaksA';
 
     else
     peaksMat=1/nPoints;
     end
 else
-            peaksA=peaks{1};peaksB=peaks{2};
+            peaksA=peaks{1};
 
-    peaksMat=bsxfun(@times, peaksA,peaksB');
+    peaksMat=peaksA*peaksA';
 end
 if ~iscell(scales)
         if size(A,2)>3
         scaleA=A(:,4)*scales;
-        scaleB=B(:,4)*scales;
-        varMat=bsxfun(@plus,scaleA.^2,(scaleB').^2);
+        scalesA2=scaleA.^2;
+        varMat=bsxfun(@plus,scalesA2,scalesA2');
 
         else
     varMat=2*scales.^2;
@@ -57,13 +57,15 @@ if ~iscell(scales)
     
 else
 
-     varMat=bsxfun(@plus,scales{1}.^2,(scales{2}').^2);
+     varMat=bsxfun(@plus,scales{1}.^2,(scales{1}').^2);
 end
 
 
-A1=A(:,1:3);B1=B(:,1:3);
-A1=permute(A1,[1,3,2]);B1=permute(B1,[3,1,2]);
-dmatAll=bsxfun(@minus,A1,B1);
+A1=A(:,1:3);
+A2=permute(A1,[1,3,2]);
+A1=permute(A1,[3,1,2]);
+
+dmatAll=bsxfun(@minus,A2,A1);
 dmat2=sum(dmatAll.^2,3);
 
 

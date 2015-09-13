@@ -1,28 +1,18 @@
-function clusterWormTracker(filePath,startIdx,nGroups)
+function clusterWormTracker_3(filePath,startIdx)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
- show=00;
+ show=300;
 if nargin==0
     filePath=uipickfiles;
     startIdx=1;
     filePath=filePath{1};
 end
-
-if nargin<3
-    nGroups=1;
-end
-
 load(filePath);
 %%
- matchesPerSegment=300;
-matchesPerSegment=matchesPerSegment*nGroups;
-startIdx=floor((nGroups+startIdx)/nGroups);
-itIdx=mod(startIdx,nGroups);
+ matchesPerSegment=175;
+
 runIdxList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
 presentN=length(runIdxList);
-deltaRun=presentN/matchesPerSegment;
-
-runIdxList=runIdxList(ceil((deltaRun:deltaRun:presentN/nGroups)+itIdx*presentN/nGroups));
-runIdxList=unique(runIdxList);
+runIdxList=runIdxList(round(1:presentN/matchesPerSegment:presentN));
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
 presentIdx=1:length(pointStats);
@@ -59,9 +49,9 @@ T2temp=pointStats(j).straightPoints(:,1:3);
 
 [Transformed_M, multilevel_ctrl_pts, multilevel_param] = ...
     gmmreg_L2_multilevel_jn(T2...
-    ,T1,1, [ 1,.5], ...
-    [.000008, 0.0000008, 0.0008],[0 0],...
-    [ 0.000001 0.0001 0.001 0.001],show);
+    ,T1,3, [ 1,3 .3], ...
+    [.000008,0.005,.0005],[0 0, 0],...
+    [ 0.000001  0.000001 0.000001],show);
 trackInput=[T1temp T1temp  (1:length(T1temp))'  ones(size(T1temp(:,1))); ...
     Transformed_M(:,1:3) T2temp  (1:length(T2temp))' 2*ones(size(Transformed_M(:,1)))];
 TrackOut=nan;
@@ -70,18 +60,18 @@ idx1=idx(1:length(T1temp));
 idx2=idx(length(T1temp)+1:end);
 %%
 
-for iRegions=1:max(idx)
-
-    [Transformed_M(idx2==iRegions,:), ~, multilevel_param] = ...
-    gmmreg_L2_multilevel_jn(...
-    Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:),  2, [ 3,.3,.3], ...
-    [0.005,.0005, 0.002, 0.08],[0 0],...
-    [ 0.000001 0.000001 0.000001 0.001],show);
-
-
-
-
-end
+% for iRegions=1:max(idx)
+% 
+%     [Transformed_M(idx2==iRegions,:), ~, multilevel_param] = ...
+%     gmmreg_L2_multilevel_jn(...
+%     Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:),  2, [ 3,.3,.3], ...
+%     [0.005,.0005, 0.002, 0.08],[0 0],...
+%     [ 0.000001 0.000001 0.000001 0.001],show);
+% 
+% 
+% 
+% 
+% end
 
 %%
 
@@ -170,7 +160,7 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
     end
     
     outputName=fileparts(filePath);
-    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx,'%3.2d')];
+    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d')];
     save(outputName,'TrackMatrixi');
 end
 
