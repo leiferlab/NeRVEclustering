@@ -1,6 +1,8 @@
 function clusterWormTracker(filePath,startIdx,nGroups)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
  show=00;
+ startTic=tic;
+ timeLimit=3600; 
 if nargin==0
     filePath=uipickfiles;
     startIdx=1;
@@ -13,7 +15,7 @@ end
 
 load(filePath);
 %%
- matchesPerSegment=200;
+ matchesPerSegment=150;
 matchesPerSegment=matchesPerSegment*nGroups;
 startIdx=floor((nGroups+startIdx)/nGroups);
 itIdx=mod(startIdx,nGroups);
@@ -37,6 +39,9 @@ iIdxList=startIdx;%:startIdx+stepSize-1;
 %%
 for iIdx=iIdxList%length(TrackData)
     %%
+                outputName=fileparts(filePath);
+    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx,'%3.2d')];
+
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
     TrackMatrixi=zeros(size(pointStats(i).straightPoints,1),length(runIdxList));
@@ -47,6 +52,7 @@ for iIdx=iIdxList%length(TrackData)
     for runIdx=1:length(runIdxList)%outRange;
         %%
         j=runIdxList(runIdx);
+
         itic=tic;
         try
 P1=pointStats(i);
@@ -160,7 +166,11 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 
       display(['Finished match' [num2str(j)] ' in ' num2str((toc(itic))) 's']);
 
-
+      %for the hr queue on cluster, , if run time is greater than an hour,
+      %time to save at each iteration. 
+if toc(startTic)>timeLimit;
+        save(outputName,'TrackMatrixi');    
+end
         catch ME
             ME
         end
@@ -169,8 +179,6 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
         TrackMatrixi=[];
     end
     
-    outputName=fileparts(filePath);
-    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx,'%3.2d')];
     save(outputName,'TrackMatrixi');
 end
 
