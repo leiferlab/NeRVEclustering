@@ -17,7 +17,7 @@ load(filePath);
 %%
  matchesPerSegment=150;
 matchesPerSegment=matchesPerSegment*nGroups;
-startIdx=floor((nGroups+startIdx)/nGroups);
+iIdxList=floor((nGroups+startIdx-1)/nGroups);
 itIdx=mod(startIdx,nGroups);
 runIdxList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
 presentN=length(runIdxList);
@@ -35,7 +35,6 @@ param.excessive=4;
 param.quiet=1;
 param.timeLimit=10;
 param.difficult=1.5e4;
-iIdxList=startIdx;%:startIdx+stepSize-1;
 %%
 for iIdx=iIdxList%length(TrackData)
     %%
@@ -164,7 +163,7 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 %     [T1temp(track1,3),T2temp(track2,3)]','linewidth',4)
 % axis equal
 
-      display(['Finished match' [num2str(j)] ' in ' num2str((toc(itic))) 's']);
+      display(['Finished match' num2str(j) ' in ' num2str((toc(itic))) 's']);
 
       %for the hr queue on cluster, , if run time is greater than an hour,
       %time to save at each iteration. 
