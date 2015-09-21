@@ -19,15 +19,26 @@ pointStats=pointStats.pointStats;
 % presentIdx=1:max(presentIdx);
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
-presentIdx=1:length(pointStats);
 
 for i=1:length(fileList)
     currentFile=[fileName filesep fileList(i).name];
-    currentFileIdx=str2double(currentFile(end-8:end-4));
-    currentData=load(currentFile);
+    display(['Loading file ' fileList(i).name]);
+    currentFileIdx=str2double(fileList(i).name(12:16));
+    if strfind(fileList(i).name,'Run')
+        runIdx=1+str2double(fileList(i).name(20:21));
+    else
+        runIdx=1;
+    end
+       currentData=load(currentFile);
 for jname=fieldnames(currentData)'
 %    TrackMatrixAll{presentIdx(i)}=currentData.TrackMatrixi;
-    pointStats(presentIdx(i)).(jname{1})=currentData.(jname{1});
+    if runIdx==1
+    pointStats(currentFileIdx).(jname{1})=currentData.(jname{1});
+    else
+    pointStats(currentFileIdx).(jname{1})=[pointStats(currentFileIdx).(jname{1}) ...
+        currentData.(jname{1})];
+    end
+    
 end
 end
 TrackMatrixAll=[];

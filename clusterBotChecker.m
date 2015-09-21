@@ -1,9 +1,11 @@
-function clusterBotChecker(filePath,startIdx,stepSize)
+function clusterBotChecker(filePath,startIdx,groupSize)
  %cluster bot checker uses a pointstats and a track index and stepsize as
  %inputs. The code goes through all frames and compares them to nSubSample
  %number of other randomly selected frames. In each frame, it asks where
  %the otherframes would guess where a certain neuron should be using TPS
  %interp.
+ 
+ % changed to run under the 1 hr. 
  
  
 if nargin==0
@@ -12,7 +14,7 @@ if nargin==0
     filePath=filePath{1};
 end
 if nargin<3
-    stepSize=0;
+    groupSize=0;
 end
          outputName=fileparts(filePath);
 
@@ -22,11 +24,15 @@ load(filePath);
 nTime=length(pointStats2);
 nSubSample=nTime;
 
+startIdxReal=ceil(startIdx/groupSize);
+runIdx=mod(startIdx,groupSize);
+timeVector=1:nTime;
+timeIdx=floor(startIdx/max(startIdx+1)*groupSize);
+timeVector=timeVector(timeIdx==runIdx);
 %How many neurons to check
-iIdxList=startIdx:(startIdx+stepSize);%:startIdx+stepSize-1;
 
 % loop through all neurons in list
-for iPointIdx=iIdxList;
+for iPointIdx=startIdxReal;
     display([' Starting ' num2str(iPointIdx)]);
 
 comparePointEstimate_x=nan(nSubSample,nTime);
@@ -35,11 +41,11 @@ comparePointEstimate_z=nan(nSubSample,nTime);
 xyzRefAll=nan(nTime,3);
 
 %loop through all time points
-for iFrame=1:nTime
+for iFrame=1:length(timeVector)
     %take random subsample of other time points to compare
    % subSample=randperm(nTime,nSubSample);
     subSample=1:nTime;
-pointsRef=pointStats2(iFrame);
+pointsRef=pointStats2(timeVector(iFrame));
 refTrackIdx=pointsRef.trackIdx;
 if any(refTrackIdx==iPointIdx)
 xyzRef=pointsRef.straightPoints(refTrackIdx==iPointIdx,:);        
@@ -75,7 +81,8 @@ comparePointEstimate_z(iCounter,iFrame)=newEstimatePoint(3);
 end
 
 end
-    outputNameFile=[outputName filesep 'botChecker' num2str(iPointIdx,'%3.5d')];
+    outputNameFile=[outputName filesep 'botChecker' num2str(iPointIdx,'%3.5d')...
+        'Run' num2str(runIdx,'%3.2d')];
     save(outputNameFile,'comparePointEstimate_x','comparePointEstimate_y',...
         'comparePointEstimate_z','xyzRefAll');
     

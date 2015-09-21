@@ -261,7 +261,6 @@ hiResyPos=yPos(hiResRange);
 hiResxPos=hiResxPos-(max(hiResxPos)+min(hiResxPos))/2;
 hiResyPos=hiResyPos-(max(hiResyPos)+min(hiResyPos))/2;
 
-
 figure
 %h=colorplot(hiResxPos(1:100:end),hiResyPos(1:100:end),hiResFrameTime(1:100:end));
 

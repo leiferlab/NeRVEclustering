@@ -34,6 +34,7 @@ TrackMatrix={pointStats.TrackMatrixi};
 
 
 
+
 %% do matching of tracks by clustering similarities in matching matrices
 TrackMatrix={pointStats.TrackMatrixi};
 TrackMatrix=TrackMatrix(1:N);
@@ -61,8 +62,8 @@ for i=1:N%:length(TrackMatrix)-windowSearch
 %take individual match matrix
 i
         TrackMatrixTemp=pointStats(i).TrackMatrixi;
-        DMatrixTemp=pointStats(i).DMatrixi_x.^2+pointStats(i).DMatrixi_y.^2 ...
-        +pointStats(i).DMatrixi_z.^2;
+       % DMatrixTemp=pointStats(i).DMatrixi_x.^2+pointStats(i).DMatrixi_y.^2 ...
+        %+pointStats(i).DMatrixi_z.^2;
 
         if size(TrackMatrixTemp,1)>10 && any(TrackMatrixTemp(:)) 
 TrackMatrixTemp=TrackMatrixTemp(:,:);
@@ -75,7 +76,7 @@ TrackMatrixTemp=TrackMatrixTemp(:,:);
         startPos=repmat(startPos,size(TrackMatrixTemp,2),1)';
         transitionIdxX{i}=startPos(validPoints);
         transitionIdxY{i}=TrackMatrixTemp(validPoints);
-        transitionW{i}=DMatrixTemp(validPoints);
+       % transitionW{i}=DMatrixTemp(validPoints);
 %         transitionIdx=sub2ind([transitionMatrixSize,transitionMatrixSize],startPos(validPoints),TrackMatrixTemp(validPoints));
 %         transitionIdx=transitionIdx(~isnan(transitionIdx));
 %         transitionMatrixIdx{i}=transitionIdx;
@@ -85,23 +86,21 @@ end
 i=0;
 transitionIdxX=cell2mat(transitionIdxX');
 transitionIdxY=cell2mat(transitionIdxY');
-transitionW=cell2mat(transitionW');
-transitionW(transitionW<5)=5;
+
 nTransitions=length(transitionIdxY);
 transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
     transitionMatrixSize,max(indexAdd2),nTransitions);
-WMatrixi=sparse(transitionIdxX,transitionIdxY,1./transitionW,...
-    transitionMatrixSize,max(indexAdd2),nTransitions);
-WMatrixi=WMatrixi(:,any(transitionMatrixi));
+
 transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
-    %%
+    
+%% build training set on frist 
 %    transitionMatrixi=double(transitionMatrixi);
 %  tic; tcorr3=corrcoef(transitionMatrixi');toc
 %      transitionMatrixi=or(transitionMatrixi,speye(size(transitionMatrixi)));
 %     transitionMatrixi=double(transitionMatrixi);
 %     
 nSelectRange=[];
-NTrainingRange=min(350,N-1);
+NTrainingRange=min(200,N-1);
 nTraining=min(NTrainingRange,N-1);
 nSelect=round(2:NTrainingRange/nTraining:NTrainingRange);
 for i=1:length(nSelect)-1
@@ -109,24 +108,57 @@ nSelectRange{i}=indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
 end
 nSelectAdd=cellfun(@(x) length(x), nSelectRange);
 nSelectRange=cell2mat(nSelectRange);
-%%
-subTranstionMatrix=transitionMatrixi(nSelectRange,:);
-subWMatrix=WMatrixi(nSelectRange,:);
-      tic; tcorr2=sparseTransitionCorr(subTranstionMatrix',subWMatrix');toc
+%% correlation and cluster, can take up to 10 minutes
+      tic; tcorr2=sparseTransitionCorr(transitionMatrixi);toc
  %     tic; tcorr2=sparseTransitionCorr(subTranstionMatrix');toc
+tsize=size(tcorr2);
+ [x,y,v]=find(tcorr2);
+ 
+uTri=x>=y;
+x=x(uTri);
+y=y(uTri);
+v=v(uTri);
+
+tcorr2=sparse([x; y], [y;x],[v;v],tsize(1),tsize(2));
+
 
 % transitionMatrixi=normr(transitionMatrixi);
 % subTranstionMatrix=transitionMatrixi(nSelectRange,:);
-normTransitionMatrixi=normr(transitionMatrixi);
-      
-%%
+
+%normTransitionMatrixi=bsxfun(@rdivide,transitionMatrixi,sum(transitionMatrixi.^2,2));
+     %% calculate eigenvalues, approximately 80 eigenvalues / minute
+    tic
+    opts.issym=1;
+    opts.isreal=1;
+    opts.disp=0;
+    opts.maxit=500;
+    
+    opts.v0=(tcorr2(:,1));
+    [V,D,flag]=eigs(tcorr2,400,'la',opts);flag
+    toc     
+    D=sum(D,1);
+    Dplot=cumsum(D)';
+    dD=gradient(Dplot,5);
+    ddD=gradient(dD,5);
+    KD=abs(ddD)./(1+dD.^2).^(3/2);
+    %%
+    transitionMatrixi_pca=transitionMatrixi*V;
+    subTranstionMatrix=transitionMatrixi_pca(nSelectRange,:);
+    tic;tcorr2=sparseTransitionCorr(subTranstionMatrix',[],1);toc
+%% 
 %tcorr2=full(tcorr2);
    % tcorr2=tcorr2.*~speye(size(tcorr2));
-    tcorr2(speye(size(tcorr2))>0)=0;
-    tcorr2=squareform(tcorr2);
     
-    Z=linkage(1-tcorr2,'complete');
-    tcorr2=squareform(tcorr2);
+   %tcorr2(speye(size(tcorr2))>0)=0;
+   tic
+   tcorr2_lin=tcorr2(tril(true(length(tcorr2)),-1));
+  % tcorr2_lin=tcorr2_lin(:);
+   toc;tic
+   %tcorr2=squareform(tcorr2)
+   Z=linkage(1-tcorr2_lin','complete');
+   toc;tic
+   tcorr2=squareform(tcorr2_lin);
+   toc
     %%
     c=cluster(Z,'cutoff',.9999,'criterion','distance');
     c=c+1;
@@ -209,7 +241,7 @@ ccell=mat2cell(c2,nSelectAdd);
     imagesc(1-tcorr2(assignedNodes,assignedNodes))
     
     caxis([0,1])
-    
+
     %%
     
 
