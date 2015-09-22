@@ -1,5 +1,6 @@
 function clusterWormTrackCompiler(filePath,fileOutput)
-
+display(filePath);
+display(fileOutput);
 imFolder=fileparts(filePath);
 if nargin==1
     fileOutput=filePath;
@@ -22,6 +23,7 @@ param.excessive=4;
 windowSearch=5;
 
 %%
+display(imFolder)
 [~,pointStats]=compileTrackMatrix(imFolder);
 
  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.TrackMatrixi},'uniform',0);
