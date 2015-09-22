@@ -232,8 +232,6 @@ ccell=mat2cell(c2,nSelectAdd);
     c3=c2(~isnan(c2));
     [~,ia]=sort(c3);
     assignedNodes=assignedNodes1(ia);
-    imagesc(1-tcorr2(assignedNodes,assignedNodes))
-    caxis([0,1])
 
     %%
     uniqueIDs=unique(c2(~isnan(c2)));
