@@ -1,4 +1,5 @@
 function clusterWormTrackCompiler(filePath,fileOutput)
+pwd
 display(filePath);
 display(fileOutput);
 imFolder=fileparts(filePath);
