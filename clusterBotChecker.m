@@ -17,7 +17,10 @@ if nargin<3
     groupSize=0;
 end
          outputName=fileparts(filePath);
+if isempty(outputName)
+    outputName=pwd;
 
+end
 load(filePath);
 %%
 %select number of points, 
@@ -83,7 +86,8 @@ end
 end
     outputNameFile=[outputName filesep 'botChecker' num2str(iPointIdx,'%3.5d')...
         'Run' num2str(runIdx,'%3.2d')];
-    save(outputNameFile,'comparePointEstimate_x','comparePointEstimate_y',...
+    display(outputNameFile)
+    save(outputNameFile,'comparePointEstimate_x','comparePointEstimate_y', ...
         'comparePointEstimate_z','xyzRefAll');
     
     
