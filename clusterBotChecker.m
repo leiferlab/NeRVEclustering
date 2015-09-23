@@ -21,6 +21,8 @@ if isempty(outputName)
     outputName=pwd;
 
 end
+outputName=[outputName filesep botCheckFolder];
+mkdir(outputName);
 load(filePath);
 %%
 %select number of points, 
