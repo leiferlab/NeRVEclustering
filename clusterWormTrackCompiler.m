@@ -1,8 +1,13 @@
 function clusterWormTrackCompiler(filePath,fileOutput)
 pwd
+
 display(filePath);
 display(fileOutput);
 imFolder=fileparts(filePath);
+if isempty(imFolder)
+    imFolder=pwd;
+end
+
 if nargin==1
     fileOutput=filePath;
 end
