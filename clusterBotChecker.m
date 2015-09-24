@@ -23,7 +23,9 @@ if isempty(outputName)
 end
 outputName=[outputName filesep 'botCheckFolder'];
 mkdir(outputName);
-load(filePath);
+fileData=load(filePath);
+fileField=fieldnames(fileData);
+pointStats2=fileData.(fileField{1});
 %%
 %select number of points, 
 nTime=length(pointStats2);
