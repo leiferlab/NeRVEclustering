@@ -21,7 +21,7 @@ if isempty(outputName)
     outputName=pwd;
 
 end
-outputName=[outputName filesep botCheckFolder];
+outputName=[outputName filesep 'botCheckFolder'];
 mkdir(outputName);
 load(filePath);
 %%
@@ -32,7 +32,7 @@ nSubSample=nTime;
 startIdxReal=ceil(startIdx/groupSize);
 runIdx=mod(startIdx,groupSize);
 timeVector=1:nTime;
-timeIdx=floor(startIdx/max(startIdx+1)*groupSize);
+timeIdx=floor(timeVector/max(timeVector+1)*groupSize);
 timeVector=timeVector(timeIdx==runIdx);
 %How many neurons to check
 
