@@ -2,9 +2,10 @@ submissionFolder=uipickfiles('filterSpec','Y:\Jeff\');
 
 submissionFolder=submissionFolder{1};
 fileList=dir([submissionFolder filesep 'bot*.mat']);
-pointStatsFile=dir([submissionFolder filesep 'point*']);
+pointStatsFile=uipickfiles('filterspec',fileparts(submissionFolder));
+
 %%
-load([submissionFolder filesep pointStatsFile.name]);
+load(pointStatsFile{1});
 pointStatsNew=pointStats2;
 
 %% select image folder
@@ -30,14 +31,30 @@ imageFolder=imageFolder{1};
   compareAllY=compareAllX;
   compareAllZ=compareAllX;
   
-parfor i=1:length(fileList)
-    fileName=['botChecker' num2str(i,'%3.5d') '.mat'];
+for i=1:length(fileList)
+    fileName=['botChecker' num2str(i,'%3.5d') '*'];
     display(['loading ' fileName]);
-if exist([submissionFolder filesep fileName],'file')
-    data=load([submissionFolder filesep fileName]);
+    fileList=dir([submissionFolder filesep fileName]);
+    fileList={fileList.name};
+for j=1:length(fileList)
+    if j==1
+    data=load([submissionFolder filesep fileList{j}]);
     comparePointEstimate_x=data.comparePointEstimate_x;
     comparePointEstimate_y=data.comparePointEstimate_y;
     comparePointEstimate_z=data.comparePointEstimate_z;
+        xyzRefAll=data.xyzRefAll;
+    else
+    data(j)=load([submissionFolder filesep fileList{j}]);
+    comparePointEstimate_x=data.comparePointEstimate_x;
+    comparePointEstimate_y=data.comparePointEstimate_y;
+    comparePointEstimate_z=data.comparePointEstimate_z;
+        xyzRefAll=data.xyzRefAll;        
+    end
+    
+        
+end
+comparePointEstimate_x=cell2mat(permute({data.comparePointEstimate_x},[1 3 2]));
+comparePointEstimate_x=nansum(comparePointEstimate_x,3);
     xmean=nanmean(comparePointEstimate_x)';
     xstd=nanstd(comparePointEstimate_x)';
     ymean=nanmean(comparePointEstimate_y)';
@@ -47,7 +64,6 @@ if exist([submissionFolder filesep fileName],'file')
     compareAllX(:,:,i)=comparePointEstimate_x;
     compareAllY(:,:,i)=comparePointEstimate_y;
     compareAllZ(:,:,i)=comparePointEstimate_z;
-    xyzRefAll=data.xyzRefAll;
     xyzRefAll_zscore=xyzRefAll-[xmean ymean zmean];
     xyzRefAll_zscore=xyzRefAll_zscore./[xstd ystd zstd];
     zDistance=sqrt(sum(xyzRefAll_zscore.^2,2));
@@ -63,9 +79,9 @@ if exist([submissionFolder filesep fileName],'file')
     zScoreAll(i,:)=zDistance;
     oldXAll(i,:)=xyzRefAll(:,1);
     oldYAll(i,:)=xyzRefAll(:,2);
-    oldZAll(i,:)=xyzRefAll(:,3)
+    oldZAll(i,:)=xyzRefAll(:,3);
 end
-end
+
 [~,~,colorAll]=ndgrid(1:200,1:1522,1:93);
 %% make volume plot
 VolumeAll=nan(size(oldXAll));
@@ -76,6 +92,7 @@ for iTime=1:length(pointStats2);
     VolumeAll(trackIdx(presentPoints),iTime)=P1.Volume(presentPoints);
     
     
+
     
 end
 
@@ -103,11 +120,11 @@ for iTime=1:length(pointStats2)
     if ~isempty(pointStats2(iTime).stackIdx)
     imageFile=[imageFolder filesep 'image' num2str(pointStats2(iTime).stackIdx,'%4.5d') '.tif'];
     
-    currentImageStack=stackLoad(imageFile,256);
+    currentImageStack=stackLoad(imageFile,128); %have to put in image stack size
     imSize=size(currentImageStack);
     newVec=nan(size(compareAllX,3),3);
     detTemp=nan(size(compareAllX,3),1);
-    parfor pointIdx=1:size(compareAllX,3)
+    for pointIdx=1:size(compareAllX,3)
         currentPoint=[oldXAll(pointIdx,iTime),oldYAll(pointIdx,iTime),...
             oldZAll(pointIdx,iTime)];
     allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...

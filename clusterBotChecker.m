@@ -48,11 +48,11 @@ comparePointEstimate_z=nan(nSubSample,nTime);
 xyzRefAll=nan(nTime,3);
 
 %loop through all time points
-for iFrame=1:length(timeVector)
+for iFrame=timeVector
     %take random subsample of other time points to compare
    % subSample=randperm(nTime,nSubSample);
     subSample=1:nTime;
-pointsRef=pointStats2(timeVector(iFrame));
+pointsRef=pointStats2(iFrame);
 refTrackIdx=pointsRef.trackIdx;
 if any(refTrackIdx==iPointIdx)
 xyzRef=pointsRef.straightPoints(refTrackIdx==iPointIdx,:);        
