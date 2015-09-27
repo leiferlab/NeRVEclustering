@@ -15,7 +15,7 @@ end
 if nargin==1
     flag.customRoi=0;
     flag.sparsesearch=0;
-    flag.parPool=0;
+    flag.parPool=1;
 end
 if ~isfield(flag, 'custormRoi');
        flag.customRoi=0;
@@ -129,7 +129,9 @@ elseif flag.parPool
       parfor_progress(stackSize)
     parfor i=1:stackSize
     if aviFlag;
-        temp= read(vidObj, i);
+            vidObjpar = VideoReader(imFolder);
+
+        temp= read(vidObjpar, i);
 temp=temp(:,:,1);
     else
     temp=(imread([imFolder filesep imFiles(i).name], 'tif'));
@@ -140,7 +142,7 @@ temp=temp(:,:,1);
         %progressbar(i/stackSize);
         parfor_progress;
     end
-    parfor_progress(0);
+   parfor_progress(0);
 else
     for i=1:stackSize
     if aviFlag;

@@ -1,7 +1,7 @@
 submissionFolder=uipickfiles('filterSpec','Y:\Jeff\');
 
 submissionFolder=submissionFolder{1};
-fileList=dir([submissionFolder filesep 'bot*.mat']);
+fileListAll=dir([submissionFolder filesep 'bot*.mat']);
 pointStatsFile=uipickfiles('filterspec',fileparts(submissionFolder));
 
 %%
@@ -12,14 +12,15 @@ pointStatsNew=pointStats2;
 
 imageFolder=uipickfiles('filterSpec','V:');
 imageFolder=imageFolder{1};
+dataFolder=fileparts(imageFolder)
 
 %% 
-    iPoint=str2double(fileList(1).name(11:15));
-    data=load([submissionFolder filesep fileList(10).name]);
+    iPoint=str2double(fileListAll(end).name(11:15));
+    data=load([submissionFolder filesep fileListAll(10).name]);
     
     xmean=nanmean(data.comparePointEstimate_x)';
     
-  newXAll=nan(length(fileList),length(xmean));
+  newXAll=nan(iPoint,length(xmean));
   newYAll=newXAll;
   newZAll=newXAll;
   oldXAll=newXAll;
@@ -31,30 +32,33 @@ imageFolder=imageFolder{1};
   compareAllY=compareAllX;
   compareAllZ=compareAllX;
   
-for i=1:length(fileList)
+for i=1:length(fileListAll)
+   % i=pointStats2(iPS).stackIdx;
     fileName=['botChecker' num2str(i,'%3.5d') '*'];
     display(['loading ' fileName]);
     fileList=dir([submissionFolder filesep fileName]);
     fileList={fileList.name};
+ clear data
+ if ~isempty(fileList)
 for j=1:length(fileList)
-    if j==1
-    data=load([submissionFolder filesep fileList{j}]);
-    comparePointEstimate_x=data.comparePointEstimate_x;
-    comparePointEstimate_y=data.comparePointEstimate_y;
-    comparePointEstimate_z=data.comparePointEstimate_z;
-        xyzRefAll=data.xyzRefAll;
-    else
     data(j)=load([submissionFolder filesep fileList{j}]);
-    comparePointEstimate_x=data.comparePointEstimate_x;
-    comparePointEstimate_y=data.comparePointEstimate_y;
-    comparePointEstimate_z=data.comparePointEstimate_z;
-        xyzRefAll=data.xyzRefAll;        
-    end
-    
-        
 end
 comparePointEstimate_x=cell2mat(permute({data.comparePointEstimate_x},[1 3 2]));
 comparePointEstimate_x=nansum(comparePointEstimate_x,3);
+comparePointEstimate_x(comparePointEstimate_x==0)=nan;
+
+comparePointEstimate_y=cell2mat(permute({data.comparePointEstimate_y},[1 3 2]));
+comparePointEstimate_y=nansum(comparePointEstimate_y,3);
+comparePointEstimate_y(comparePointEstimate_y==0)=nan;
+
+comparePointEstimate_z=cell2mat(permute({data.comparePointEstimate_z},[1 3 2]));
+comparePointEstimate_z=nansum(comparePointEstimate_z,3);
+comparePointEstimate_z(comparePointEstimate_z==0)=nan;
+
+xyzRefAll=cell2mat(permute({data.xyzRefAll},[1 3 2]));
+xyzRefAll=nansum(xyzRefAll,3);
+xyzRefAll(xyzRefAll==0)=nan;
+
     xmean=nanmean(comparePointEstimate_x)';
     xstd=nanstd(comparePointEstimate_x)';
     ymean=nanmean(comparePointEstimate_y)';
@@ -81,8 +85,8 @@ comparePointEstimate_x=nansum(comparePointEstimate_x,3);
     oldYAll(i,:)=xyzRefAll(:,2);
     oldZAll(i,:)=xyzRefAll(:,3);
 end
-
-[~,~,colorAll]=ndgrid(1:200,1:1522,1:93);
+end
+%[~,~,colorAll]=ndgrid(1:200,1:1522,1:93);
 %% make volume plot
 VolumeAll=nan(size(oldXAll));
 for iTime=1:length(pointStats2);
@@ -177,9 +181,9 @@ detTemp(pointIdx)=det(newCov/10);
     newXAll2(:,iTime)=newVec(:,1);
     newYAll2(:,iTime)=newVec(:,2);
     newZAll2(:,iTime)=newVec(:,3);
-    
     end
-end
+    end
+
 %% make comparison distance matrices
 nanmat=isnan(newXAll2);
 limit1=find(sum(~nanmat,2),1,'last');
@@ -188,7 +192,8 @@ limit2=find(sum(~nanmat,1),1,'last');
 newXAll2=newXAll2(1:limit1,1:limit2);
 newYAll2=newYAll2(1:limit1,1:limit2);
 newZAll2=newZAll2(1:limit1,1:limit2);
-
+detAll=detAll(1:limit1,1:limit2);
+zScoreAll=zScoreAll(1:limit1,1:limit2);
 for iTime=1:limit2
     P=[newXAll2(:,iTime), newYAll2(:,iTime), newZAll2(:,iTime)];
     Pold=[oldXAll(:,iTime), oldYAll(:,iTime), oldZAll(:,iTime)];
@@ -290,15 +295,15 @@ dmin=nanmean(dminAll,2);
 newXAll(newXAll==0)=nan;
 newYAll(newXAll==0)=nan;
 newZAll(newZAll==0)=nan;
-
-for i=1:length(pointStatsNew);
-    iTime=i;% pointStatsNew(i).
-    pointStatsNew(i).straightPoints=[newXAll(:,i),newYAll(:,i),newZAll(:,i)];
-pointStatsNew(i).trackIdx=1:size(newXAll,1);
-pointStatsNew(i).stackIdx=i;
-
-end
-
+% 
+% for i=1:length(pointStatsNew);
+%     iTime=i;% pointStatsNew(i).
+%     pointStatsNew(i).straightPoints=[newXAll(:,i),newYAll(:,i),newZAll(:,i)];
+% pointStatsNew(i).trackIdx=1:size(newXAll,1);
+% %pointStatsNew(i).stackIdx=i;
+% 
+% end
+% 
 
 %% create pointStatsfor just one point
 
@@ -334,4 +339,5 @@ end
 save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
 
 end
-
+%%
+save([pointStatFolder filesep 'pointStatsNew'],'pointStatsNew');

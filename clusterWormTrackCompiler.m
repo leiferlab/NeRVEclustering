@@ -1,15 +1,16 @@
 function clusterWormTrackCompiler(filePath,fileOutput)
 pwd
 
+
+
+if nargin==1
+    fileOutput=filePath;
+end
 display(filePath);
 display(fileOutput);
 imFolder=fileparts(filePath);
 if isempty(imFolder)
     imFolder=pwd;
-end
-
-if nargin==1
-    fileOutput=filePath;
 end
 %%
 dataFolder=(imFolder);
@@ -159,7 +160,7 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
    Z=linkage(1-tcorr2_lin','complete');
    toc;
     %% cluster
-    c=cluster(Z,'cutoff',.65,'criterion','distance'); %normally .9999
+    c=cluster(Z,'cutoff',.99,'criterion','distance'); %normally .9999
     %% raname clusters based on size 
     c=c+1;
     caccum=accumarray(c,ones(size(c))); %how many in each cluster
