@@ -162,7 +162,7 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
     %% raname clusters based on size 
     c=c+1;
     caccum=accumarray(c,ones(size(c))); %how many in each cluster    
-    c(ismember(c,caccumN))=1;
+%    c(ismember(c,caccumN))=1;
 %the rank of each cluster, giving things a new index based on rank rather than cluster group
 [~,iaAccum]=sort(caccum,'descend'); 
     [~,iaAccum]=sort(iaAccum);
