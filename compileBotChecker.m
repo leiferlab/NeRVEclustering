@@ -1,7 +1,9 @@
+display('Select submission Folder')
 submissionFolder=uipickfiles('filterSpec','Y:\Jeff\');
 
 submissionFolder=submissionFolder{1};
 fileListAll=dir([submissionFolder filesep 'bot*.mat']);
+display('Select pointstats')
 pointStatsFile=uipickfiles('filterspec',fileparts(submissionFolder));
 
 %%
@@ -28,7 +30,7 @@ dataFolder=fileparts(imageFolder)
   oldZAll=newXAll;
   zScoreAll=newXAll;
   compareAllX=zeros(size(data.comparePointEstimate_x,1),...
-      size(data.comparePointEstimate_x,2),length(fileList));
+      size(data.comparePointEstimate_x,2),length(fileListAll)/3);
   compareAllY=compareAllX;
   compareAllZ=compareAllX;
   
@@ -86,6 +88,8 @@ xyzRefAll(xyzRefAll==0)=nan;
     oldZAll(i,:)=xyzRefAll(:,3);
 end
 end
+
+
 %[~,~,colorAll]=ndgrid(1:200,1:1522,1:93);
 %% make volume plot
 VolumeAll=nan(size(oldXAll));

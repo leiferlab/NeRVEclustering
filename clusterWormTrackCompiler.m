@@ -102,7 +102,7 @@ transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
 %     transitionMatrixi=double(transitionMatrixi);
 %     
 nSelectRange=[];
-NTrainingRange=min(400,N-1);
+NTrainingRange=min(800,N-1);
 nTraining=min(NTrainingRange,N-1);
 nSelect=round(2:NTrainingRange/nTraining:NTrainingRange);
 for i=1:length(nSelect)-1
@@ -245,7 +245,7 @@ ccell=mat2cell(c2,nSelectAdd);
     %%
     uniqueIDs=unique(c2(~isnan(c2)));
     uniqueIDs(uniqueIDs==0)=[];
-    
+    nNeurons=max(uniqueIDs);
       masterVec=[];
       masterVecVar=[];
       % find "basis" by averaging over a cluster. 
@@ -284,13 +284,13 @@ hitCutoff=histX(find(gamma>.2,1,'first'));
 %hitCutoff=quantile(hitValues,.01);
 
 %% project data onto clustered components and detect values larger than threshold
-matchProjections=masterVec'*normTransitionMatrixi';
+matchProjectionsRaw=masterVec'*normTransitionMatrixi';
 % %%
 % acorrTest=aTest*aTest';
 % [V,D]=eig(full(acorrTest));
 % aTestV=V'*aTest;
 % %%
-matchProjections=matchProjections.*(matchProjections>hitCutoff);
+matchProjections=matchProjectionsRaw.*(matchProjectionsRaw>hitCutoff);
 %normMatchProjections=bsxfun(@rdivide, matchProjections,sum(matchProjections));
 %normMatchProjections(isnan(normMatchProjections))=0;
 
@@ -306,6 +306,7 @@ ccell=mat2cell(c4,diff(indexAdd));
 ccellProj=sparse(c4x,ones(size(c4x)),matchProjections(matchBool>0),max(indexAdd),1);
 
 ccellProj=mat2cell(full(ccellProj),diff(indexAdd));
+matchProjectionsCell=mat2cell(full(matchProjectionsRaw),nNeurons,diff(indexAdd));
 
 
 %% clear doubles
@@ -345,5 +346,6 @@ for i=1:length(ccell)
 end
 pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
-
+fileOutput_stats=strrep(fileOutput_stats,'.mat','stats.mat');
 save([fileOutput],'pointStats2');
+save(fileOutput_stats,'masterVec','matchProjectionsCell')
