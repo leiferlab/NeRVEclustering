@@ -346,6 +346,6 @@ for i=1:length(ccell)
 end
 pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
-fileOutput_stats=strrep(fileOutput_stats,'.mat','stats.mat');
+fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save([fileOutput],'pointStats2');
 save(fileOutput_stats,'masterVec','matchProjectionsCell')
