@@ -344,4 +344,4 @@ save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
 
 end
 %%
-save([pointStatFolder filesep 'pointStatsNew'],'pointStatsNew');
+save([pointStatFolder filesep 'pointStatsNew2'],'pointStatsNew');

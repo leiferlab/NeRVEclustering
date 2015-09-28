@@ -1,6 +1,4 @@
 function clusterWormTrackCompiler(filePath,fileOutput)
-pwd
-
 
 
 if nargin==1
@@ -101,15 +99,15 @@ transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
 %      transitionMatrixi=or(transitionMatrixi,speye(size(transitionMatrixi)));
 %     transitionMatrixi=double(transitionMatrixi);
 %     
-nSelectRange=[];
+nSelectRangeCell=[];
 NTrainingRange=min(800,N-1);
 nTraining=min(NTrainingRange,N-1);
 nSelect=round(2:NTrainingRange/nTraining:NTrainingRange);
 for i=1:length(nSelect)-1
-nSelectRange{i}=indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
+nSelectRangeCell{i}=indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
 end
-nSelectAdd=cellfun(@(x) length(x), nSelectRange);
-nSelectRange=cell2mat(nSelectRange);
+nSelectAdd=cellfun(@(x) length(x), nSelectRangeCell);
+nSelectRange=cell2mat(nSelectRangeCell);
 %% correlation and cluster, can take up to 10 minutes
 subTranstionMatrix=transitionMatrixi(nSelectRange,:);
       tic; tcorr2=sparseTransitionCorr(subTranstionMatrix',[],1);toc
@@ -163,10 +161,7 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
     c=cluster(Z,'cutoff',.99,'criterion','distance'); %normally .9999
     %% raname clusters based on size 
     c=c+1;
-    caccum=accumarray(c,ones(size(c))); %how many in each cluster
-
-   caccumN=find(caccum>nTraining*1.2); %bad clusters
-    
+    caccum=accumarray(c,ones(size(c))); %how many in each cluster    
     c(ismember(c,caccumN))=1;
 %the rank of each cluster, giving things a new index based on rank rather than cluster group
 [~,iaAccum]=sort(caccum,'descend'); 
@@ -348,4 +343,4 @@ pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save([fileOutput],'pointStats2');
-save(fileOutput_stats,'masterVec','matchProjectionsCell')
+save(fileOutput_stats,'masterVec','matchProjectionsCell','tcorr2')
