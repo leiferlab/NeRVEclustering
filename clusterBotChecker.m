@@ -38,13 +38,14 @@ timeIdx=floor(timeVector/max(timeVector+1)*groupSize);
 timeVector=timeVector(timeIdx==runIdx);
 %How many neurons to check
 
-% loop through all neurons in list
+% loop through selected neurons in list
 for iPointIdx=startIdxReal;
     display([' Starting ' num2str(iPointIdx)]);
 
 comparePointEstimate_x=nan(nSubSample,nTime);
 comparePointEstimate_y=nan(nSubSample,nTime);
 comparePointEstimate_z=nan(nSubSample,nTime);
+comparePointConf=nan(nSubSample,nTime);
 xyzRefAll=nan(nTime,3);
 
 %loop through all time points
@@ -74,6 +75,8 @@ overlapRef_excludeI=overlapRef(refTrackIdx(overlapRef)~=iPointIdx);
         movingPoints_excludeI=pointsI.straightPoints(overlapI_excludeI,:);
         controlPoint_excludeI=pointsRef.straightPoints(overlapRef_excludeI,:);
 xyzI=pointsI.straightPoints(iTrackIdx==iPointIdx,:);
+%also take the confidence of that point
+xyzI_conf=pointsI.trackWeights(iTrackIdx==iPointIdx);
 %estimate where the moving frame thinks the reference frame's point should
 %be
 
@@ -83,16 +86,18 @@ newEstimatePoint=tpswarp3points(movingPoints_excludeI,controlPoint_excludeI,xyzI
 comparePointEstimate_x(iCounter,iFrame)=newEstimatePoint(1);
 comparePointEstimate_y(iCounter,iFrame)=newEstimatePoint(2);
 comparePointEstimate_z(iCounter,iFrame)=newEstimatePoint(3);
+comparePointConf(iCounter,iFrame)=xyzI_conf;
     end
 
 end
 
 end
+%save results
     outputNameFile=[outputName filesep 'botChecker' num2str(iPointIdx,'%3.5d')...
         'Run' num2str(runIdx,'%3.2d')];
     display(outputNameFile)
     save(outputNameFile,'comparePointEstimate_x','comparePointEstimate_y', ...
-        'comparePointEstimate_z','xyzRefAll');
+        'comparePointEstimate_z','comparePointConf','xyzRefAll');
     
     
 end
