@@ -104,7 +104,7 @@ NTrainingRange=min(800,N-1);
 nTraining=min(NTrainingRange,N-1);
 nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
 for i=1:length(nSelect)-1
-nSelectRangeCell{i}=indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
+nSelectRangeCell{i}=1+indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
 end
 nSelectAdd=cellfun(@(x) length(x), nSelectRangeCell);
 nSelectRange=cell2mat(nSelectRangeCell);
