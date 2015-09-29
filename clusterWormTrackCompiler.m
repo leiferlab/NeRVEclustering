@@ -88,7 +88,7 @@ transitionIdxX=cell2mat(transitionIdxX');
 transitionIdxY=cell2mat(transitionIdxY');
 
 nTransitions=length(transitionIdxY);
-transitionMatrixi=sparse(transitionIdxX,transitionIdxY,true(1,nTransitions),...
+transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
     transitionMatrixSize,max(indexAdd2),nTransitions);
 
 transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
@@ -102,7 +102,7 @@ transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
 nSelectRangeCell=[];
 NTrainingRange=min(800,N-1);
 nTraining=min(NTrainingRange,N-1);
-nSelect=round(2:NTrainingRange/nTraining:NTrainingRange);
+nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
 for i=1:length(nSelect)-1
 nSelectRangeCell{i}=indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
 end
@@ -380,4 +380,4 @@ pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save([fileOutput],'pointStats2');
-save(fileOutput_stats,'masterVec','matchProjectionsCell','subTcorr2','tcorr2','-v7.3')
+save(fileOutput_stats,'masterVec','matchProjectionsCell','caccum','subTcorr2')
