@@ -88,7 +88,7 @@ transitionIdxX=cell2mat(transitionIdxX');
 transitionIdxY=cell2mat(transitionIdxY');
 
 nTransitions=length(transitionIdxY);
-transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
+transitionMatrixi=sparse(transitionIdxX,transitionIdxY,true(1,nTransitions),...
     transitionMatrixSize,max(indexAdd2),nTransitions);
 
 transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
@@ -112,6 +112,8 @@ nSelectRange=cell2mat(nSelectRangeCell);
 subTranstionMatrix=transitionMatrixi(nSelectRange,:);
       tic; tcorr2=sparseTransitionCorr(subTranstionMatrix',[],1);toc
  %     tic; tcorr2=sparseTransitionCorr(subTranstionMatrix');toc
+ % need to re symmetrize if we want eigen vectors, which we dont right now
+ if 0
 tsize=size(tcorr2);
  [x,y,v]=find(tcorr2);
  
@@ -122,7 +124,7 @@ v=v(uTri);
 
 tcorr2=sparse([x; y], [y;x],[v;v],tsize(1),tsize(2));
 
-
+ end
 % transitionMatrixi=normr(transitionMatrixi);
 % subTranstionMatrix=transitionMatrixi(nSelectRange,:);
 
@@ -153,12 +155,12 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
    tic
    tcorr2_lin=tcorr2(tril(true(length(tcorr2)),-1));
   % tcorr2_lin=tcorr2_lin(:);
-   toc;tic
-   %tcorr2=squareform(tcorr2)
-   Z=linkage(1-tcorr2_lin','complete');
    toc;
+   %tcorr2=squareform(tcorr2)
     %% cluster
-    c=cluster(Z,'cutoff',.99,'criterion','distance'); %normally .9999
+       Z=linkage(1-tcorr2_lin','complete');
+
+    c=cluster(Z,'cutoff',.9,'criterion','distance'); %normally .9999
     %% raname clusters based on size 
     c=c+1;
     caccum=accumarray(c,ones(size(c))); %how many in each cluster    
@@ -188,15 +190,38 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
         for i=1:length(uniqueIDs)
        subTcorr2(uniqueIDs(i),:)=mean(subTcorr(c2==uniqueIDs(i),:),1);
         end
-        
-      
-        subTcorr2=subTcorr2.*~eye(length(subTcorr2));
-        [x,y]=find(triu(subTcorr2)>.35);
-        
+        inGroup=subTcorr2(eye(size(subTcorr2,1))>0);
+      regroupCutoff=max(mean(inGroup)-std(inGroup)*2,.25);
+
+        [x,y,v]=find(subTcorr2.*((triu(subTcorr2,1)>regroupCutoff)));
+        [v,ia]=sort(v,'descend');
+        x=x(ia);
+        y=y(ia);
+        %%
+        newSumx=zeros(size(x));
+        newSumy=newSumx;
         for i=1:length(x)
-        newSum=sum((c2==x(i)|c2==y(i)));
+        newSumx(i)=sum(c2==x(i));
+        newSumy(i)=sum(c2==y(i));
+        newSum=newSumx(i)+newSumy(i);
+        %[newSumx,newSumy,newSum,nTraining]
         if newSum<nTraining*1.2
+      %      display(['adding ' num2str(newSum)])
         c2(c2==x(i))=y(i);
+        else
+            checkx=find(c2==x(i));
+            checky=find(c2==y(i));
+            check_set=[checkx;checky];
+            checkCorr=tcorr2(check_set,check_set);
+            checkCorr=checkCorr(tril(true(newSum),-1));
+            Ztest=linkage(1-full(checkCorr)','complete');
+            recluster=cluster(Ztest,'maxclust',2);
+            if max(accumarray(recluster,ones(1,newSum)))<nTraining*1.2
+            c2(check_set(recluster==1))=x(i);
+            c2(check_set(recluster==2))=y(i);
+            end
+            
+            
         end
         end
 
@@ -207,7 +232,7 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
 
                 % remove clusteres smaller than 40% of training, or larger
                 % than 120%
-    caccumN=find(caccum<nTraining*.2|caccum>nTraining*1.2); %bad clusters
+    caccumN=find(caccum<nTraining*.4|caccum>nTraining*1.2); %bad clusters
     
     c2(ismember(c2,caccumN))=1;
     c2(isnan(c2))=1;
@@ -223,7 +248,20 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
            c2=cUnique(ib);
   c2(c2==1)=nan;
    c2=c2-1;
-     
+   nnz(~isnan(c2))
+     %% calculate co-cluster correlation and in cluster average
+       %%  correction factor, optional, add groups that are cloes but were not clustered
+    subTcorr=[];subTcorr2=[];
+    uniqueIDs=unique(c2(~isnan(c2)));
+    uniqueIDs(uniqueIDs==0)=[];
+% average correlations matrices from each subgoup
+    for i=1:length(uniqueIDs)
+       subTcorr(:,uniqueIDs(i))=mean(tcorr2(:,c2==uniqueIDs(i)),2);
+    end
+    
+        for i=1:length(uniqueIDs)
+       subTcorr2(uniqueIDs(i),:)=mean(subTcorr(c2==uniqueIDs(i),:),1);
+        end
         
         %%
 
@@ -231,7 +269,6 @@ ccell=mat2cell(c2,nSelectAdd);
     neuronsinFrame=cell2mat(cellfun(@(x) sum(~isnan(x)),ccell,'uniform',0));
     
    %% try to plot the clusters
-    close all
     assignedNodes1=find(~isnan(c2));
     c3=c2(~isnan(c2));
     [~,ia]=sort(c3);
@@ -343,4 +380,4 @@ pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save([fileOutput],'pointStats2');
-save(fileOutput_stats,'masterVec','matchProjectionsCell','tcorr2','-v7.3')
+save(fileOutput_stats,'masterVec','matchProjectionsCell','subTcorr2','tcorr2','-v7.3')
