@@ -14,7 +14,7 @@ pointStatsNew=pointStats2;
 
 imageFolder=uipickfiles('filterSpec','V:');
 imageFolder=imageFolder{1};
-dataFolder=fileparts(imageFolder)
+dataFolder=fileparts(imageFolder);
 
 %% 
     iPoint=str2double(fileListAll(end).name(11:15));
@@ -28,6 +28,7 @@ dataFolder=fileparts(imageFolder)
   oldXAll=newXAll;
   oldYAll=newXAll;
   oldZAll=newXAll;
+  weightAll=newXAll;
   zScoreAll=newXAll;
   compareAllX=zeros(size(data.comparePointEstimate_x,1),...
       size(data.comparePointEstimate_x,2),length(fileListAll)/3);
@@ -57,16 +58,22 @@ comparePointEstimate_z=cell2mat(permute({data.comparePointEstimate_z},[1 3 2]));
 comparePointEstimate_z=nansum(comparePointEstimate_z,3);
 comparePointEstimate_z(comparePointEstimate_z==0)=nan;
 
+comparePointsW=cell2mat(permute({data.comparePointConf},[1 3 2]));
+comparePointsW=nansum(comparePointsW,3);
+comparePointsW(comparePointsW==0)=nan;
+comparePointsW=comparePointsW(:,1);
+sumW=nansum(comparePointsW);
 xyzRefAll=cell2mat(permute({data.xyzRefAll},[1 3 2]));
 xyzRefAll=nansum(xyzRefAll,3);
 xyzRefAll(xyzRefAll==0)=nan;
 
-    xmean=nanmean(comparePointEstimate_x)';
-    xstd=nanstd(comparePointEstimate_x)';
-    ymean=nanmean(comparePointEstimate_y)';
-    ystd=nanstd(comparePointEstimate_y)';
-    zmean=nanmean(comparePointEstimate_z)';
-    zstd=nanstd(comparePointEstimate_z)';
+    xmean=nansum(bsxfun(@plus,comparePointEstimate_x,comparePointsW))'/sumW;
+    xstd=sqrt(nanvar(comparePointEstimate_x,comparePointsW))';
+    ymean=nansum(bsxfun(@plus,comparePointEstimate_y,comparePointsW))'/sumW;
+    ystd=sqrt(nanvar(comparePointEstimate_y,comparePointsW))';
+    zmean=nansum(bsxfun(@plus,comparePointEstimate_z,comparePointsW))'/sumW;
+    zstd=sqrt(nanvar(comparePointEstimate_y,comparePointsW))';
+    
     compareAllX(:,:,i)=comparePointEstimate_x;
     compareAllY(:,:,i)=comparePointEstimate_y;
     compareAllZ(:,:,i)=comparePointEstimate_z;
@@ -86,6 +93,7 @@ xyzRefAll(xyzRefAll==0)=nan;
     oldXAll(i,:)=xyzRefAll(:,1);
     oldYAll(i,:)=xyzRefAll(:,2);
     oldZAll(i,:)=xyzRefAll(:,3);
+    weightAll(i,:)=comparePointsW';
 end
 end
 
@@ -137,17 +145,17 @@ for iTime=1:length(pointStats2)
             oldZAll(pointIdx,iTime)];
     allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...
         compareAllZ(:,iTime,pointIdx)];
-    
-    allPoints(any(isnan(allPoints),2) | any(allPoints==0,2),:)=[];
-    allPoints(any(bsxfun(@ge,allPoints,imSize),2),:)=[];
-    allPoints(any(allPoints<1,2),:)=[];
-    
-    if ~isempty(allPoints);
+    weights=weightAll(pointIdx,:)';
+    removes=isnan(allPoints) | allPoints==0 |allPoints<1 |bsxfun(@ge,allPoints,imSize);
+    removes=any(removes,2) | isnan(weights);
+    allPoints(removes,:)=[];
+    weights(removes)=[];
+    if ~isempty(allPoints)
     allPointsR=round(allPoints);
     
    
     allPointsIdx=sub2ind(imSize,allPointsR(:,1),allPointsR(:,2),allPointsR(:,3));
-    pointW=currentImageStack(allPointsIdx);
+    pointW=currentImageStack(allPointsIdx).*weights;
     floorLvl=quantile(pointW,.4);
     pointW=pointW-floorLvl;
     pointW(pointW<0)=0;
@@ -344,4 +352,4 @@ save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
 
 end
 %%
-save([pointStatFolder filesep 'pointStatsNew2'],'pointStatsNew');
+save([submissionFolder filesep 'pointStatsNew2'],'pointStatsNew');
