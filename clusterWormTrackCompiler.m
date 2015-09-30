@@ -163,7 +163,6 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
     c=cluster(Z,'cutoff',.9,'criterion','distance'); %normally .9999
     cInitial=c;
     %% raname clusters based on size 
-    c=c+1;
     caccum=accumarray(c,ones(size(c))); %how many in each cluster    
 %    c(ismember(c,caccumN))=1;
 %the rank of each cluster, giving things a new index based on rank rather than cluster group
@@ -174,8 +173,6 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
 %     [~,ic]=sort(ia);
 %     [~, id]=sort(ic);
     c2=cUnique(ib);
-  c2(c==1)=nan;
-   c2=c2-1;
     
     
 
@@ -248,8 +245,7 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
     
            c2=cUnique(ib);
   c2(c2==1)=nan;
-   c2=c2-1;
-   nnz(~isnan(c2))
+  c2=c2-1;
      %% calculate co-cluster correlation and in cluster average
        %%  correction factor, optional, add groups that are cloes but were not clustered
     subTcorr=[];subTcorr2=[];
