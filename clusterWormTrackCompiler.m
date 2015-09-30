@@ -161,6 +161,7 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
        Z=linkage(1-tcorr2_lin','complete');
 
     c=cluster(Z,'cutoff',.9,'criterion','distance'); %normally .9999
+    cInitial=c;
     %% raname clusters based on size 
     c=c+1;
     caccum=accumarray(c,ones(size(c))); %how many in each cluster    
@@ -380,4 +381,4 @@ pointStats=pointStats2;
 %% YOU SHOULD SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save([fileOutput],'pointStats2');
-save(fileOutput_stats,'masterVec','matchProjectionsCell','c2','caccum','subTcorr2')
+save(fileOutput_stats,'masterVec','matchProjectionsCell','cInitial','c2','caccum','subTcorr2')
