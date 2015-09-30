@@ -62,7 +62,7 @@ xyzRefAll(iFrame,:)=xyzRef;
 end
 %loop through comparison time points
 for iCounter=1:nSubSample
-    
+    try
     pointsI=pointStats2(subSample(iCounter));
     iTrackIdx=pointsI.trackIdx;
 [~,overlapI,overlapRef]=intersect(iTrackIdx,refTrackIdx);
@@ -87,8 +87,12 @@ comparePointEstimate_x(iCounter,iFrame)=newEstimatePoint(1);
 comparePointEstimate_y(iCounter,iFrame)=newEstimatePoint(2);
 comparePointEstimate_z(iCounter,iFrame)=newEstimatePoint(3);
 comparePointConf(iCounter,iFrame)=xyzI_conf;
-    end
 
+    
+    end
+    catch me
+        display(['Error at ' num2str(iFrame), ' and ' num2str(iFrame)])
+    end
 end
 
 end
