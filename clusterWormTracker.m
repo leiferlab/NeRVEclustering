@@ -28,12 +28,11 @@ matchesPerSegment=matchesPerSegment*nGroups;
 startIdx=(1:doGroups)+(startIdx-1)*doGroups;
 iIdxList=floor((nGroups+startIdx-1)/nGroups);
 itIdx=mod(startIdx,nGroups);
-runIdxList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
-presentN=length(runIdxList);
+runIdxListAll=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
+presentN=length(runIdxListAll);
 deltaRun=presentN/matchesPerSegment;
 
-runIdxList=runIdxList(ceil((deltaRun:deltaRun:presentN/nGroups)+itIdx*presentN/nGroups));
-runIdxList=unique(runIdxList);
+
 % presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 % presentIdx=find(cell2mat(presentIdx));
 presentIdx=1:length(pointStats);
@@ -45,8 +44,12 @@ param.quiet=1;
 param.timeLimit=10;
 param.difficult=1.5e4;
 %%
-for iIdx=iIdxList%length(TrackData)
+for iCounter=1:length(iIdxList)%length(TrackData)
     %%
+    iIdx=iIdxList(iCounter);
+    runIdxList=runIdxListAll(ceil((deltaRun:deltaRun:presentN/nGroups)+itIdx(iCounter)*presentN/nGroups));
+runIdxList=unique(runIdxList);
+
                 outputName=fileparts(filePath);
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx,'%3.2d')];
 
