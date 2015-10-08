@@ -1,4 +1,4 @@
-function clusterWormTracker(filePath,startIdx,nGroups,doGroups)
+function clusterWormTracker(filePath,startIdx,nGroups,offset,doGroups)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
  show=00;
  startTic=tic;
@@ -12,6 +12,9 @@ if nargin<3
     nGroups=1;
 end
 if nargin<4
+    offset=0;
+end
+if nargin<5
     doGroups=1;
 end
 if doGroups==1
@@ -20,7 +23,7 @@ else
     timeLimit=3600*doGroups*2;
 end
 
-
+startIdx=startIdx+offset;
 load(filePath);
 %%
  matchesPerSegment=150;
