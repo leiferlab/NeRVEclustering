@@ -7,7 +7,8 @@ dataFolder=dataFolder{1};
 imSize=[1200 600];
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
 %% load data
-load([dataFolder filesep 'wormFiducialIntensities.mat'])
+wormFiducialIntensityFile=dir([dataFolder filesep 'wormFiducialIntensities*.mat']);
+load([dataFolder filesep wormFiducialIntensityFile.name])
 
 %%
 bfIdxList=1:length(bfAll.frameTime);
@@ -19,22 +20,7 @@ fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'line
 hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime),'linear','extrap');
 
 %% load Fiducials file
-fiducialFile=dir([dataFolder filesep '*iducial*']);
-fiducialFile={fiducialFile.name}';
-if length(fiducialFile)~=1
-        display('Select model file');
-
-    fiducialFile=uipickfiles('FilterSpec',dataFolder);
-    fiducialFile=load(fiducialFile{1});
-    fiducialPoints=fiducialFile.fiducialPoints;
-    z2ImageIdxOffset=fiducialFile.timeOffset;
-else
-    fiducialFile=load([dataFolder filesep fiducialFile{1}]);
-    fiducialPoints=fiducialFile.fiducialPoints;
-    z2ImageIdxOffset=fiducialFile.timeOffset;
-
-end
-
+ [fiducialPoints,z2ImageIdxOffset]=loadFiducialPoints(dataFolder);
 %%
 stack2BFidx=bfIdxLookup(diff(hiResData.stackIdx)==1);
 BF2stackIdx=interp1(stack2BFidx,1:max(hiResData.stackIdx),bfIdxList,'nearest','extrap');
@@ -64,7 +50,6 @@ hasPoints=hasPoints(hasPoints<max(BF2stackIdx));
 bfRange=[1 find(diff(BF2stackIdx)==1)];
 hasPoints=hasPoints(hasPoints<length(bfRange));
 hasPoints=min(hasPoints):max(hasPoints);
-hasPoints=hasPoints(hasPoints<=1000);
 
 nTimes=length(hasPoints);
 
@@ -129,9 +114,10 @@ close all
 
 wormcentered2=smooth2a(wormcentered,5,31);
 [wormcenteredx,wormcenteredy]=gradient(wormcentered2);
+CLV=sum((wormcenteredy.*wormcenteredx));
+
 subplot(3,1,1);imagesc(wormcentered);
 subplot(3,1,2);imagesc(sign(wormcenteredy./wormcenteredx))
-CLV=sum((wormcenteredy.*wormcenteredx));
 subplot(3,1,3);plot(CLV);
 xlim([0 length(wormcentered)]);
 
@@ -476,7 +462,7 @@ timeVec=1:(i)*500;
 ballSearch=7;
 cropSize=size(Rcrop);
 vols=cropSize(5);
-RvalsAll=zeros(vols,nTimes);
+RvalsAll=zeros(vols,cropSize(4));
 GvalsAll=RvalsAll;
 
 center=ceil(cropSize/2);
@@ -489,7 +475,7 @@ ballr=sqrt(ballx.^2+bally.^2);
 ballr=repmat(ballr<ballSearch,1,1,cropSize(3));
 progressbar(0,0);
 for iVol=1:vols
-    for i=1:nTimes
+    for i=1:cropSize(4)
       %  iTime=hasPoints(i);
       iTime=i;
         progressbar(iVol/vols,iTime/nTimes);

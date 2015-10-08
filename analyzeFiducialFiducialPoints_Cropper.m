@@ -39,22 +39,7 @@ hiResSegmentFolder=[dataFolder filesep  'hiResSegmentFolder3Dtest'];
 metaFolder=[dataFolder filesep  'metaDataFolder3Dtest'];
 
 %% load Fiducials file
-fiducialFile=dir([dataFolder filesep '*iducial*']);
-fiducialFile={fiducialFile.name}';
-if length(fiducialFile)~=1
-        display('Select model file');
-
-    fiducialFile=uipickfiles('FilterSpec',dataFolder);
-    fiducialFile=load(fiducialFile{1});
-    fiducialPoints=fiducialFile.fiducialPoints;
-    z2ImageIdxOffset=fiducialFile.timeOffset;
-else
-    fiducialFile=load([dataFolder filesep fiducialFile{1}]);
-    fiducialPoints=fiducialFile.fiducialPoints;
-    z2ImageIdxOffset=fiducialFile.timeOffset;
-
-end
-
+ [fiducialPoints,z2ImageIdxOffset]=loadFiducialPoints(dataFolder)
 
 
 %%
@@ -144,23 +129,28 @@ else
 end
 
 %%
+empties=cellfun(@(x) isempty(x),fiducialPoints);
+for i=find(empties)'
+fiducialPoints{i}=cell(4);
+end
+%%
 
-
-annotated=find(cell2mat(cellfun(@(x) ~isempty(cell2mat(x(1))),fiducialPoints,'uniformOutput',0)));
+annotated=(cell2mat(cellfun(@(x) ~isempty(cell2mat(x(1))),fiducialPoints,'uniformOutput',0)));
 %%
 progressbar(0);
 boxR=[10,10,1];
 [boxX,boxY,boxZ]=meshgrid(-boxR(1):boxR(1),-boxR(2):boxR(2),-boxR(3):boxR(3));
-Rcrop=zeros([size( boxX) length(annotated) size(fiducialPoints{1},1)]);
+Rcrop=nan([size( boxX) length(annotated) size(fiducialPoints{1},1)]);
 Gcrop=Rcrop;
 
 for iStack=1:length(annotated)
+    if annotated(iStack)
   %  progressbar(iStack/length(annotated));
 
-      currentFiducials=fiducialPoints{annotated(iStack)};
+      currentFiducials=fiducialPoints{(iStack)};
        Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
-
-        fiducialIdx=find(cell2mat((cellfun(@(x)( ~isempty(x)),currentFiducials(:,1),'uniformoutput',0))));
+        fiducialPresent=cell2mat((cellfun(@(x)( ~isempty(x)),currentFiducials(:,1),'uniformoutput',0)));
+        fiducialIdx=find(fiducialPresent);
         fiducialIdx(isnan(cell2mat(currentFiducials(fiducialIdx,1))))=[];
           fiducialZ=round(cell2mat(currentFiducials(fiducialIdx,4)));
     %    [fiducialPlanes,ia,ib]=unique(fiducialZ);
@@ -218,12 +208,12 @@ Gtemp(inImageMap2)=activityChannel(yspace(1, any(inImageMap,1)),xspace(any(inIma
 % Gtemp=activityChannel(rFiducialPoints(i,2)+(-boxR(1):boxR(1))...
 %     ,rFiducialPoints(i,1)+(-boxR(2):boxR(2)),:);
 %RBW=(normalizeRange(Rtemp)>graythresh(normalizeRange(Rtemp)));
-
 Rcrop(:,:,:,iStack,fiducialIdx(i))=Rtemp;
 Gcrop(:,:,:,iStack,fiducialIdx(i))=Gtemp;
-
 end
+
 fclose(Fid);
+end
 % Rfiducials{iStack}=Rout;
 % Gfiducials{iStack}=Gout;
 % BackgroundF{iStack}=backgroundOut;

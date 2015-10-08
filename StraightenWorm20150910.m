@@ -18,7 +18,7 @@ cols=600;
 nPix=rows*cols;
 
 
-[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
+    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
 
 
     vidInfo.bfAll=bfAll;
@@ -129,7 +129,7 @@ zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 startStack=minStart;
 endStack=max(hiResData.stackIdx);
-destination= 'CLstraight_20150910';
+destination= 'CLstraight_201501001';
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 show=0;

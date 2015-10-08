@@ -1,8 +1,7 @@
-function clusterWormTracker(filePath,startIdx,nGroups)
+function clusterWormTracker(filePath,startIdx,nGroups,doGroups)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
  show=00;
  startTic=tic;
- timeLimit=3600; 
 if nargin==0
     filePath=uipickfiles;
     startIdx=1;
@@ -12,11 +11,21 @@ end
 if nargin<3
     nGroups=1;
 end
+if nargin<4
+    doGroups=1;
+end
+if doGroups==1
+ timeLimit=3600; 
+else
+    timeLimit=3600*doGroups*2;
+end
+
 
 load(filePath);
 %%
  matchesPerSegment=150;
 matchesPerSegment=matchesPerSegment*nGroups;
+startIdx=(1:doGroups)+(startIdx-1)*doGroups;
 iIdxList=floor((nGroups+startIdx-1)/nGroups);
 itIdx=mod(startIdx,nGroups);
 runIdxList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));

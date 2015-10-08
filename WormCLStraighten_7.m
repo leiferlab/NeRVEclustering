@@ -141,7 +141,6 @@ end
 %centerline=centerline.centerline;
 centerline=centerline.(CLfieldNames{CLfieldIdx});
 
-
 %% load images
 
          
@@ -256,7 +255,10 @@ end
 
 CL2X=reshape(CL2(:,1,CLsearchWindow:end-CLsearchWindow),[],1,1);
 CL2Y=reshape(CL2(:,2,CLsearchWindow:end-CLsearchWindow),[],1,1);
-[xyOffset2,~]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),lastOffset);
+
+[xyOffset2,~]=fminsearch(@(x) CLsearch(sum(fluorFrame2,3),CL2X+x(1),CL2Y+x(2),show),lastOffset);
+
+[xyOffset2,~]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),xyOffset2);
 %limit translation fix
 % lastOffset=xyOffset3;
 %   lastOffset(lastOffset>50)=50;
@@ -277,7 +279,6 @@ if show
     
     plot(CL2X,CL2Y,'xr');
 end
-
 
 
 
