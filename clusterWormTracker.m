@@ -55,6 +55,7 @@ runIdxList=unique(runIdxList);
 
                 outputName=fileparts(filePath);
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx(iCounter),'%3.2d')];
+      display(outputName);
 
     i=presentIdx(iIdx);
     outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
@@ -182,6 +183,7 @@ DMatrixi_z(presentIJ,runIdx-outRange(1)+1)=pointsDiff(:,3);
 
       %for the hr queue on cluster, , if run time is greater than an hour,
       %time to save at each iteration. 
+
 if toc(startTic)>timeLimit;
         save(outputName,'TrackMatrixi');    
 end
