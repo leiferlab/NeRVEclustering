@@ -54,6 +54,8 @@ for iCounter=1:length(iIdxList)%length(TrackData)
 runIdxList=unique(runIdxList);
 
                 outputName=fileparts(filePath);
+                if isempty(outputName)
+                    
     outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx(iCounter),'%3.2d')];
       display(outputName);
 
