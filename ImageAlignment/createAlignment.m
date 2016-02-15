@@ -1,6 +1,11 @@
 function createAlignment(alignmentName)
 %createAlignment creates an alignment mapping out of images to be used with
 %worm segmentation and gcamp signal, only uses projective mapping
+ 
+display(['Normal convention is:'  char(10) ...
+ 'Red channel 2 green channel,' char(10)...
+ 'low mag behavior to low mag fluor,' char(10)...
+ 'and hiRes Red to low Res fluor'])
 
 choice = menu('Image Setup','Split','Multiple');
 
@@ -23,11 +28,7 @@ segmentPts=alignment.Sall;
 activityPts=alignment.Aall;
 end
 %%
-        
-display(['Normal convention is:'  char(10) ...
- 'Red channel 2 green channel,' char(10)...
- 'low mag behavior to low mag fluor,' char(10)...
- 'and hiRes Red to low Res fluor'])
+       
 
 if choice==1
         initialIm=double(imread([fileName{1}],'tif'));

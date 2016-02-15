@@ -17,7 +17,6 @@ end
 camFrameData=importdata([imFolder filesep 'CameraFrameData.txt']);
 camFrameData=camFrameData.data;
 %'Frame Number'  'DC Offset'  'Image StDev'
-imageIdx=camFrameData(:,1);
 saveIdx=camFrameData(:,2);
 
 labJackData=importdata([imFolder filesep 'LabJackData.txt']);
@@ -52,17 +51,20 @@ imageSpikes=[0;diff(single(imageWave))>.2]>0;
 %sepearte rising (1) and falling(0) part of wave
 %zTrigger=normalizeRange(zTrigger);
 %zTrigger=double(zTrigger>.5);
-zgrad=zTrigger(saveSpikes); 
+zgrad=zTrigger; 
 zgrad=(gradient(zgrad));
-zgrad=abs([0 ;(diff(zgrad))]);
+%zgrad=abs([0 ;(diff(zgrad))]);
 zgrad=normalizeRange(zgrad)>.1;
+zgrad=[0; diff(zgrad)];
+zgrad=abs(zgrad)>.1;
 %zgrad=zgrad>max(zgrad/2);
 %cumsum the changes in direction, 
 stackIdx=[0;cumsum(zgrad)];
+stackIdx=stackIdx(saveSpikes);
 stackAccum=((accumarray(stackIdx+1,ones(size(stackIdx)))));
 % get rid of stacks with less than 10 images more than 200 (possibly
 % turning off of the zwave);
-badIdx=find(stackAccum<30 |stackAccum>200)-1;
+badIdx=find(stackAccum<mean(stackAccum*.5) |stackAccum>200)-1;
 sOld=stackIdx;
 stackIdx(ismember(sOld,badIdx))=0;
 dstackIdx=diff(stackIdx);
@@ -96,6 +98,7 @@ timeAll(isnan(timeAll))=0;
 % end
 
 imageFlashPos=find(datFlash);
+imageIdx=camFrameData(:,1);
 
 
 

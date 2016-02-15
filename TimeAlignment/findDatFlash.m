@@ -12,8 +12,8 @@ if nargin==0
 end
 
 if nargin<3
-    rows=1024;
-    cols=1024;
+    rows=1200;
+    cols=600;
 end
 if nargin<4
     rowSearch=rows;

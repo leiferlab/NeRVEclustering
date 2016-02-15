@@ -1,4 +1,4 @@
-function imageAll=zProjectDatFile(bgFile,imsize,method)
+function imageAll=zProjectDatFile(bgFile,imsize,method,skip)
 
 %loads dat file and calculates the average intensity of each pixel. method
 %is not yet available. image must be [1200 600], and be uint16. 
@@ -19,6 +19,9 @@ end
  if nargin<3
      method='mean';
  end
+if nargin<4
+    skip=1;
+end
 
 
 Fid=fopen(bgFile);
@@ -27,7 +30,7 @@ status=fseek(Fid,0,1);
 lastFrame=ftell(Fid)/(prod(imsize)*2);
 status=fseek(Fid,0,-1);
 progressbar(0);
-for i=1:lastFrame
+for i=1:skip:lastFrame
 progressbar(i/lastFrame);
   pixelValues=fread(Fid,prod(imsize),'uint16',0,'l');
 
@@ -39,10 +42,14 @@ else
         imageAll=max(imageAll,double(squareImage));
     elseif strcmp(method,'sum') || strcmp(method,'mean')
     imageAll=imageAll+double(squareImage);
+    elseif strcmp(method,'max');
+    imageAll=max(imageAll,double(squareImage));
+    elseif strcmp(method,'min')
+    imageAll=min(imageAll,double(squareImage));
     end
 end
 
 end
 if strcmp(method,'mean')
-imageAll=imageAll/lastFrame;
+imageAll=imageAll/lastFrame*skip;
 end

@@ -5,9 +5,9 @@ function Pout=coordinateTransform3d(P,X,Y,Z)
 imSize=size(X);
 Plin=round(P);
 Plin(Plin<1)=1;
-Plin(Plin(:,1)>imSize(1))=imSize(1);
-Plin(Plin(:,2)>imSize(2))=imSize(2);
-Plin(Plin(:,3)>imSize(3))=imSize(3);
+Plin(Plin(:,1)>=imSize(1),1)=imSize(1);
+Plin(Plin(:,2)>=imSize(2),2)=imSize(2);
+Plin(Plin(:,3)>=imSize(3),3)=imSize(3);
 Plin=sub2ind(imSize,Plin(:,1),Plin(:,2),Plin(:,3));
 
 

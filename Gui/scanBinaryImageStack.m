@@ -174,9 +174,7 @@ end
 pixelValues=fread(Fid,nPix,'uint16',0,'l');
 C=reshape(pixelValues,row,col);
 end
-if 0
-C=pedistalSubtract(C);
-end
+
 maxC=getappdata(handles.figure1,'maxC');
 setappdata(handles.figure1,'maxC',max(max(C(:)),maxC));
 
@@ -196,8 +194,8 @@ switch get(handles.colorMap,'Value');
         caxis(handles.axes1,[0,maxC]); 
 
     case 4
-        C(1:1:row/2,:)=normalizeRange(pedistalSubtract(C(1:1:row/2,:)))+1;
-        C(round(row/2):end,:)=normalizeRange(pedistalSubtract(C(round(row/2):end,:)));
+        C(1:1:row/2,:)=normalizeRange((C(1:1:row/2,:)))+1;
+        C(round(row/2):end,:)=normalizeRange((C(round(row/2):end,:)));
         h=imagesc(C,'Parent',handles.axes1);
       colormap(handles.axes1,[hot(32);circshift(hot(32),[0,1])]);
       caxis(handles.axes1,[0,2]); 
@@ -404,8 +402,8 @@ end
 
 setappdata(handles.figure1,'ender',ender);
 
-
 tiffwrite(imageName,single(currentImage),'tif',0);
+
 
 currentFrame=get(handles.slider1,'Value');
 set(handles.slider1,'Value',min(currentFrame+1,get(handles.slider1,'max')));
@@ -456,4 +454,20 @@ function stepSize_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
+
+function V=normalizeRange(X)
+%The function takes a scalar or nd matrix X and normalize the matrix to a
+%minimum of 0 and a maximum of 1. If all the values in the matrix are the
+%same, they are all replaced with ones. 
+if ~isempty(X)
+L=numel(X);
+XX=reshape(X,1,L);
+if max(XX)==min(XX)
+    V=ones(size(X));
+else
+V=(X-min(XX))/(max(XX)-min(XX));
+end
+else
+    V=X;
 end

@@ -71,12 +71,17 @@ for iRegion=1:(cc.NumObjects)
                     % dimension as much;
                     [~,dmin]=max(abs(Vsub),[],2);
                     correctionScale=1./D(iRegion,:);
+                    %ignore flat objects
+                    if all(isfinite(correctionScale))
                     correctionScale=correctionScale/min(correctionScale);
                     correctionScale=correctionScale(dmin);
                     correctionScale(dmin==1)=5*correctionScale(dmin==1);
                     correctionScale(dmin==2)=correctionScale(dmin==2);
                     correctionScale=round(correctionScale);
                     Jd=-bwdist_jn(~blankCrop,correctionScale);
+                    else
+                        Jd=zeros(size(blankCrop));
+                    end
                 else
                     Jd=-bwdist_jn(~blankCrop);
                 end

@@ -14,8 +14,9 @@ if nargin==0
     filePath=filePath{1};
 end
 if nargin<3
-    groupSize=0;
+    groupSize=1;
 end
+%%
          outputName=fileparts(filePath);
 if isempty(outputName)
     outputName=pwd;
@@ -38,7 +39,7 @@ timeIdx=floor(timeVector/max(timeVector+1)*groupSize);
 timeVector=timeVector(timeIdx==runIdx);
 %How many neurons to check
 
-% loop through selected neurons in list
+%% loop through selected neurons in list
 for iPointIdx=startIdxReal;
     display([' Starting ' num2str(iPointIdx)]);
 
@@ -50,6 +51,7 @@ xyzRefAll=nan(nTime,3);
 
 %loop through all time points
 for iFrame=timeVector
+    %%
     %take random subsample of other time points to compare
    % subSample=randperm(nTime,nSubSample);
     subSample=1:nTime;
@@ -90,8 +92,9 @@ comparePointConf(iCounter,iFrame)=xyzI_conf;
 
     
     end
+        display(['Done ' num2str(iFrame), ' and ' num2str(iCounter)])
     catch me
-        display(['Error at ' num2str(iFrame), ' and ' num2str(iFrame)])
+        display(['Error at ' num2str(iFrame), ' and ' num2str(iCounter)])
     end
 end
 
