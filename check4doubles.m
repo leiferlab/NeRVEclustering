@@ -1,5 +1,6 @@
 function repTerms=check4doubles(x)
-%check for repeated NONZERO elements of a vector
+%returns non-zero and non-nan elements of an array that appear more than
+%once
 x=x(x~=0 & ~isnan(x));
 xU=unique(x);
 xhist=histc(x,xU);

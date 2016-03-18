@@ -195,7 +195,7 @@ for iTime=1:length(pointStats2)
     allPointsR=round(allPoints);
     allPointsIdx=sub2ind(imSize,allPointsR(:,1),allPointsR(:,2),allPointsR(:,3));
    % weights is image intensity times fit weight
-    pointW=currentImageStack(allPointsIdx).*weights;
+    pointW=(currentImageStack(allPointsIdx).^2).*weights;
     %ignore lower 40% of weights
         floorLvl=quantile(pointW,.4);
     pointW=pointW-floorLvl;
