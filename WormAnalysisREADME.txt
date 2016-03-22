@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf340
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;}
 \margl1440\margr1440\vieww22940\viewh10460\viewkind0
@@ -34,7 +34,7 @@ STEP 1: CENTERLINE DETECTION \
 tripleImageCenterline_par.m\
 \
 STEP 2: STRAIGHTEN AND SEGMENTATION\
-StraightenWormFolder20150612.m\
+StraightenWormFolder20150910.m\
 \
 STEP 3: TRACKING ON CLUSTER USING PYTHON SCRIPTS\
 submitWormAnalysisPipeline.py\
