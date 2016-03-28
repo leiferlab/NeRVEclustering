@@ -4,8 +4,7 @@
 % load folder with data
  dataFolder=uipickfiles;
  dataFolder=dataFolder{1};
-%dataFolder='F:\20141212\BrainScanner20141212_145951\';
-%[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
+%dataFolder='F:\20141212\BrainScanner20141212_145951\';%[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize);
 %% load video and alignemtn data
 
 rows=1200;
@@ -81,10 +80,11 @@ end
 %%
 % If there is a hand annotated set for comparison, select here, otherwise
 %skip
+if 0
 fiducialFile=uipickfiles('filterspec',dataFolder);
 fiducialPoints=load(fiducialFile{1});
 fiducialPoints=fiducialPoints.fiducialPoints;
-
+end
 
 %% calculate offset between frame position and zposition
 zWave=hiResData.Z;
@@ -110,7 +110,7 @@ pointStats=combinePointStatsFiles(imageFolder2,length(stackRange));;
 tic
 show=1;
 
-counter=350; %which volume to do
+counter=300; %which volume to do
 
 %Run straighten and segmentation on one volume
 [V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
