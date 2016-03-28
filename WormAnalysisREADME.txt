@@ -24,7 +24,7 @@ CameraFrameData.txt - tab separated data file from lab jack from Leifer Lab's Wh
 
 *behav*.avi - 		video of low magnification behavior video from the Leifer lab's Colbert code, will be used for centerline extraction 
 
-*behav*.yaml -	 metadata for low magnification behavior video from the Leifer lab\'92s Colbert code, includes timing data
+*behav*.yaml -	 metadata for low magnification behavior video from the Leifer lab's Colbert code, includes timing data
 
 alignments.mat -matlab structure with fields containing the affine transforms for image alignment. Alignments created using the createAlignment.m program: The file has the following fields
 lowResFluor2BF	- affine transform between low magnification fluorescent and behavior images
