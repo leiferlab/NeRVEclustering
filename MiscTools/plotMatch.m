@@ -5,10 +5,12 @@ end
 
 yl=length(y);
 xl=length(x);
-mid=round(.5*(xl+yl));
-counter=1;
 r=-yrange:yrange;
-E=zeros(1,length(r));
+% w=gausswin(length(x),3);
+% w=w/sum(w);
+x=bsxfun(@minus,x,mean(y));
+y=bsxfun(@minus,y,mean(y));
+
 %% old method, a bit slower
 % for i=r
 %     if i>0
@@ -28,20 +30,13 @@ E=zeros(1,length(r));
 %  end
 %%
 X=convn(x,rot90(y,2),'full');
+xref=convn(ones(size(x)),ones(size(x)),'full');
+ X=X./xref;
 E=-X(:,2);
 r=round((1:(yl+xl))-(yl+xl)/2);
 
 
 
-
-% 
-% plot(x(:,1),x(:,2))
-% hold on
-% plot(y(:,1),y(:,2))
-% hold off
-% axis equal
-% 
-% pause(1)
 
 
     

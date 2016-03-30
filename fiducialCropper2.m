@@ -107,7 +107,7 @@ Z=double(pointStatsTemp.transformz);
 trackIdx=pointStats2(i).trackIdx;
     straightPoints=pointStats2(presentIdx(i)).straightPoints;
   %  rawPoints=rawPoints(~isnan(pointStats2(presentIdx(i)).trackIdx),:);
-    present=~isnan(trackIdx+straightPoints(:,1));
+    present=~isnan(trackIdx) & ~isnan(straightPoints(1:length(trackIdx),1));
     trackIdx=trackIdx(present);
     if i==1
         GvalAll=nan(nnz(present),max([pointStats2.stackIdx]));

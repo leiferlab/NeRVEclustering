@@ -180,8 +180,8 @@ f_tip_start=cline_para.endRepulsion*[f_tip_start_x f_tip_start_y];
         fs(end, :) = fs(end, :) + s_tail .* ftail*cline_para.stretching_force_factor(2);
         fhead_heat=cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
         ftail_heat=cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*4);
-        fs(end-2*refIdx:end, :)=fs(end-2*refIdx:end,:)*(1-exp(-i/cline_para.iterations*10));
-        fs(1:refIdx, :)=fs(1:refIdx,:)*(1-exp(-i/cline_para.iterations*10));
+         fs(end-2*refIdx:end, :)=fs(end-2*refIdx:end,:)*(1-exp(-i/cline_para.iterations));
+         fs(1:refIdx, :)=fs(1:refIdx,:)*(1-exp(-i/cline_para.iterations));
 
         fs(1,:)=fs(1,:)+fhead_heat;
         fs(end,:)=fs(end,:)+ftail_heat;
@@ -199,7 +199,7 @@ f_tip_start=cline_para.endRepulsion*[f_tip_start_x f_tip_start_y];
     if i > cline_para.iterations - 50
         
         %turn of ref spring to try to get the contour to relax smoothly
-        cline_para.refSpring=0;
+      %  cline_para.refSpring=0;
         xyzs_avg = xyzs_avg + xyzs;
         counter = counter + 1;
     end
@@ -213,8 +213,8 @@ f_tip_start=cline_para.endRepulsion*[f_tip_start_x f_tip_start_y];
         minDist=distanceTravelled;
     else
         minCounter=minCounter+1;
-                cline_para.refSpring=0;
-                xyzs=distanceInterp(xyzs,length(xyzs));
+             %   cline_para.refSpring=0;
+               % xyzs=distanceInterp(xyzs,length(xyzs));
 
     end
     

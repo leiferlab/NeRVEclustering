@@ -95,7 +95,7 @@ end
 %%
 for iImage=1:nImage
     if iImage==1
-        searchRad=30;
+        searchRad=50;
     else
         searchRad=10;
     end

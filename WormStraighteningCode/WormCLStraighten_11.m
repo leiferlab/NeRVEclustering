@@ -1,5 +1,5 @@
 
-function [V,pointStats,Vproj,side,xyOffset2,wormBW2]=WormCLStraighten_10(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show)
+function [V,pointStats,Vproj,side,xyOffset2,wormBW2]=WormCLStraighten_11(dataFolder,destination,vidInfo,alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show)
 
 % takes data for whole brain imaging set, centerlines, himag movies, lowmag
 % behavior videos to create straighten worm in given frame
@@ -282,42 +282,14 @@ CL(:,2,cl_replace_idx)=cly2(:,cl_replace_idx);
 
 %%
 CL2=CL(:,:,ic);
-[CL2(:,2,:),CL2(:,1,:)]=transformPointsInverse(lowResFluor2BF.t_concord,CL2(:,2,:),CL2(:,1,:));
+[CL2f(:,2,:),CL2f(:,1,:)]=transformPointsInverse(lowResFluor2BF.t_concord,CL2(:,2,:),CL2(:,1,:));
 
 %[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2(:,2,:),CL2(:,1,:));
-[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2(:,2,:),CL2(:,1,:));
+[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2f(:,2,:),CL2f(:,1,:));
 if cropFlag
 CL2(:,2,:)=CL2(:,2,:)-(rect1(2)-1);
 end
 %[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(hiResFix.t_concord,CL2(:,2,:),CL2(:,1,:));
-
-CL2X=reshape(mean(CL2(:,1,1+CLsearchWindow:end-CLsearchWindow),3),[],1,1);
-CL2Y=reshape(mean(CL2(:,2,1+CLsearchWindow:end-CLsearchWindow),3),[],1,1);
-xyOffset2=[fcm_y fcm_x]-[CL2X(refIdx) CL2Y(refIdx)];
-%[xyOffset2,~]=fminsearch(@(x) CLsearch(sum(fluorFrame2,3),CL2X+x(1),CL2Y+x(2),show),lastOffset);
-
-[xyOffset2,~]=fminsearch(@(x) CLsearch(fluorProj2,CL2X+x(1),CL2Y+x(2),show),xyOffset2);
-%limit translation fix
-% lastOffset=xyOffset3;
-%   lastOffset(lastOffset>50)=50;
-%   lastOffset(lastOffset<-50)=-50;
-
-xyOffset3=xyOffset2-[CLoffsetX CLoffsetY];
-  %xyOffset3(xyOffset3>50)=50;
-  %xyOffset3(xyOffset3<-50)=-50;
-CL2(:,2,:)=CL2(:,2,:)+xyOffset3(2);
-CL2(:,1,:)=CL2(:,1,:)+xyOffset3(1);
-
-if show
-    close all
-    imagesc(worm2(:,:,midZ))
-    hold on
-    CL2X=CL2X+xyOffset3(1);
-    CL2Y=CL2Y+xyOffset3(2);
-    
-    plot(CL2X,CL2Y,'xr');
-end
-
 
 
 %% interpolate to parameterize by length
@@ -350,23 +322,18 @@ CL3temp=interp1(s,CL3temp,1:1:CLlengthRange,'linear','extrap');
     
 end
 
-
 %% align centerlines parameterizations by correlation
-% align centerlines using plotMatch (correlations) to account for
+% align centerlines using plotMatch (distance based) to account for
 % centerline sliding
 shiftVec=zeros(1,length(ia)-1);
 for i=2:length(ia);
   CL1temp=CL3all(:,:,ia(i));
-    CL2temp=mean(CL3all(:,:,:),3);
-        CL1temp(CL1temp<0)=0;
-    CL2temp(CL2temp<0)=0;
-    [corrtemp,r]=plotMatch(CL1temp,CL2temp,600);
-    %[shift,~]=find(corrtemp==max(corrtemp(:)));
+    CL2temp=CL3all(:,:,ia(i-1));
+    [corrtemp,r]=plotMatch2(CL1temp,CL2temp,600);
     [~,shift]=min(corrtemp);
     shiftVec(i)=r(shift);
-%[i r(shift) shift];
 end
-
+shiftVec=cumsum(shiftVec);
 shiftVec=shiftVec-shiftVec(round(length(shiftVec)/2));
 CL3all2=zeros(CLlengthRange+501,2,size(CL2,3));
 
@@ -374,7 +341,6 @@ for iCL=1:size(CL2,3)
     CL3temp=CL3all(:,:,iCL);
 CL3temp=interp1(CL3temp,shiftVec(ic(iCL))+(-500:CLlengthRange),'linear','extrap');
     CL3all2(:,:,iCL)=CL3temp;
-    
     if show
         if iCL==1
             close all
@@ -382,32 +348,64 @@ CL3temp=interp1(CL3temp,shiftVec(ic(iCL))+(-500:CLlengthRange),'linear','extrap'
             hold on
         end
         plot(CL3temp(:,1),CL3temp(:,2))
-                scatter(CL3temp(750,1),CL3temp(750,2),'w');
-
-    drawnow
+        scatter(CL3temp(1300,1),CL3temp(1300,2),'w');
+        drawnow
     end
     
     
 end
- % center around head portion of worm that is in image
-% inImage=sum(all(CL3all2>0 & CL3all2<600,2),3);
-% inImage=inImage>max(inImage)/2;
-% cc_inImage=bwconncomp(inImage);
+%will crop centerline coordinates around the center of the image
 
-CLcenter=sum(bsxfun(@minus, CL3all2,rect1(3:4)/2).^2,2);
-[~,CLcenter]=min(CLcenter,[],1);
+%%
+%this fix was added 20160328 for when the reference is not close to the
+%fluorescence in lowmagfluor.
 
+%find CL points that has brightest points in low mag fluor
+CL2f_mean=(CL2f(:,:,1));
+CL2f_I=interp2(sum(fluorFrame,3),CL2f_mean(:,2),CL2f_mean(:,1));
+[~,refIdx]=max(CL2f_I);
+%create initial offset as the shift between the high mag fluor center and
+%the index and the high mag CL point found using lowmag data
+xyOffset2=[fcm_y fcm_x]-[CL2(refIdx,1,1) CL2(refIdx,2,1)];
 
+CL2X=reshape(mean(CL3all2(:,1,1+CLsearchWindow:end-CLsearchWindow),3),[],1,1);
+CL2Y=reshape(mean(CL3all2(:,2,1+CLsearchWindow:end-CLsearchWindow),3),[],1,1);
+%%
+%shift around the offset to optimize overlap between centerline and
+%fluorescence 
+fluorProj_normalize=normalizeRange(fluorProj2);
+[xyOffset2_min,~]=fminsearch(@(x) CLsearch(fluorProj_normalize,CL2X+xyOffset2(1),...
+    CL2Y+xyOffset2(2),show,x),[0 0 ]);
 
-outputLength2=outputLength+outputLengthBuff;
-inImageRange=mean(CLcenter(:))+(-outputLength2:outputLength2);
+xyOffset3=xyOffset2+xyOffset2_min-[CLoffsetX CLoffsetY];
+
+%apply offsets
+CL2(:,2,:)=CL2(:,2,:)+xyOffset3(2);
+CL2(:,1,:)=CL2(:,1,:)+xyOffset3(1);
+CL3all2(:,2,:)=CL3all2(:,2,:)+xyOffset3(2);
+CL3all2(:,1,:)=CL3all2(:,1,:)+xyOffset3(1);
+
+if show
+    close all
+    imagesc(worm2(:,:,midZ))
+    hold on
+    CL2X=CL2X+xyOffset3(1);
+    CL2Y=CL2Y+xyOffset3(2);
+    plot(CL2X,CL2Y,'xr');
+end
+
 
 
 %%
+%crop cetnerline around inImageRange
+CLcenter=sum(bsxfun(@minus, CL3all2,rect1(3:4)/2).^2,2);
+[~,CLcenter]=min(CLcenter,[],1);
+
+outputLength2=outputLength+outputLengthBuff;
+inImageRange=mean(CLcenter(:))+(-outputLength2:outputLength2);
 CL3all=interp1(CL3all2,inImageRange,'*linear','extrap');
 
-%xyzs_avg = ActiveRevolutionFit(im, cline_para, CL3);
-
+%% pickout central centerline and middle slice
 midIm=normalizeRange(mean(worm2(:,:,midZ+(-1:1)),3));
 midIm=double(midIm);
 midIm=bpass(midIm,2,[20,20]);
@@ -415,16 +413,14 @@ midImS=imfilter(midIm,Sfilter);
 %midImS2=imfilter(midIm,Sfilter2);
 
 
-%% more xy fixes
 %minSearch=zeros(size(CL3all,1),length(ia));
 CL3allX=(CL3all(:,1,1+CLsearchWindow:end-CLsearchWindow));
 CL3allY=(CL3all(:,2,1+CLsearchWindow:end-CLsearchWindow));
-
 minSearch=interp2(midImS,CL3allX,CL3allY);
 minSearch=squeeze(nansum(minSearch,1));
 minY=find(minSearch==max(minSearch));
 midZCL=round(mean(minY))+CLsearchWindow;
-CL3=CL3all(:,:,midZCL);
+CL_mid=CL3all(:,:,midZCL);
 
 
 %%
@@ -435,17 +431,11 @@ if show
 imagesc(midIm)
 
 hold on
-plot(CL3(:,1),CL3(:,2),'x')
+plot(CL_mid(:,1),CL_mid(:,2),'x')
 axis equal
 hold off
 drawnow
 end
-% subplot(1,2,2)
-% imagesc(midImST)
-% hold on
-% plot(CL3(:,1),CL3(:,2),'x')
-% axis equal
-% hold off
 
 
 %% make coordinate system around the worm
@@ -454,7 +444,7 @@ Tv=zeros(size(CL3all,1),3,size(CL3all,3));
 Bv=Tv; Nv=Tv;
 for iSlice=1:size(CL3all,3);
 % [Tv(:,:,iSlice),Bv(:,:,iSlice),Nv(:,:,iSlice)]=...
-%     tbnVector([CL3all(:,1,iSlice),CL3all(:,2,iSlice),ones(size(CL3(:,1)))]);
+%     tbnVector([CL3all(:,1,iSlice),CL3all(:,2,iSlice),ones(size(CL_mid(:,1)))]);
 
 
 T=normr(gradient(CL3all(:,:,iSlice)',5)');
@@ -463,9 +453,9 @@ B=T(:,1).*N(:,2)-T(:,2).*N(:,1);
 N=bsxfun(@times, N,sign(B));
 B=sign(B);
 
-Tv(:,:,iSlice)=[T zeros(size(CL3(:,1)))];
-Nv(:,:,iSlice)=[N zeros(size(CL3(:,1)))];
-Bv(:,:,iSlice)=[zeros(size(CL3(:,1))) zeros(size(CL3(:,1))) B];
+Tv(:,:,iSlice)=[T zeros(size(CL_mid(:,1)))];
+Nv(:,:,iSlice)=[N zeros(size(CL_mid(:,1)))];
+Bv(:,:,iSlice)=[zeros(size(CL_mid(:,1))) zeros(size(CL_mid(:,1))) B];
 
 
 end

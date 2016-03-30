@@ -1,7 +1,7 @@
 
 %%
 
-maxFrame=43326; %%% CHECK FOR LAST USEFUL FRAME IN VIDEO
+maxFrame=Inf; %%% CHECK FOR LAST USEFUL FRAME IN VIDEO
 
 
 cline_para.tipRegion=20;

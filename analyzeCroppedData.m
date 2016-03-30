@@ -337,7 +337,8 @@ load('Y:\CommunalCode\3dbrain\Behavior\eigenProj3GMM','gmm')
 % [~,ia]=sort(obj.mu,'ascend');
 %ethoZ=interp1(bfTime,behaviorZ(bfRange),(hiResFrameTime));
 ethoZ=hiResBehaviorZ(hiResRange);
-ethoZ=ethoZ-mean(ethoZ);
+ethoZ=ethoZ-nanmean(ethoZ);
+ethoZ(isnan(ethoZ))=0;
 Vcluster=smooth(hiResV(hiResRange),100);
 % idx=kmeans(Vcluster,3,'start',[-.2 0 .2]');
 % idx=idx-2;
@@ -351,7 +352,7 @@ pausing=find(ethogram==0);
 
 idxgmm=kmeans(ethoZ,2,'start',[ 0 5]');
 %%
-ethogram((((abs(ethoZ)>2*std(ethoZ))& (ethogram>=0)))|abs(ethoZ)>5)=2;
+ethogram((((abs(ethoZ)>2*std(ethoZ))& (ethogram>=0)))|abs(ethoZ)>10)=2;
 %ethogram((abs(ethoZ)>2*std(ethoZ)))=2;
 
 
