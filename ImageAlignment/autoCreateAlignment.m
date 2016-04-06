@@ -41,8 +41,8 @@ end
 %name alignmentfiles
 if nargin==0;
 alignmentName = inputdlg('Name the alignment file:', 's');
-segmentPts=[];
-activityPts=[];
+segmentPts=initialAlignment.Sall;
+activityPts=initialAlignment.Aall;
 else
     alignment=load(alignmentName);
     alignmentName = inputdlg('Name the alignment file:', 's');

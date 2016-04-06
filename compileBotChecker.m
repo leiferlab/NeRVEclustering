@@ -3,7 +3,6 @@ mostRecent=getappdata(0,'mostRecent');
 display('Select Botchecker Folder');
 submissionFolder=uipickfiles('filterSpec',mostRecent);
 setappdata(0,'mostRecent',submissionFolder{1});
-
 submissionFolder=submissionFolder{1};
 fileListAll=dir([submissionFolder filesep 'bot*.mat']);
 display('Select pointstats')

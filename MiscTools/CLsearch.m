@@ -13,7 +13,7 @@ output=output+x*x'/2500;
 if show
 imagesc(midIm)
 hold on
-plot(CLX+x(1),CLY+x(2),'x')
+plot(CLX+x(1),CLY+x(2),'blackx')
 %axis equal
 hold off
 drawnow
