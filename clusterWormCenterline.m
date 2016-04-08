@@ -9,7 +9,7 @@ gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
 show2=0;
 temp=load('eigenWorms_full.mat');
 eigbasis=temp.eigvecs;
-getappdata(0,'eigbasis',eigbasis);
+setappdata(0,'eigbasis',eigbasis);
 
 CLworkspace=load([dataFolder filesep 'CLworkspace']);
 bfCell=CLworkspace.bfCell;
