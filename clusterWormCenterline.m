@@ -4,6 +4,8 @@ function clusterWormCenterline(dataFolder,iCell)
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window. 
 
+d= dir([dataFolder filesep 'LowMagBrain*']);
+aviFolder=[dataFolder filesep d(1).name];
 gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
 gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
 show2=0;
@@ -11,7 +13,7 @@ temp=load('eigenWorms_full.mat');
 eigbasis=temp.eigvecs;
 setappdata(0,'eigbasis',eigbasis);
 
-CLworkspace=load([dataFolder filesep 'CLworkspace']);
+CLworkspace=load([aviFolder filesep 'CLworkspace']);
 bfCell=CLworkspace.bfCell;
 meanBfAll2=CLworkspace.meanBfAll2;
 fluorBackground=CLworkspace.fluorBackground;
@@ -30,10 +32,10 @@ sdev_nhood=getnhood(strel('disk',5));
 
 
 %% load avi data
-camData=importdata([ dataFolder  filesep 'camData.txt']);
+camData=importdata([ aviFolder  filesep 'camData.txt']);
 time=camData.data(:,2);
-fluorMovie=[dataFolder filesep 'cam0.avi'];
-behaviorMovie=[dataFolder filesep 'cam1.avi'];
+fluorMovie=[aviFolder filesep 'cam0.avi'];
+behaviorMovie=[aviFolder filesep 'cam1.avi'];
 NFrames=length(camData.data);
 
 behaviorVidObj = VideoReader(behaviorMovie);
@@ -157,11 +159,9 @@ for iFrame=1:length(cellList);
         rethrow(me)
     end
 end
-outputFilename=[dataFolder filesep 'CL_' num2str(iCell)];
-save(outputFilename,'CLall','IsAll');
-
-
-
-
-CLcell{iCell}=CLall;
-CL_I{iCell}=IsAll;
+outputFolder=[aviFolder filesep 'CL_files'];
+if ~exist(outputFolder,'dir')
+    mkdir(outputFolder)
+end
+outputFilename=[outputFolder filesep 'CL_' num2str(iCell)];
+save(outputFilename,'CLall','IsAll','cellList');
