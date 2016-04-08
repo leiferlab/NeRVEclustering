@@ -6,14 +6,15 @@ function clusterWormCenterline(dataFolder,iCell)
 
 d= dir([dataFolder filesep 'LowMagBrain*']);
 aviFolder=[dataFolder filesep d(1).name];
+display(aviFolder)
 gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
 gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
 show2=0;
 temp=load('eigenWorms_full.mat');
 eigbasis=temp.eigvecs;
 setappdata(0,'eigbasis',eigbasis);
-
-CLworkspace=load([aviFolder filesep 'CLworkspace']);
+workSpaceFile=[aviFolder filesep 'CLworkspace.mat'];
+CLworkspace=load(workSpaceFile);
 bfCell=CLworkspace.bfCell;
 meanBfAll2=CLworkspace.meanBfAll2;
 fluorBackground=CLworkspace.fluorBackground;
