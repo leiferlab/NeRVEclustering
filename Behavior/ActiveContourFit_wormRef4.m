@@ -11,7 +11,9 @@ function [xyzs_avg,Is,EOut] = ActiveContourFit_wormRef4(hyper_stack,tipImage, cl
 %refPt - point which the refIdx should be attached to, based on low mag
 %fluor image
 % initialize snake
-xyzs = cline_initial;
+    %    cline_initial=distanceInterp(cline_initial(2:end-1,:),100);
+
+xyzs = distanceInterp(cline_initial(2:end-1,:),100);
 
 [m, n ] = size(xyzs);
 
@@ -25,10 +27,10 @@ gaussFilter=fspecial('gaussian',50,20);
     endR=cline_para.tipRegion;
     
     dIgnore=true(m,endR);
-    dIgnore=triu(dIgnore,-15) & tril(dIgnore,15);
+    dIgnore=triu(dIgnore,-20) & tril(dIgnore,20);
     dIgnore=[dIgnore rot90(dIgnore,2)];
     repulsionD=cline_para.repulsionD;
-    repulsionD2=repulsionD*2;
+    repulsionD2=repulsionD*1.5;
 gKernal2=gausswin(25,2);
 gKernal2=gKernal2/sum(gKernal2);
 
@@ -80,7 +82,7 @@ xyzs_avg = zeros(size(xyzs));
 counter = 0;
 %moving the snake in each iteration
 for i=1:cline_para.iterations;
-if i>cline_para.iterations/2
+if 0% i>cline_para.iterations/2
          fx=fx1; fy=fy1;
 else
              fx=fx2; fy=fy2;
@@ -117,12 +119,16 @@ end
     %fs=bsxfun(@plus,fs,(refPt-xyzs(refIdx,:))*cline_para.refSpring);
     %xyzs=distanceInterp(xyzs,length(xyzs));
     %[~,newRefIdx]=pdist2(xyzs,xyzs(refIdx,:),'euclidean','Smallest',1);
+    
     if ~mod(i, 4)
 [xyzs2,err]=EigenwormApprox(xyzs,[1,99],eigbasis,1:99);
     end
-if err>4
+    
+if err>4 && err<14
     
     xyzs2=xyzs;
+elseif err>14
+    xyzs2=.5*(xyzs+xyzs2);
 end
     %confine the snake in the image
     %        fs(:, 3) = fs(:, 3) + (1./(1+exp((xyzs(:,3)+0)/3))-1./(1+exp((10-xyzs(:,3))/3)))*cline_para.z_confine_factor;
@@ -154,15 +160,15 @@ end
     f_refSpring_n=f_refSpring-f_refSpring_t;
     abs_refDistance=sqrt(sum(refDistance.^2));
     abs_refDistance_n=abs_refDistance-10;
-    abs_refDistance_n(abs_refDistance_n>50)=50;
+    abs_refDistance_n(abs_refDistance_n>60)=60;
     abs_refDistance_n(abs_refDistance_n<0)=0;
     f_refSpring_n=f_refSpring_n/abs_refDistance*abs_refDistance_n;
-    f_refSpring_t=f_refSpring_t/abs_refDistance*min(abs_refDistance,10);
+    f_refSpring_t=f_refSpring_t/abs_refDistance*(abs_refDistance);
 
     fs(refIdx,:)=fs(refIdx,:)+f_refSpring_t+f_refSpring_n;
      %  if i < cline_para.iterations/2
 
-             s_spring=nVector*deltaS*cline_para.refSpring*30;
+             s_spring=nVector*deltaS*cline_para.refSpring*15;
              if err>4
          s_spring=conv2(s_spring,gKernal2,'same');
              end
@@ -197,10 +203,10 @@ f_tip_start=cline_para.endRepulsion*[f_tip_start_x f_tip_start_y]*0.1;
 
 
 % make tip forces tangent to CL
-f_tip_start=bsxfun(@times,tVector(1:endR,:),...
-    dot(tVector(1:endR,:),f_tip_start,2));
-f_tip_end=bsxfun(@times,tVector(end-endR+1:end,:),...
-    dot(tVector(end-endR+1:end,:),f_tip_end,2));
+% f_tip_start=bsxfun(@times,tVector(1:endR,:),...
+%     dot(tVector(1:endR,:),f_tip_start,2));
+% f_tip_end=bsxfun(@times,tVector(end-endR+1:end,:),...
+%     dot(tVector(end-endR+1:end,:),f_tip_end,2));
 
 f_repulsion_x=-sum(f_end*v_x',2);
 f_repulsion_y=-sum(f_end*v_y',2);
@@ -211,7 +217,7 @@ f_repulsion(end-endR+1:end,:)=f_repulsion(end-endR+1:end,:)+f_tip_end;
 fs=fs+f_repulsion;
 
 %% repel tail and body from refPt
-refPt_v=bsxfun(@minus,xyzs(25:end,:),refPt);
+refPt_v=bsxfun(@minus,xyzs(50:end,:),refPt);
 refPt_d=sqrt(sum(refPt_v.^2,2));
 f_end_ref=zeros(length(refPt_d),2);
  closePoints=refPt_d<repulsionD2*2.5;
@@ -222,17 +228,17 @@ f_end_ref=bsxfun(@times , ref_repulsion./refPt_d,refPt_v);
   end
 f_end_ref=cline_para.endRepulsion*f_end_ref*5;
 
-fs(25:end,:)=fs(25:end,:)+f_end_ref;
+fs(50:end,:)=fs(50:end,:)+f_end_ref;
 
 %% stretch ends based on intensity, still buggy
     if cline_para.stretch_ends_flag
-        if 1%i>cline_para.iterations/5
-          if  sum(abs( f_tip_start(1,:)))<1
+        if i>5
+        %  if  sum(abs( f_tip_start(1,:)))<1
         fhead=cline_para.endkappa*(Is(1)-headIntensity);
-        fhead(fhead>2)=2;
-          else
-              fhead=0;
-          end
+        fhead(fhead>10)=10;
+         % else
+         %     fhead=0;
+         % end
              tailIntensity=mean(Is_initial(90:end))/2;
             tailIntensity=min(tailIntensity,.2);
             tailIntensity=max(tailIntensity,.06);
@@ -250,8 +256,7 @@ fs(25:end,:)=fs(25:end,:)+f_end_ref;
              ftail=0;
              fhead=0;
         end
-
-%         
+        %
         % calculate head and tail directions by cutting off ends and
         % extrapolating
 %         refCurve=round(refIdx*1.5);
@@ -272,7 +277,7 @@ fs(25:end,:)=fs(25:end,:)+f_end_ref;
         s_tail = s_tail/norm(s_tail);
         fs(end, :) =  fs(end, :)+ s_tail .* ftail*cline_para.stretching_force_factor(2);
         fhead_heat=cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
-        ftail_heat=4*cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
+        ftail_heat=cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
        %  fs(end-2*refIdx:end, :)=fs(end-2*refIdx:end,:)*(1-exp(-i/cline_para.iterations));
       %   fs(1:refIdx, :)=fs(1:refIdx,:)*(1-exp(-i/cline_para.iterations));
 
@@ -285,12 +290,12 @@ fs(25:end,:)=fs(25:end,:)+f_end_ref;
     headDistance=(sum(f_memory(1,:).^2));
     tailDistance=(sum(f_memory(end,:).^2));
     f_memory=bsxfun(@times, f_memory, Is_initial./mean(Is_initial));
-    if headDistance>20
-        f_memory(1,:)=f_memory(1,:)*10;
-    end
-    if tailDistance>20
-        f_memory(end,:)=f_memory(end,:)*10;
-    end    
+%     if headDistance>20
+%         f_memory(1,:)=f_memory(1,:)*2;
+%     end
+%     if tailDistance>20
+%         f_memory(end,:)=f_memory(end,:)*2;
+%     end    
     f_memory=f_memory*cline_para.memForce;
     fs=fs+f_memory;
     % xyzstart=xyzs(1,:);
@@ -298,7 +303,6 @@ fs(25:end,:)=fs(25:end,:)+f_end_ref;
     
     
     %%
-
 
     %calculate the new position of snake
     xyzsNew = Ainv * (cline_para.gamma*xyzs + cline_para.kappa*fs);
@@ -349,9 +353,10 @@ end
             plot(xyzs(:,1),xyzs(:,2),'r')
             scatter(refPt(1),refPt(2),'gx');
             plot([xyzs(newRefIdx,1) refPt(1)],[xyzs(newRefIdx,2) refPt(2)],'g');
-            fs(refIdx,:)=0;
-            quiver(xyzs(:,1),xyzs(:,2),fs(:,1),fs(:,2),'black');
-            plot(xyzs2(:,1),xyzs2(:,2))
+            plotfs=fs;
+            plotfs(refIdx,:)=0;
+            quiver(xyzs(:,1),xyzs(:,2),plotfs(:,1),plotfs(:,2),'black');
+ %           plot(xyzs2(:,1),xyzs2(:,2))
 %            quiver(xyzs(1,1),xyzs(1,2),s_head(1),s_head(2),'m');
             hold off
             

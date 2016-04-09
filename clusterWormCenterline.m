@@ -1,15 +1,17 @@
-function clusterWormCenterline(dataFolder,iCell)
+function clusterWormCenterline(dataFolder,iCell,show2)
 %clusterworm tracker fits centerlines to behavior videos from our whole
 %brain imaging setup. a CL workspace must be loaded with initial parameters
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window. 
 
+if nargin==2
+    show2=0;
+end
 d= dir([dataFolder filesep 'LowMagBrain*']);
 aviFolder=[dataFolder filesep d(1).name];
 display(aviFolder)
 gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
 gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
-show2=0;
 temp=load('eigenWorms_full.mat');
 eigbasis=temp.eigvecs;
 setappdata(0,'eigbasis',eigbasis);
@@ -23,7 +25,7 @@ flashLoc=CLworkspace.flashLoc;
 newZ2=CLworkspace.newZ2;
 cline_para=CLworkspace.cline_para;
 refIdx=cline_para.refIdx;
-cline_para.showFlag=0;
+cline_para.showFlag=00;
 startFlag=1;
 cellList=bfCell{iCell};
 CLall=zeros(100,2,length(cellList));
@@ -53,6 +55,7 @@ for iFrame=1:length(cellList);
     %%
     iTime=cellList(iFrame);
     tic
+    
     try
         if ~isnan(newZ2(iTime)) && ~any(flashLoc==iTime) && iTime>=1
             %%
@@ -98,6 +101,10 @@ for iFrame=1:length(cellList);
             maxThresh=quantile(inputImage(inputImage>.2),.90);
             inputImage=inputImage/maxThresh;
             bfFramestd=normalizeRange(imfilter(bfFramestd,gaussFilter2));
+            bfFrameMask=(bfFramestd>min(graythresh(bfFramestd),.06));
+            tipImage=bfFrameMask.*inputImage;
+            bfFrameLTmask=bfFrameMask & tipImage<bfFramestd;
+            tipImage(bfFrameLTmask)=bfFramestd(bfFrameLTmask);
             %%
             if startFlag
                 
@@ -106,7 +113,7 @@ for iFrame=1:length(cellList);
                 
                 
                 [CLOut,Is]=ActiveContourFit_wormRef4(...
-                    inputImage,bfFramestd, cline_para, CLold,refIdx,cm);
+                    inputImage,tipImage, cline_para, CLold,refIdx,cm);
                 startFlag=0;
             else
                 
@@ -117,7 +124,7 @@ for iFrame=1:length(cellList);
                 
                 CLold=CLall(:,:,oldTime);
                 [CLOut,Is,Eout]=ActiveContourFit_wormRef4(...
-                    inputImage,bfFramestd, cline_para, CLold,refIdx,cm);
+                    inputImage,tipImage, cline_para, CLold,refIdx,cm);
                 
             end
             
@@ -164,5 +171,5 @@ outputFolder=[aviFolder filesep 'CL_files'];
 if ~exist(outputFolder,'dir')
     mkdir(outputFolder)
 end
-outputFilename=[outputFolder filesep 'CL_' num2str(iCell)];
+outputFilename=[outputFolder filesep 'CL_' num2str(iCell,'%3.2d')];
 save(outputFilename,'CLall','IsAll','cellList');
