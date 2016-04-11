@@ -4,9 +4,6 @@ function clusterWormCenterline(dataFolder,iCell,show2)
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window. 
 
-if nargin==2
-    show2=0;
-end
 d= dir([dataFolder filesep 'LowMagBrain*']);
 aviFolder=[dataFolder filesep d(1).name];
 display(aviFolder)
@@ -26,6 +23,11 @@ newZ2=CLworkspace.newZ2;
 cline_para=CLworkspace.cline_para;
 refIdx=cline_para.refIdx;
 cline_para.showFlag=00;
+
+if nargin==2
+    show2=0;
+end
+
 startFlag=1;
 cellList=bfCell{iCell};
 CLall=zeros(100,2,length(cellList));
@@ -33,6 +35,11 @@ IsAll=zeros(100,length(cellList));
 cm_fluor=[26 26];
 sdev_nhood=getnhood(strel('disk',5));
 
+%%
+outputFolder=[aviFolder filesep 'CL_files'];
+if ~exist(outputFolder,'dir')
+    mkdir(outputFolder)
+end
 
 %% load avi data
 camData=importdata([ aviFolder  filesep 'camData.txt']);
@@ -66,11 +73,14 @@ for iFrame=1:length(cellList);
             c=sum(sum(bfFrameRaw.*backGroundRaw))/sum(sum(backGroundRaw.^2));
             bfFrameRaw2=bfFrameRaw-backGroundRaw*c;
             %bfFrameRaw2=abs(bfFrameRaw2);;
-            bfFrame=bfFrameRaw2;
-            bfFrame=normalizeRange(bpass(bfFrame,2,80));
+            bfFrame=imtophat(bfFrameRaw2,strel('disk',50));
             bfFramestd=stdfilt(bfFrameRaw2,sdev_nhood);
+            bfFramestd=normalizeRange(bfFramestd);
+            bfstdthresh=(bfFramestd>graythresh(bfFramestd));
+           bfFrame(bfstdthresh)=abs(bfFrame(bfstdthresh));
             bfFramestd=bpass((bfFramestd),1,80);
-            
+            bfFrame=normalizeRange(bpass(bfFrame,4,80));
+
             fluorFrameRaw=read(fluorVidObj,iTime,'native');
             fluorFrameRaw=double(fluorFrameRaw.cdata)-fluorBackground;
             fluorFrameRaw(fluorFrameRaw<0)=0;
@@ -98,10 +108,10 @@ for iFrame=1:length(cellList);
             inputImage=filter2(gaussFilter,inputImage,'same');
             inputImage=inputImage-min(inputImage(:));
             inputImage=normalizeRange(inputImage);
-            maxThresh=quantile(inputImage(inputImage>.2),.90);
-            inputImage=inputImage/maxThresh;
+           % maxThresh=quantile(inputImage(inputImage>.2),.90);
+          %  inputImage=inputImage/maxThresh;
             bfFramestd=normalizeRange(imfilter(bfFramestd,gaussFilter2));
-            bfFrameMask=(bfFramestd>min(graythresh(bfFramestd),.06));
+            bfFrameMask=(bfFramestd>min(graythresh(bfFramestd),.7));
             tipImage=bfFrameMask.*inputImage;
             bfFrameLTmask=bfFrameMask & tipImage<bfFramestd;
             tipImage(bfFrameLTmask)=bfFramestd(bfFrameLTmask);
@@ -140,7 +150,7 @@ for iFrame=1:length(cellList);
                 %quiver(xyzs(:,1),xyzs(:,2),fs(:,1),fs(:,2),'black');
                 hold off
                 subplot(1,2,2);
-                imagesc(inputImage);
+                imagesc(tipImage);
                 % colormap gray
                 hold on
                 plot(CLOut(:,1),CLOut(:,2),'r');
@@ -163,13 +173,14 @@ for iFrame=1:length(cellList);
             num2str(iCell) ' in ' num2str(toc) ' s'])
     catch me
         display(['error frame ' num2str(iTime) ', cell ' num2str(iCell)])
-        
-        rethrow(me)
+        if cline_para.showFlag==0 && show2==0
+        save([outputFolder 'errorFrame' num2str(iTime)], 'me')
+        end
+           CLall(:,:,iFrame)=CLall(:,:,iFrame-1);
+            IsAll(:,iFrame)=IsAll(:,iFrame-1);
+      
     end
 end
-outputFolder=[aviFolder filesep 'CL_files'];
-if ~exist(outputFolder,'dir')
-    mkdir(outputFolder)
-end
+
 outputFilename=[outputFolder filesep 'CL_' num2str(iCell,'%3.2d')];
 save(outputFilename,'CLall','IsAll','cellList');

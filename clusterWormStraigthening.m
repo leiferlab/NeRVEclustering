@@ -1,20 +1,18 @@
 function clusterWormStraigthening(dataFolder,nStart,nRange)
-[~,dataFolder]=fileparts(dataFolder);
-
-clusterFolder=['/scratch/tmp/jnguyen/' dataFolder];
-display(clusterFolder)
-load([clusterFolder filesep 'startWorkspace.mat']);
-display(clusterFolder)
+% calls worm straightening code if a startWorkspace.mat file is already
+% created in the dataFolder being analyzed, program runs to straighten
+% stacks nStart:nStart+nRange-1
+load([dataFolder filesep 'startWorkspace.mat']);
+display(dataFolder)
 
 for iStack=nStart:(nStart+nRange-1)
    try 
-    WormCLStraighten_5(clusterFolder,destination,vidInfo,...
-    alignments,[],Vtemplate,vRegion,zOffset,iStack,side,0);
-
+       WormCLStraighten_11(dataFolder,destination,vidInfo,...
+            alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,show);
    catch me
        for i=1:length(me.stack)
        me.stack(i)
        end
-       save([clusterFolder filesep 'Error' num2str(iStack)],'me')
+       save([dataFolder filesep 'Error' num2str(iStack)],'me')
    end
 end

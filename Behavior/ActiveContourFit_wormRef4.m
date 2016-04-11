@@ -14,7 +14,7 @@ function [xyzs_avg,Is,EOut] = ActiveContourFit_wormRef4(hyper_stack,tipImage, cl
     %    cline_initial=distanceInterp(cline_initial(2:end-1,:),100);
 
 xyzs = distanceInterp(cline_initial(2:end-1,:),100);
-
+wc=[0 0];
 [m, n ] = size(xyzs);
 
 
@@ -65,7 +65,7 @@ im = zeros(row, col, stack_z_size);
 
 %% filter image to "normalize" intensity
 im=hyper_stack;
-imSmooth=imfilter(im,gaussFilter);
+imSmooth=normalizeRange(imfilter(im,gaussFilter));
 
 headIntensity=tipImage(round(refPt(2)),round(refPt(1)))/10;
 
@@ -82,7 +82,7 @@ xyzs_avg = zeros(size(xyzs));
 counter = 0;
 %moving the snake in each iteration
 for i=1:cline_para.iterations;
-if 0% i>cline_para.iterations/2
+if 0%i>cline_para.iterations/2
          fx=fx1; fy=fy1;
 else
              fx=fx2; fy=fy2;
@@ -121,10 +121,12 @@ end
     %[~,newRefIdx]=pdist2(xyzs,xyzs(refIdx,:),'euclidean','Smallest',1);
     
     if ~mod(i, 4)
-[xyzs2,err]=EigenwormApprox(xyzs,[1,99],eigbasis,1:99);
+[xyzs2,err,wc]=EigenwormApprox(xyzs,[1,99],eigbasis,1:99);
+   [ err max(abs(diff(wc)))];
+   %damage control for kinks
+
     end
-    
-if err>4 && err<14
+if err>4
     
     xyzs2=xyzs;
 elseif err>14
@@ -164,11 +166,16 @@ end
     abs_refDistance_n(abs_refDistance_n<0)=0;
     f_refSpring_n=f_refSpring_n/abs_refDistance*abs_refDistance_n;
     f_refSpring_t=f_refSpring_t/abs_refDistance*(abs_refDistance);
-
-    fs(refIdx,:)=fs(refIdx,:)+f_refSpring_t+f_refSpring_n;
+    f_refSpring=f_refSpring_t+f_refSpring_n;
+    
+%     fs(refIdx,:)=fs(refIdx,:)+f_refSpring*.5;
+%     fs(refIdx-1,:)=fs(refIdx-1,:)+f_refSpring*.25;
+%     fs(refIdx+1,:)=fs(refIdx+1,:)+f_refSpring*.25;
+%     
+    fs(1:2*refIdx,:)=bsxfun(@plus, fs(1:2*refIdx,:),f_refSpring);
      %  if i < cline_para.iterations/2
 
-             s_spring=nVector*deltaS*cline_para.refSpring*15;
+             s_spring=nVector*deltaS*cline_para.refSpring*1;
              if err>4
          s_spring=conv2(s_spring,gKernal2,'same');
              end
@@ -233,12 +240,12 @@ fs(50:end,:)=fs(50:end,:)+f_end_ref;
 %% stretch ends based on intensity, still buggy
     if cline_para.stretch_ends_flag
         if i>5
-        %  if  sum(abs( f_tip_start(1,:)))<1
+        if  Is(1)>0
         fhead=cline_para.endkappa*(Is(1)-headIntensity);
-        fhead(fhead>10)=10;
-         % else
-         %     fhead=0;
-         % end
+        fhead(fhead>15)=15;
+         else
+              fhead=nnz(Is(1:10)==0)*cline_para.endkappa*(-headIntensity)-deltaS;
+          end
              tailIntensity=mean(Is_initial(90:end))/2;
             tailIntensity=min(tailIntensity,.2);
             tailIntensity=max(tailIntensity,.06);
@@ -248,7 +255,7 @@ fs(50:end,:)=fs(50:end,:)+f_end_ref;
         else
                  ftail=cline_para.endkappa*(mean(Is(end-5:end))-tailIntensity)-deltaS;
         end
-        ftail(ftail>2)=2;
+        ftail(ftail>5)=5;
          if ftail<0;
        %      ftail=ftail*.2;
          end
@@ -300,9 +307,29 @@ fs(50:end,:)=fs(50:end,:)+f_end_ref;
     fs=fs+f_memory;
     % xyzstart=xyzs(1,:);
     % xyzend=xyzs(end,:);
-    
-    
     %%
+      
+    if cline_para.showFlag
+        if ~mod(i,cline_para.showFlag)
+            %%
+            imagesc(imSmooth(:,:,1));colorbar
+            hold on
+            plot(xyzs(:,1),xyzs(:,2),'r')
+            scatter(refPt(1),refPt(2),'gx');
+            plot([xyzs(newRefIdx,1) refPt(1)],[xyzs(newRefIdx,2) refPt(2)],'g');
+            plotfs=fs;
+            plotfs(refIdx,:)=0;
+            quiver(xyzs(:,1),xyzs(:,2),plotfs(:,1),plotfs(:,2),'black');
+           plot(xyzs2(:,1),xyzs2(:,2))
+%            quiver(xyzs(1,1),xyzs(1,2),s_head(1),s_head(2),'m');
+            hold off
+            
+            drawnow
+            
+        end
+    end
+    
+    %% move points
 
     %calculate the new position of snake
     xyzsNew = Ainv * (cline_para.gamma*xyzs + cline_para.kappa*fs);
@@ -339,31 +366,23 @@ crossBool= doesCross(xyzs);
            end
            xyzs(crossList,:)=[];
         xyzs=distanceInterp(xyzs,100);
-    elseif ~mod(i,20) || (err>4 && ~mod(i,5))
+    elseif ~mod(i,20) || (err>10 && ~mod(i,5))
  xyzs=distanceInterp(xyzs,100);
-end
+    end
+%wc=FindWormCentered(xyzs);
+%     if ~crossBool && max(abs(diff(wc)))>pi/2 && err>20 &&  ~mod(i,4)
+%         find(abs(diff(wc))>pi/2)
+%     %[xyzs,err,wc]=EigenwormApprox(xyzs(refIdx:end,:),[1,100-refIdx-2],eigbasis);
+%     %xyzs2=xyzs;
+%     xyzs=distanceInterp(xyzs(refIdx:end,:),100);
+%     [xyzs2,err,wc]=EigenwormApprox(xyzs,[1,99],eigbasis,1:99);
+% 
+%     end
+
+    
 % %     
     
-    
-    if cline_para.showFlag
-        if ~mod(i,cline_para.showFlag)
-            %%
-            imagesc(tipImage(:,:,1));
-            hold on
-            plot(xyzs(:,1),xyzs(:,2),'r')
-            scatter(refPt(1),refPt(2),'gx');
-            plot([xyzs(newRefIdx,1) refPt(1)],[xyzs(newRefIdx,2) refPt(2)],'g');
-            plotfs=fs;
-            plotfs(refIdx,:)=0;
-            quiver(xyzs(:,1),xyzs(:,2),plotfs(:,1),plotfs(:,2),'black');
- %           plot(xyzs2(:,1),xyzs2(:,2))
-%            quiver(xyzs(1,1),xyzs(1,2),s_head(1),s_head(2),'m');
-            hold off
-            
-            drawnow
-            
-        end
-    end
+  
     
     
     %         figure(1);
@@ -381,6 +400,7 @@ end
 
 xyzs_avg = xyzs_avg / counter;
 %xyzs_avg=EigenwormApprox(xyzs_avg,[refIdx,99],eigbasis,refIdx:99);
+        xyzs_avg=distanceInterp(xyzs_avg,100);
 
 EOut=1/2*(cline_para.CLalpha*(sum(sum(diff(xyzs_avg,1,1).^2))) + ...
     cline_para.CLbeta*(sum(sum(diff(xyzs_avg,2,1).^2))));

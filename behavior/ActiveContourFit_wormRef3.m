@@ -21,7 +21,7 @@ xyzs = cline_initial;
 eigbasis=getappdata(0,'eigbasis');
 eigbasis=eigbasis(1:8,:);
 refL=cline_para.refL;
-gaussFilter=fspecial('gaussian',50,10);
+gaussFilter=fspecial('gaussian',50,20);
     endR=cline_para.tipRegion;
     
     dIgnore=true(m,endR);
@@ -64,6 +64,9 @@ im = zeros(row, col, stack_z_size);
 %% filter image to "normalize" intensity
 im=hyper_stack;
 imSmooth=imfilter(im,gaussFilter);
+
+headIntensity=im(round(refPt(2)),round(refPt(1)))/10;
+
 %gradient
 if n==3
     [fy1, fx1, fz1] = gradient(im*cline_para.gradient_force); %computing the gradient
@@ -105,6 +108,10 @@ end
         Is=zeros(size(f_image(:,1)));
         Is(in_image_flag)=im(gradient_ind);
     end
+    if i==1
+        Is_initial=Is;
+    end
+    
     f_image=sqrt(abs(f_image)).*sign(f_image)*mean(abs(f_image(:)));
     fs=f_image;
     %fs=bsxfun(@plus,fs,(refPt-xyzs(refIdx,:))*cline_para.refSpring);
@@ -120,14 +127,7 @@ end
     %confine the snake in the image
     %        fs(:, 3) = fs(:, 3) + (1./(1+exp((xyzs(:,3)+0)/3))-1./(1+exp((10-xyzs(:,3))/3)))*cline_para.z_confine_factor;
     % viscos force between frames on all nodes:
-    %% memory force
-    f_memory=-xyzs+cline_initial;
-    f_memory([1,end],:)=f_memory([1,end],:);
-    f_memory=f_memory*cline_para.memForce;
-    fs=fs+f_memory;
-    % xyzstart=xyzs(1,:);
-    % xyzend=xyzs(end,:);
-    
+ 
     %% stretch or shrink the snake at the ends
     s=sqrt(sum(diff(xyzs).^2,2));
     
@@ -154,7 +154,7 @@ end
     f_refSpring_n=f_refSpring-f_refSpring_t;
     abs_refDistance=sqrt(sum(refDistance.^2));
     abs_refDistance_n=abs_refDistance-10;
-    abs_refDistance_n(abs_refDistance_n>20)=20;
+    abs_refDistance_n(abs_refDistance_n>50)=50;
     abs_refDistance_n(abs_refDistance_n<0)=0;
     f_refSpring_n=f_refSpring_n/abs_refDistance*abs_refDistance_n;
     f_refSpring_t=f_refSpring_t/abs_refDistance*min(abs_refDistance,10);
@@ -162,10 +162,11 @@ end
     fs(refIdx,:)=fs(refIdx,:)+f_refSpring_t+f_refSpring_n;
      %  if i < cline_para.iterations/2
 
-             s_spring=nVector*deltaS*cline_para.refSpring*40;
-        %  s_spring=conv2(s_spring,gKernal2,'same');
-
-    %fs(2:end-1,:)=fs(2:end-1,:)+s_spring(2:end-1,:);
+             s_spring=nVector*deltaS*cline_para.refSpring*30;
+             if err>4
+         s_spring=conv2(s_spring,gKernal2,'same');
+             end
+    fs(2:end-1,:)=fs(2:end-1,:)+s_spring(2:end-1,:);
   
  % end
 
@@ -209,8 +210,8 @@ f_repulsion(1:endR,:)=f_repulsion(1:endR,:)+f_tip_start;
 f_repulsion(end-endR+1:end,:)=f_repulsion(end-endR+1:end,:)+f_tip_end;
 fs=fs+f_repulsion;
 
-%% repel tail from refPt
-refPt_v=bsxfun(@minus,xyzs(50:end,:),refPt);
+%% repel tail and body from refPt
+refPt_v=bsxfun(@minus,xyzs(25:end,:),refPt);
 refPt_d=sqrt(sum(refPt_v.^2,2));
 f_end_ref=zeros(length(refPt_d),2);
  closePoints=refPt_d<repulsionD2*2.5;
@@ -221,22 +222,25 @@ f_end_ref=bsxfun(@times , ref_repulsion./refPt_d,refPt_v);
   end
 f_end_ref=cline_para.endRepulsion*f_end_ref*5;
 
-fs(50:end,:)=fs(50:end,:)+f_end_ref;
+fs(25:end,:)=fs(25:end,:)+f_end_ref;
 
-%% stretch ends
+%% stretch ends based on intensity, still buggy
     if cline_para.stretch_ends_flag
-        if i>cline_para.iterations/2
+        if i>cline_para.iterations/5
           if  sum(abs( f_tip_start(1,:)))<1
-        fhead=cline_para.endkappa*(Is(1)-.1);
+        fhead=cline_para.endkappa*(Is(1)-headIntensity-deltaS);
         fhead(fhead>2)=2;
           else
               fhead=0;
           end
-          
-        if mean(Is(end-20:end))<.1
-            ftail=-cline_para.endkappa*.1;
+             tailIntensity=mean(Is_initial(90:end))/2;
+            tailIntensity=min(tailIntensity,.2);
+            tailIntensity=max(tailIntensity,.06);
+            
+        if mean(Is(end-20:end))<tailIntensity ||  mean(Is(end-10:end))<tailIntensity 
+            ftail=-cline_para.endkappa*tailIntensity-deltaS;
         else
-        ftail=cline_para.endkappa*(Is(end)-.1);
+                 ftail=cline_para.endkappa*(mean(Is(end-5:end))-tailIntensity)-deltaS;
         end
         ftail(ftail>2)=2;
          if ftail<0;
@@ -245,7 +249,8 @@ fs(50:end,:)=fs(50:end,:)+f_end_ref;
          else
              ftail=0;
              fhead=0;
-         end
+        end
+
 %         
         % calculate head and tail directions by cutting off ends and
         % extrapolating
@@ -267,13 +272,30 @@ fs(50:end,:)=fs(50:end,:)+f_end_ref;
         s_tail = s_tail/norm(s_tail);
         fs(end, :) =  fs(end, :)+ s_tail .* ftail*cline_para.stretching_force_factor(2);
         fhead_heat=cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
-        ftail_heat=cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
+        ftail_heat=4*cline_para.heat*(rand(1,2)-.5).*exp(-i/cline_para.iterations*10);
        %  fs(end-2*refIdx:end, :)=fs(end-2*refIdx:end,:)*(1-exp(-i/cline_para.iterations));
       %   fs(1:refIdx, :)=fs(1:refIdx,:)*(1-exp(-i/cline_para.iterations));
 
         fs(1,:)=fs(1,:)+fhead_heat;
         fs(end,:)=fs(end,:)+ftail_heat;
     end
+    
+       %% memory force
+    f_memory=-xyzs+cline_initial;
+    headDistance=(sum(f_memory(1,:).^2));
+    tailDistance=(sum(f_memory(end,:).^2));
+    f_memory=bsxfun(@times, f_memory, Is_initial);
+    if headDistance>20
+        f_memory(1,:)=f_memory(1,:)*10;
+    end
+    if tailDistance>20
+        f_memory(end,:)=f_memory(end,:)*10;
+    end    
+    f_memory=f_memory*cline_para.memForce;
+    fs=fs+f_memory;
+    % xyzstart=xyzs(1,:);
+    % xyzend=xyzs(end,:);
+    
     
     %%
 
@@ -313,7 +335,7 @@ crossBool= doesCross(xyzs);
            end
            xyzs(crossList,:)=[];
         xyzs=distanceInterp(xyzs,100);
-    elseif ~mod(i,20) || err>2
+    elseif ~mod(i,20) || (err>4 && ~mod(i,5))
  xyzs=distanceInterp(xyzs,100);
 end
 % %     
@@ -327,10 +349,12 @@ end
             plot(xyzs(:,1),xyzs(:,2),'r')
             scatter(refPt(1),refPt(2),'gx');
             plot([xyzs(newRefIdx,1) refPt(1)],[xyzs(newRefIdx,2) refPt(2)],'g');
+            fs(refIdx,:)=0;
             quiver(xyzs(:,1),xyzs(:,2),fs(:,1),fs(:,2),'black');
             plot(xyzs2(:,1),xyzs2(:,2))
 %            quiver(xyzs(1,1),xyzs(1,2),s_head(1),s_head(2),'m');
             hold off
+            
             drawnow
             
         end

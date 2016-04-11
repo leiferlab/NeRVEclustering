@@ -7,21 +7,21 @@ cline_para.endRepulsion=.3;
 cline_para.repulsionD=20;
 cline_para.heat=3;
 cline_para.CLalpha=5;
-cline_para.CLbeta=15;
+cline_para.CLbeta=30;
 cline_para.gamma=20;
 cline_para.kappa=30;
 cline_para.endkappa=20;
-cline_para.gradient_force=40;
+cline_para.gradient_force=50;
 cline_para.showFlag=0;
 cline_para.iterations=400;
 cline_para.stretching_force_factor=[2 2];
-cline_para.refSpring=1;
+cline_para.refSpring=.3;
 cline_para.stretch_ends_flag=1;
-cline_para.refSpring=1;
 cline_para.refL=6;
-cline_para.memForce=.02;
+cline_para.memForce=.01;
 close all
-gaussFilter=fspecial('gaussian',50,10);%fspecial('gaussian',10,75);
+gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
+gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
 %%
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
@@ -62,17 +62,17 @@ end
 
 %% set up low magvideos
 
-camData=importdata([dataFolder filesep 'camData.txt']);
+camData=importdata([   filesep 'camData.txt']);
 time=camData.data(:,2);
 fluorMovie=[dataFolder filesep 'cam0.avi'];
 behaviorMovie=[dataFolder filesep 'cam1.avi'];
+NFrames=length(camData.data);
 
 
 behaviorVidObj = VideoReader(behaviorMovie);
 fluorVidObj= VideoReader(fluorMovie);
 bfSize=[behaviorVidObj.Height,behaviorVidObj.Width];
 Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
-NFrames=length(camData.data);
 
 refPointsx=meshgrid(1:20:1088);
 refPointsy=refPointsx';
@@ -184,6 +184,7 @@ for iZ=1:size(meanBfAll,3);
     temp=inpaint_nans(temp);
     meanBfAll2(:,:,iZ)=temp;
 end
+meanBfBW=meanBfAll2>90; %flip signs in bright area 
 imagesc(mean(meanBfAll2,3));
 %% make filter background
 meanBfAllFilt=meanBfAll;
@@ -251,16 +252,17 @@ save([dataFolder filesep 'CLworkspace']);
 parfor_progress(nFrames);
 show2=0;
 tstart=tic;
-parfor iCell=1:2*nCells
+%%
+for iCell=1:2*nCells
     startFlag=1;
     iFrame=1;
     cellList=bfCell{iCell};
     CLall=CLcell{iCell};
-    if ~isempty(CLall)
+    if isempty(CLall)
         CLall=zeros(100,2,length(cellList));
     end
     IsAll=CL_I{iCell};
-    if ~isempty(IsAll)
+    if isempty(IsAll)
         IsAll=zeros(100,length(cellList));
     end
 
@@ -268,7 +270,7 @@ parfor iCell=1:2*nCells
     behaviorVidObj = VideoReader(behaviorMovie);
     fluorVidObj= VideoReader(fluorMovie);
     %%
-    for iFrame=1:length(cellList);
+    for iFrame=i:length(cellList);
         %%
         iTime=bfCell{iCell}(iFrame);
         tic
@@ -278,26 +280,21 @@ parfor iCell=1:2*nCells
                 
                 bfFrameRaw = read(behaviorVidObj,iTime,'native');
                 bfFrameRaw=double(bfFrameRaw.cdata);
-                backGround=meanBfAllFilt(:,:,newZ2(iTime));
                 backGroundRaw=meanBfAll2(:,:,newZ2(iTime));
                 c=sum(sum(bfFrameRaw.*backGroundRaw))/sum(sum(backGroundRaw.^2));
                 bfFrameRaw2=bfFrameRaw-backGroundRaw*c;
                 %bfFrameRaw2=abs(bfFrameRaw2);;
-                bfFrame=normalizeRange(bpass(abs(bfFrameRaw2),2,80));
+                bfFrame=bfFrameRaw2;
+                bfFrame=normalizeRange(bpass(bfFrame,2,80));
                 bfFramestd=stdfilt(bfFrameRaw2,getnhood(strel('disk',5)));
-               % smooth2a(bfFrame,15,15);
                 bfFramestd=bpass((bfFramestd),1,80);
-                
-                
+
                 fluorFrameRaw=read(fluorVidObj,iTime,'native');
                 fluorFrameRaw=double(fluorFrameRaw.cdata)-fluorBackground;
                 fluorFrameRaw(fluorFrameRaw<0)=0;
                 fluorFrame2=fluorFrameRaw;
-                % fluorFrame2=imwarp(fluorFrameRaw,lowResFluor2BF.t_concord,...
-                %    'OutputView',lowResFluor2BF.Rsegment);
-                
-                %bfFrameRaw2=bpass((bfFrameRaw),3,40);
                 fluorFrame2=bpass(fluorFrame2,1,40);
+                
                 %calculate centroid of fluor image
                 fluorMask=false(size(fluorFrame2));
                 fluorMask(round(cm_fluor(2))+(-25:25),round(cm_fluor(1))+(-25:25))=true;
@@ -312,13 +309,16 @@ parfor iCell=1:2*nCells
                 [cmy,cmx]=find(fluorBW);
                 cm_fluor=mean([cmx cmy]);
                 cm=transformPointsForward(lowResFluor2BF.t_concord,cm_fluor);
-                inputImage=2*normalizeRange(bfFrame)+normalizeRange(bfFramestd);
-         %       inputImage=sqrt(inputImage);
+                inputImage=2*bfFrame/max(bfFrame(:))+normalizeRange(bfFramestd);
+                inputImage(inputImage<0)=0;
+                %       inputImage=sqrt(inputImage);
                 inputImage=filter2(gaussFilter,inputImage,'same');
                 inputImage=inputImage-min(inputImage(:));
                 inputImage=normalizeRange(inputImage);
                 maxThresh=quantile(inputImage(inputImage>.2),.90);
                 inputImage=inputImage/maxThresh;
+                bfFramestd=normalizeRange(imfilter(bfFramestd,gaussFilter2));
+                nnz(bfFrame>.1)
                 %%
                 if startFlag
                     
@@ -326,7 +326,7 @@ parfor iCell=1:2*nCells
                     CLold=distanceInterp(CLold,100);
                     
                     
-                    [CLOut,Is]=ActiveContourFit_wormRef2(inputImage, cline_para, CLold,refIdx,cm);
+                    [CLOut,Is]=ActiveContourFit_wormRef4(inputImage,bfFramestd, cline_para, CLold,refIdx,cm);
                     startFlag=0;
                 else
                     
@@ -340,7 +340,7 @@ parfor iCell=1:2*nCells
                     %                 CL_predict_y=CLHistory_y*[1 -3 3]';
                     %               CLold=[CL_predict_x CL_predict_y];
                     CLold=CLall(:,:,oldTime);
-                    [CLOut,Is,Eout]=ActiveContourFit_wormRef2(inputImage, cline_para, CLold,refIdx,cm);
+                    [CLOut,Is,Eout]=ActiveContourFit_wormRef4(inputImage,bfFramestd, cline_para, CLold,refIdx,cm);
                     %%
                     % if there's a kink at the head, do something about it;
                     kink=diff(sqrt(sum(bsxfun(@minus,CLOut([refIdx 2*refIdx],:),CLOut(1,:)).^2,2)));
@@ -403,15 +403,17 @@ parfor iCell=1:2*nCells
             end
             
             
-            
+                  %  parfor_progress;
+
             display(['Completed frame '  num2str(iTime) ', cell ' num2str(iCell) ...
                 ' in ' num2str(toc) ' s'])
         catch me
+                 %   parfor_progress;
+
             display(['error frame ' num2str(iTime) ', cell ' num2str(iCell)])
             
             rethrow(me)
         end
-        parfor_progress;
     end
     CLcell{iCell}=CLall;
     CL_I{iCell}=IsAll;
