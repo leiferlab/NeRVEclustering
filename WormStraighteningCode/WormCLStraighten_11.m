@@ -84,14 +84,22 @@ rect2=S2AHiRes.rect2;
 aviFiles=dir([dataFolder filesep '20*.avi']);
 aviFiles={aviFiles.name}';
 aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
+
+d= dir([dataFolder filesep 'LowMagBrain*']);
+aviFolder=[dataFolder filesep d(1).name];
+
 if length(aviFiles)==2
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
     behaviorMovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
     fluorMovie=[dataFolder filesep aviFiles{aviFluorIdx}];
+elseif isdir(aviFolder)
+    fluorMovie=[aviFolder filesep 'cam0.avi'];
+    behaviorMovie=[aviFolder filesep 'cam1.avi'];
 else
+    
     display('Select avi files, behavior and then low mag fluor');
     movies=uipickfiles('FilterSpec',dataFolder);
-    %behaviorMovie=movies{1};
+    behaviorMovie=movies{1};
     fluorMovie=movies{2};
 end
 

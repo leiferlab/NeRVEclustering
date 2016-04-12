@@ -1,6 +1,6 @@
 function [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,imSize)
 % take flash, yaml, and highRes data for low res fluor, behavior, and high
-% res images to global time of all movies
+% res images and makes maps to global time of all movies
 
 if nargin==0
     mostRecent=getappdata(0,'mostRecent');
@@ -9,7 +9,11 @@ dataFolder=dataFolder{1};
 
 end
 %get data from low yamls
-[bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
+if isempty(dir([dataFolder filesep '*.yaml']))
+[bf2fluorIdx,fluorAll,bfAll]=AviFlashAlign(dataFolder);
+else
+    [bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
+end
 
 if exist([dataFolder filesep 'hiResData.mat'],'file')
     hiResData=load([dataFolder filesep 'hiResData']);

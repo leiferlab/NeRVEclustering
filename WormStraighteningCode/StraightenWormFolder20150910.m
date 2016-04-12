@@ -40,6 +40,7 @@ fluor2stackIdx=interp1(stack2fluoridx,1:topLimit,fluorIdxList,'nearest');
 
 %% load centerline
 [centerline, CLoffset]=loadCLBehavior(dataFolder);
+
 %%
 
 minStart=max([min(BF2stackIdx(CLoffset+1)) min(fluor2stackIdx)])+1;
@@ -95,7 +96,7 @@ ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
 %% Create straightened destination folder
-destination= 'CLstraight_20160118';
+destination= ['CLstraight_' datestr(now,'yyyymmdd')];
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 
@@ -104,13 +105,12 @@ mkdir(imageFolder2);
 startStack=minStart;
 endStack=max(hiResData.stackIdx);
 stackRange= startStack:endStack;
-pointStats=combinePointStatsFiles(imageFolder2,length(stackRange));;
-
+pointStats=combinePointStatsFiles(imageFolder2,length(stackRange));
 %% do a sample image in range, for observation and for reference
 tic
 show=1;
 
-counter=300; %which volume to do
+counter=1; %which volume to do
 
 %Run straighten and segmentation on one volume
 [V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
