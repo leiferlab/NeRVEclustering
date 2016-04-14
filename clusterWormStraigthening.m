@@ -20,7 +20,11 @@ for iStack=nStart:(nStart+nRange-1)
     fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
     fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d')];
     if ~exist(fileName2) && ~exist(fileName3)
+        tic
         WormCLStraighten_11(dataFolder,destination,vidInfo,...
             alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,0);
+        display(['image' num2str(iStack,'%3.5d') 'completed in ' num2str(toc) 's']);
+    else
+        display([ 'image' num2str(iStack,'%3.5d') '.tif already exist!'])
     end
 end
