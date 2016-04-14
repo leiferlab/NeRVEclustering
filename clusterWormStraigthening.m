@@ -14,15 +14,13 @@ alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
 ctrlPoints=[];
 display(dataFolder)
+imageFolder2=[dataFolder filesep destination];
 
 for iStack=nStart:(nStart+nRange-1)
-   try 
-       WormCLStraighten_11(dataFolder,destination,vidInfo,...
+    fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
+    fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d')];
+    if ~exist(fileName2) && ~exist(fileName3)
+        WormCLStraighten_11(dataFolder,destination,vidInfo,...
             alignments,ctrlPoints,Vtemplate,zOffset,iStack,side,lastOffset,0);
-   catch me
-       for i=1:length(me.stack)
-       me.stack(i)
-       end
-       save([dataFolder filesep 'Error' num2str(iStack)],'me')
-   end
+    end
 end

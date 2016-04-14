@@ -782,6 +782,6 @@ save(fileName3,'pointStats');
 fclose(Fid);
 catch me
     fileName=[imageFolder2 filesep 'ERROR' num2str(iStack,'%3.5d')];
-    save(fileName);
-    rethrow(me)
+    
+    save(fileName,'me');
 end
