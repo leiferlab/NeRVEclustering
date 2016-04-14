@@ -39,20 +39,20 @@ end
 
 
 %name alignmentfiles
-if nargin==0;
+%if nargin==0;
 alignmentName = inputdlg('Name the alignment file:', 's');
 segmentPts=initialAlignment.Sall;
 activityPts=initialAlignment.Aall;
-else
-    alignment=load(alignmentName);
-    alignmentName = inputdlg('Name the alignment file:', 's');
-
-    if choice==2
-
-    end
-segmentPts=alignment.Sall;
-activityPts=alignment.Aall;
-end
+% else
+%     alignment=load(alignmentName);
+%     alignmentName = inputdlg('Name the alignment file:', 's');
+% 
+%     if choice==2
+% 
+%     end
+% segmentPts=alignment.Sall;
+% activityPts=alignment.Aall;
+% end
 %%
        
 

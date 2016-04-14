@@ -11,6 +11,7 @@ pList=dir([psFolder filesep 'pointStats*']);
 if isempty(pList)
     dataFolder=psFolder;
     psFolder=dir([dataFolder filesep 'CLstratight*']);
+    psFolder=[dataFolder filesep psFolder(end).name];
     pList=dir([psFolder filesep 'pointStats*']);
 end
 
