@@ -28,7 +28,10 @@ load(filePath);
 %%
  matchesPerSegment=150;
 matchesPerSegment=matchesPerSegment*nGroups;
-startIdx=(1:doGroups)+(startIdx-1)*doGroups;
+% analysis indices
+startIdx=(1:doGroups)+(startIdx-1);
+
+% actual frames to analyze
 iIdxList=floor((nGroups+startIdx-1)/nGroups);
 itIdx=mod(startIdx,nGroups);
 runIdxListAll=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
