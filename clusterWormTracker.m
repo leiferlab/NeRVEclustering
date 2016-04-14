@@ -53,9 +53,13 @@ for iCounter=1:length(iIdxList)%length(TrackData)
     runIdxList=runIdxListAll(ceil((deltaRun:deltaRun:presentN/nGroups)+itIdx(iCounter)*presentN/nGroups));
 runIdxList=unique(runIdxList);
 
-                outputName=fileparts(filePath);
-                if ~isempty(outputName)
-    outputName=[outputName filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx(iCounter),'%3.2d')];
+                outputFolder=fileparts(filePath);
+                if ~isempty(outputFolder)
+                    outputFolder=[outputFolder filesep 'TrackMatrix'];
+                    if ~isdir(outputFolder)
+                        mkdir(outputFolder)
+                    end
+    outputName=[outputFolder filesep 'trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx(iCounter),'%3.2d')];
                 else
     outputName=['trackMatrix' num2str(iIdx,'%3.5d') 'Run' num2str(itIdx(iCounter),'%3.2d')];
                 end
