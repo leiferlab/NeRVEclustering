@@ -16,7 +16,7 @@ if isempty(pList)
 end
 
 if nargin==1
-    psLength=length(psList);
+    psLength=length(pList);
 end
 pointStats=repmat(struct(),1,psLength);
 
