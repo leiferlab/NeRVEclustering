@@ -2,17 +2,21 @@ function [TrackMatrixAll,pointStats]=compileTrackMatrix(fileName)
 
 %function takes the cluster output of multiple track matrix .mat files and
 %compiles them into a cell array for further analysis.
-
 if nargin==0
     fileName=uipickfiles;
     fileName=fileName{1};
 end
 
+dataFolder=fileName;
 
 fileList=dir([fileName filesep 'trackMatrix*.mat']);
+if isempty(fileList);
+    fileName=[fileName filesep 'trackMatrix'];
+    fileList=dir([ fileName filesep 'trackMatrix*.mat']);
+end
 
 
-pointStats=load([fileName filesep 'PointsStats']);
+pointStats=load([dataFolder filesep 'PointsStats']);
 pointStats=pointStats.pointStats;
 %  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
 %  presentIdx=find(cell2mat(presentIdx));
