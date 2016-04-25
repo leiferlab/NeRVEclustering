@@ -11,7 +11,7 @@ dataFolder=fileName;
 
 fileList=dir([fileName filesep 'trackMatrix*.mat']);
 if isempty(fileList);
-    fileName=[fileName filesep 'trackMatrix'];
+    fileName=[fileName filesep 'TrackMatrix'];
     fileList=dir([ fileName filesep 'trackMatrix*.mat']);
 end
 

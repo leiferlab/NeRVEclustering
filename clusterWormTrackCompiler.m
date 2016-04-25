@@ -32,13 +32,12 @@ param.excessive=4;
 windowSearch=5;
 
 %%
-display(imFolder)
 [~,pointStats]=compileTrackMatrix(imFolder);
 
  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.TrackMatrixi},'uniform',0);
 presentIdx=find(cell2mat(presentIdx));
 N=max(presentIdx);
-
+display([ 'Number of frames is ' num2str(N)]);
 presentIdx=1:N;
 pointStats=pointStats(1:N);
 
