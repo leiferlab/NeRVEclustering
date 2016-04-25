@@ -18,11 +18,10 @@ end
 
 pointStats=load([dataFolder filesep 'PointsStats']);
 pointStats=pointStats.pointStats;
-%  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
-%  presentIdx=find(cell2mat(presentIdx));
-% presentIdx=1:max(presentIdx);
-% presentIdx=cellfun(@(x) ~isempty(x),{pointStats.stackIdx},'uniform',0);
-% presentIdx=find(cell2mat(presentIdx));
+
+for i=1:length(pointStats);
+    pointStats(i).TrackMatrixi=[];
+end
 
 for i=1:length(fileList)
     currentFile=[fileName filesep fileList(i).name];
@@ -33,16 +32,16 @@ for i=1:length(fileList)
     else
         runIdx=1;
     end
-       currentData=load(currentFile);
-for jname=fieldnames(currentData)'
-%    TrackMatrixAll{presentIdx(i)}=currentData.TrackMatrixi;
-    if runIdx==1
-    pointStats(currentFileIdx).(jname{1})=currentData.(jname{1});
-    else
-    pointStats(currentFileIdx).(jname{1})=[pointStats(currentFileIdx).(jname{1}) ...
-        currentData.(jname{1})];
+    currentData=load(currentFile);
+    for jname=fieldnames(currentData)'
+        %    TrackMatrixAll{presentIdx(i)}=currentData.TrackMatrixi;
+        if runIdx==1
+            pointStats(currentFileIdx).(jname{1})=currentData.(jname{1});
+        else
+            pointStats(currentFileIdx).(jname{1})=[pointStats(currentFileIdx).(jname{1}) ...
+                currentData.(jname{1})];
+        end
+        
     end
-    
-end
 end
 TrackMatrixAll=[];

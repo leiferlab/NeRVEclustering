@@ -21,7 +21,8 @@ end
 
 
 
-if strfind(datFile, '.dat');   
+
+if strfind(datFile, '.dat');
     Fid=fopen(datFile);
 status=fseek(Fid,0,1);
 stackSize=floor(ftell(Fid)/(2*rows*cols)-1);

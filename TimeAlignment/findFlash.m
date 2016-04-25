@@ -26,7 +26,11 @@ end
 
 %% load images and find flash in images using user defined ROI
 for iFolder=1:length(imFolderIn)
+    if iscell(imFolderIn)
     imFolder=imFolderIn{iFolder};
+    else
+        imFolder=imFolderIn;
+    end
 if isdir(imFolder)
 imFiles=dir([imFolder filesep '*.tif']);
 vidObj=[];
