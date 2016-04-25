@@ -12,6 +12,10 @@ if isempty(imFolder)
 end
 %%
 dataFolder=(imFolder);
+display(['Parent Folder is ' dataFolder]);
+display([ 'PS file is ' filePath]);
+
+
 %%
 
 options.thresh1=0.05;
