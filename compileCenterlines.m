@@ -1,6 +1,9 @@
 
 function compileCenterlines(dataFolder)
 
+% compileCenterlines works on a dataFolder, find the CLfiles created but
+% clusterWormCenterlines, bundles them and calculates the eigenworm
+% projections, and centerlines
 d= dir([dataFolder filesep 'LowMagBrain*']);
 aviFolder=[dataFolder filesep d(1).name];
 display(aviFolder)
@@ -78,7 +81,10 @@ clIdx=cellfun(@(x) ~isempty(x), strfind(fieldNames,'line'));
 %create wormcentered coordinate system
 wormcentered=FindWormCentered(centerline);
 %project onto eigen basis
-load('Y:\CommunalCode\3dbrain\eigenWorms.mat')
+eigenWormFile='eigenWorms.mat';
+load(eigenWormFile);
+
+    
 if size(eigbasis,2)~=size(wormcentered,1)
     eigbasis=imresize(eigbasis,[size(eigbasis,1),size(wormcentered,1)]);
     

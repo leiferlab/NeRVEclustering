@@ -410,40 +410,40 @@ newZAll(newZAll==0)=nan;
 
 
 %% create pointStatsfor just one point
-if 0
-pointStatFolder=[dataFolder filesep 'PointStatFolder'];
-mkdir(pointStatFolder);
-for pointIdx=1:size(compareAllX,3);
-P1stats=pointStats2;
-display(['Starting ' num2str(pointIdx)]);
-parfor iTime=1:length(P1stats)
-    trackIdx=pointStats2(iTime).trackIdx;
-    allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...
-        compareAllZ(:,iTime,pointIdx)];
-    idxList=nan(length(allPoints),1);
-    if any(trackIdx==pointIdx);
-        allPoints=[allPoints;  pointStats2(iTime).straightPoints(trackIdx==pointIdx,:)];
-        idxList=[idxList; pointIdx];
-    end
-        trackIdx=pointStatsNew(iTime).trackIdx;
-
-    allPoints=[allPoints;  pointStatsNew(iTime).straightPoints(trackIdx==pointIdx,:)];
-    idxList=[idxList; 1];
-
-    
-    P1stats(iTime).straightPoints=allPoints;
-      P1stats(iTime).trackIdx=idxList;
-    P1stats(iTime).DMatrixi_x=[];
-    P1stats(iTime).DMatrixi_y=[];
-    P1stats(iTime).DMatrixi_z=[];
-    
-end
-
-
-save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
-
-end
-end
+% if 0
+% pointStatFolder=[dataFolder filesep 'PointStatFolder'];
+% mkdir(pointStatFolder);
+% for pointIdx=1:size(compareAllX,3);
+% P1stats=pointStats2;
+% display(['Starting ' num2str(pointIdx)]);
+% parfor iTime=1:length(P1stats)
+%     trackIdx=pointStats2(iTime).trackIdx;
+%     allPoints=[compareAllX(:,iTime,pointIdx),compareAllY(:,iTime,pointIdx),...
+%         compareAllZ(:,iTime,pointIdx)];
+%     idxList=nan(length(allPoints),1);
+%     if any(trackIdx==pointIdx);
+%         allPoints=[allPoints;  pointStats2(iTime).straightPoints(trackIdx==pointIdx,:)];
+%         idxList=[idxList; pointIdx];
+%     end
+%         trackIdx=pointStatsNew(iTime).trackIdx;
+% 
+%     allPoints=[allPoints;  pointStatsNew(iTime).straightPoints(trackIdx==pointIdx,:)];
+%     idxList=[idxList; 1];
+% 
+%     
+%     P1stats(iTime).straightPoints=allPoints;
+%       P1stats(iTime).trackIdx=idxList;
+%     P1stats(iTime).DMatrixi_x=[];
+%     P1stats(iTime).DMatrixi_y=[];
+%     P1stats(iTime).DMatrixi_z=[];
+%     
+% end
+% s
+% 
+% save([pointStatFolder filesep 'pointStatsTemp' num2str(pointIdx)],'P1stats');
+% 
+% end
+% end
 %%
 
 
