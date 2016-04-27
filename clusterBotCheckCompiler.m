@@ -16,11 +16,12 @@ imageFolder=imageFolder{1};
 dataFolder=fileparts(imageFolder);
 
 else
-    submissionFolder=[dataFolder filesep 'BotChecker'];
+    submissionFolder=[dataFolder filesep 'botCheckFolder'];
     pointStatsFile=[dataFolder filesep 'pointsStats2'];
     
      psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imageFolder=[dataFolder filesep psFolder(end).name];
+    imageFolder=[dataFolder filesep psFolder.name];
+    display(imageFolder);
 end
 
     
