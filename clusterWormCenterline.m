@@ -42,7 +42,7 @@ if ~exist(outputFolder,'dir')
 end
 
 %% load avi data
-camData=importdata([ aviFolder  filesep 'camData.txt']);
+camData=importdata([ aviFolder  filesep 'CamData.txt']);
 time=camData.data(:,2);
 fluorMovie=[aviFolder filesep 'cam0.avi'];
 behaviorMovie=[aviFolder filesep 'cam1.avi'];

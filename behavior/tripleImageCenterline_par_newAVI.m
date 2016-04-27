@@ -1,6 +1,7 @@
 
 maxFrame=Inf; %%% CHECK FOR LAST USEFUL FRAME IN VIDEO
 
+cline_para.refIdx=10;
 
 cline_para.tipRegion=45;
 cline_para.endRepulsion=.3;
@@ -38,31 +39,44 @@ Sfilter=max(gaussKernal2(:))-gaussKernal2;
 
 
 
-%% recover alignments
+%% load alignment data
 try
-alignments=load([dataFolder filesep 'alignments']);
+    %try to load the alignment file in the folder, otherwise, select them
+    %individual in the registration folder
+    alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
-
-lowResFluor2BF=alignments.lowResFluor2BF;
 catch
-    lowResAlignFile=uipickfiles('filterspec','Y:\CommunalCode\3dbrain\registration');
-    
-    lowResFluor2BF=load(lowResAlignFile{1});
+display('Select Low Res Alignment')
+
+lowResFluor2BF=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
+lowResFluor2BF=load(lowResFluor2BF{1});
+lowResBF2FluorT=invert(lowResFluor2BF.t_concord);
+
+display('Select Hi to Low Fluor Res Alignment')
+Hi2LowResF=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
+Hi2LowResF=load(Hi2LowResF{1});
+
+ display('Select Hi Res Alignment')
+
+S2AHiRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
+S2AHiRes=load(S2AHiRes{1});
+rect1=S2AHiRes.rect1;
+rect2=S2AHiRes.rect2;
+
+
+%% if you select them individually, bundle them and save it for later use
+alignments.lowResFluor2BF=lowResFluor2BF;
+alignments.S2AHiRes=S2AHiRes;
+alignments.Hi2LowResF=Hi2LowResF;
+
+save([dataFolder filesep 'alignments'],'alignments');
+
 end
-% S2AHiRes=alignments.S2AHiRes;
-% Hi2LowResF=alignments.Hi2LowResF;
-% LowResBF2Hi=lowResFluor2BF;
-% temp1=invert(Hi2LowResF.t_concord);
-% temp2=(lowResFluor2BF.t_concord);
-% temp1=temp1.T*temp2.T;
-% LowResBF2Hi.t_concord.T=temp1;
-% rect1=S2AHiRes.rect1;
-% rect2=S2AHiRes.rect2;
 
 
 %% set up low magvideos
 
-camData=importdata([   filesep 'camData.txt']);
+camData=importdata([ dataFolder  filesep 'camData.txt']);
 time=camData.data(:,2);
 fluorMovie=[dataFolder filesep 'cam0.avi'];
 behaviorMovie=[dataFolder filesep 'cam1.avi'];
@@ -72,8 +86,6 @@ NFrames=length(camData.data);
 behaviorVidObj = VideoReader(behaviorMovie);
 fluorVidObj= VideoReader(fluorMovie);
 bfSize=[behaviorVidObj.Height,behaviorVidObj.Width];
-Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
-
 refPointsx=meshgrid(1:20:1088);
 refPointsy=refPointsx';
 refPoints=sub2ind([1088,1088],refPointsx(:),refPointsy(:));
@@ -201,7 +213,6 @@ CLall=zeros(100,2,NFrames);
 %%
 startFlag=1;
 
-refIdx=12;
 %%
 close all
 
@@ -214,7 +225,7 @@ for i=1:nCells+1
     low=min((i-1)*nSteps+1,nFrames);
     high=min(nSteps*i,nFrames);
     bfFrameRaw = read(behaviorVidObj,bfList(low));
-    display('Select Initial Points');
+    display(['Select Points for frame ' num2str(i) ' of ' num2str(nCells+1)]);
     fig=imagesc(bfFrameRaw);
     [xpts,ypts]=getpts();
     CL=[xpts,ypts];
