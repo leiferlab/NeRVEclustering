@@ -17,7 +17,7 @@ dataFolder=fileparts(imageFolder);
 
 else
     submissionFolder=[dataFolder filesep 'botCheckFolder'];
-    pointStatsFile=[dataFolder filesep 'pointsStats2'];
+    pointStatsFile=[dataFolder filesep 'PointsStats2'];
     
      psFolder=dir([dataFolder filesep 'CLstraight*']);
     imageFolder=[dataFolder filesep psFolder.name];
