@@ -59,6 +59,7 @@ display('Select straightened data folder');
 for i=1:iPoint
     %%
    % i=pointStats2(iPS).stackIdx;
+   display(['Loading file ' num2str(i)]);
     fileName=['botChecker' num2str(i,'%3.5d') '*'];
     fileList=dir([submissionFolder filesep fileName]);
     fileList={fileList.name};
