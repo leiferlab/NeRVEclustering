@@ -131,5 +131,10 @@ end
 
 save([imFolder filesep 'hiResData'],'dataAll');
 
+%write a little text file so python can read in number of stackss
+Fid=fopen([imFolder filesep 'submissionParameters.txt'],'w');
+nStacks=max(stackIdx);
+fprintf(Fid,'%s %d','NFrames',nStacks);
+fclose(Fid);
 
 
