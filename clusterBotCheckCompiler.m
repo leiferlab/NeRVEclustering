@@ -36,6 +36,8 @@ display('Select straightened data folder');
 
 
 %% 
+  nsubCompare=500;
+
     iPoint=str2double(fileListAll(end).name(11:15));
     data=load([submissionFolder filesep fileListAll(10).name]);
     
@@ -48,13 +50,14 @@ display('Select straightened data folder');
   oldYAll=newXAll;
   oldZAll=newXAll;
   zScoreAll=newXAll;
-  compareAllX=zeros(size(data.comparePointEstimate_x,1),...
+  compareAllX=zeros(nsubCompare,...
       size(data.comparePointEstimate_x,2),iPoint);
   compareAllY=compareAllX;
   compareAllZ=compareAllX;
     weightAll=compareAllX;
-
   nCompare=size(compareAllX,1);
+  subCompare=round(1:nCompare/nsubCompare:nCompare);
+  subCompare=unique(subCompare);
   %%
 for i=1:iPoint
     %%
@@ -71,6 +74,7 @@ for i=1:iPoint
     xyzRefAll=nan(nCompare,3,nChecks);
  clear data
  if ~isempty(fileList)
+     
 for j=1:nChecks
     display(['loading ' fileName ' frame ' num2str(j) ]);
     data=load([submissionFolder filesep fileList{j}]);
@@ -79,9 +83,12 @@ for j=1:nChecks
     comparePointEstimate_z(:,:,j)=data.comparePointEstimate_z;
     comparePointsW(:,:,j)=data.comparePointConf;
     xyzRefAll(:,:,j)=data.xyzRefAll;
-
-
 end
+comparePointEstimate_x=comparePointEstimate_x(subCompare,:,:);
+comparePointEstimate_y=comparePointEstimate_y(subCompare,:,:);
+comparePointEstimate_z=comparePointEstimate_z(subCompare,:,:);
+comparePointsW=comparePointsW(subCompare,:,:);
+
 nanmap=isnan(comparePointEstimate_x);
 comparePointEstimate_x(nanmap)=0;
 comparePointEstimate_x=sum(comparePointEstimate_x,3);
@@ -113,8 +120,9 @@ comparePointEstimate_y(comparePointEstimate_y==0)=nan;
 comparePointEstimate_x(comparePointEstimate_x==0)=nan;
 
 
-
-compareAllX(:,:,i)=comparePointEstimate_x;
+    % compareAllX(a,b,c) estiamtes the X position of point c in frame
+    % a based on frame c 
+    compareAllX(:,:,i)=comparePointEstimate_x;
     compareAllY(:,:,i)=comparePointEstimate_y;
     compareAllZ(:,:,i)=comparePointEstimate_z;
     weightAll(:,:,i)=(comparePointsW);
@@ -123,8 +131,7 @@ compareAllX(:,:,i)=comparePointEstimate_x;
     zDistance=sqrt(sum(xyzRefAll_zscore.^2,2));
         
     newX=nanmedian(comparePointEstimate_x);
-    newY=nanmedian(comparePointEstimate_y);pointStats2
-    
+    newY=nanmedian(comparePointEstimate_y);
     newZ=nanmedian(comparePointEstimate_z);
     
     newXAll(i,:)=newX;
