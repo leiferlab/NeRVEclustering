@@ -55,7 +55,7 @@ display('Select straightened data folder');
   compareAllY=compareAllX;
   compareAllZ=compareAllX;
     weightAll=compareAllX;
-  nCompare=size(compareAllX,1);
+  nCompare=size(data.comparePointEstimate_x,1);
   subCompare=round(1:nCompare/nsubCompare:nCompare);
   subCompare=unique(subCompare);
   %%
