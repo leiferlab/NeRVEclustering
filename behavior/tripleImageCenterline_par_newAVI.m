@@ -8,18 +8,19 @@ cline_para.endRepulsion=.3;
 cline_para.repulsionD=20;
 cline_para.heat=3;
 cline_para.CLalpha=5;
-cline_para.CLbeta=30;
-cline_para.gamma=20;
+cline_para.CLbeta=100;
+cline_para.gamma=25;
 cline_para.kappa=30;
 cline_para.endkappa=20;
-cline_para.gradient_force=50;
+cline_para.gradient_force=60;
 cline_para.showFlag=0;
 cline_para.iterations=400;
-cline_para.stretching_force_factor=[2 2];
-cline_para.refSpring=.3;
+
+cline_para.stretching_force_factor=[.3 .3];
+cline_para.refSpring=.01;
 cline_para.stretch_ends_flag=1;
 cline_para.refL=6;
-cline_para.memForce=.01;
+cline_para.memForce=.005;
 close all
 gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
 gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);

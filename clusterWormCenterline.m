@@ -174,7 +174,7 @@ for iFrame=1:length(cellList);
     catch me
         display(['error frame ' num2str(iTime) ', cell ' num2str(iCell)])
         if cline_para.showFlag==0 && show2==0
-        save([outputFolder 'errorFrame' num2str(iTime)], 'me')
+        me
         end
            CLall(:,:,iFrame)=CLall(:,:,iFrame-1);
             IsAll(:,iFrame)=IsAll(:,iFrame-1);
