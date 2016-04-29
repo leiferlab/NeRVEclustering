@@ -38,7 +38,7 @@ bfFlashloc=find(bfFlash>(mean(bfFlash)+std(bfFlash)*5));
 fluorFlash=fluorFlash-min(fluorFlash);
 fluorFlashloc=find(fluorFlash>(mean(fluorFlash)+(std(fluorFlash)*5)));
 
-camData=importdata([aviFolder filesep 'camData.txt']);
+camData=importdata([aviFolder filesep 'CamData.txt']);
 time=camData.data(:,2);
 
 bf2fluorIdx=1:length(bfFlash);
