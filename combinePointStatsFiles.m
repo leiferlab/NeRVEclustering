@@ -13,9 +13,11 @@ end
     psFolder=dir([dataFolder filesep 'CLstraight*']);
     psFolder=[dataFolder filesep psFolder(end).name];
     pList=dir([psFolder filesep 'pointStats*']);
+if nargin==1
+psLength=length(pList);
+end
 
 pointStats=repmat(struct(),1,psLength);
-
 %progressbar(0);
 for iFile=1:length(pList);
  %   progressbar(iFile/length(pList));
