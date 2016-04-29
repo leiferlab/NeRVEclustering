@@ -2,22 +2,18 @@ function pointStats=combinePointStatsFiles(psFolder,psLength)
 % creates a complete pointStats variable from an analysis folder which is
 % created by the WormStraightening programs. Adjusted to work on the
 % cluster, DOES NOT OVERWRITE EXISTING POINTSTATS FILES
-if isempty(psFolder)
-    psFolder=uipickfiles;
-    psFolder=psFolder{1};
+if nargin==0
+    dataFolder=uipickfiles;
+    dataFolder=dataFolder{1};
 end
-dataFolder=fileparts(psFolder);
-pList=dir([psFolder filesep 'pointStats*']);
-if isempty(pList)
+if nargin==1
     dataFolder=psFolder;
+end
+
     psFolder=dir([dataFolder filesep 'CLstraight*']);
     psFolder=[dataFolder filesep psFolder(end).name];
     pList=dir([psFolder filesep 'pointStats*']);
-end
 
-if nargin==1
-    psLength=length(pList);
-end
 pointStats=repmat(struct(),1,psLength);
 
 %progressbar(0);
