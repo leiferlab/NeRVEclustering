@@ -12,6 +12,14 @@ display('Select Image Folder');
 imageFolder=uipickfiles('filterspec',dataFolder);
 imageFolder=imageFolder{1};
 
+else
+    pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
+    psFolder=dir([dataFolder filesep 'CLstraight*']);
+    imageFolder=[dataFolder filesep psFolder.name];
+end
+load(pointStatsFile)
+
+
 filterKernal=gausswin(50);
 filterKernal=filterKernal-min(filterKernal(:));
 filterKernal=filterKernal/sum(filterKernal);
@@ -20,16 +28,6 @@ filterKernal2=gausswin(500);
 filterKernal2=filterKernal2-min(filterKernal2(:));
 filterKernal2=filterKernal2/sum(filterKernal2);
 filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
-
-
-
-
-else
-    pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
-    psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imageFolder=[dataFolder filesep psFolder.name];
-end
-load(pointStatsFile)
 
 %%
 pointStats2=pointStatsNew;
