@@ -13,7 +13,7 @@ projectionX=projectionX-mean(projectionX);
 projectionY=projectionY-mean(projectionY);
 
 R=sqrt(projectionX.^2+projectionY.^2);
- scatter(projectionX, projectionY)
- drawnow
+%  scatter(projectionX, projectionY)
+%  drawnow
 circleEnergy=std(R);
 projections=[projectionX, projectionY];

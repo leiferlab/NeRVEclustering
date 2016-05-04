@@ -95,7 +95,7 @@ end
 %% lower correction
 % FR=(FX-nanmean(FX(:))).^2+(FY-nanmean(FY(:))).^2;
 % FR=sqrt(FR);
-load('Y:\CommunalCode\3dbrain\registration\IlluminationProfile.mat')
+load('IlluminationProfile.mat')
 rect1=alignments.S2AHiRes.rect1;
 rect2=alignments.S2AHiRes.rect2;
 
@@ -364,6 +364,6 @@ rPhotoCorr=Rvalstemp;
 gPhotoCorr=Gvalstemp;
 
 %%
-save([dataFolder filesep 'heatData' runTime],'G2','R2','gRaw','rRaw',...
+save([dataFolder filesep 'heatData0' runTime],'G2','R2','gRaw','rRaw',...
     'rPhotoCorr','gPhotoCorr','Ratio2','acorr','cgIdx','cgIdxRev','runTime');
 

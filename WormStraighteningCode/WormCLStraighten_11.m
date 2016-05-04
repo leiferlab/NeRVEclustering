@@ -484,11 +484,10 @@ if isempty(side)
         Nv=-Nv;
     else
         side='Right';
-        
     end
 else
     if ~isempty(strfind(side,'eft'))
-          Bv=-Bv;
+        Bv=-Bv;
         Nv=-Nv;
     end
 end

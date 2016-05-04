@@ -319,32 +319,10 @@ bcolor=[1 0 0];%[217 95 2]/256;
 turncolor=[0 0 1];%[117 112 179]/256;
 pausecolor=[255 217 50]/256;
 ethocolormap=[bcolor;pausecolor;fcolor;turncolor];
-
-% ethoV=interp1(hiResFrameTime,hiResV(hiResRange),1:.01:max(hiResFrameTime));
-% ethoB=interp1(hiResFrameTime,hiResBehavior(hiResRange),1:.01:max(hiResFrameTime));
-load('Y:\CommunalCode\3dbrain\Behavior\eigenProj3GMM','gmm')
-
-
-% obj=gmdistribution.fit((hiResV(hiResRange)),3,'start',...
-%     2+round(smooth(hiResBehavior(hiResRange),100)));
-% temp=hiResV;
-% temp(abs(temp)<.02)=0;
-% obj=gmdistribution.fit((hiResV(hiResRange)),3,'start',...
-%     2+sign(temp(hiResRange)));
-% 
-% [idx,nlogl,P,logpdf,M] = cluster(obj,smooth(hiResV(hiResRange),100));
-% 
-% [~,ia]=sort(obj.mu,'ascend');
-%ethoZ=interp1(bfTime,behaviorZ(bfRange),(hiResFrameTime));
 ethoZ=hiResBehaviorZ(hiResRange);
 ethoZ=ethoZ-nanmean(ethoZ);
 ethoZ(isnan(ethoZ))=0;
 Vcluster=smooth(hiResV(hiResRange),100);
-% idx=kmeans(Vcluster,3,'start',[-.2 0 .2]');
-% idx=idx-2;
-% idx(Vcluster>.1)=1;
-% idx(Vcluster<-0)=-1;
-% idx(idx~=1 & idx~=-1)=0;
 idx=sign(Vcluster);
 idx(abs(Vcluster)<.00005)=0;
 ethogram=idx;
