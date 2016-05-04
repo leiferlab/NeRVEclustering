@@ -357,7 +357,7 @@ projections=v;
 behaviorTheta=atan2(projections(:,1),projections(:,2));
 behaviorTheta=unwrap(behaviorTheta);
 behaviorTheta=imfilter(behaviorTheta,filterKernal);
-behaviorZtrack=behaviorZ(bfRange);
+behaviorZTrack=behaviorZ(bfRange);
 projectionsTrack=projections(bfRange,:);
 behaviorThetaTrack=behaviorTheta(bfRange);
 
@@ -395,6 +395,7 @@ ethogram(hiResV(hiResRange)==0)=nan;
 ethoTrack=ethogram;
 ethoTrack=interp1(hiResFrameTime,ethoTrack,frameTimeTrack,'nearest');
 
-save([dataFolder filesep 'positionData'], 'xPosTrack','yPosTrack')
+save([dataFolder filesep 'positionData'], 'xPos','yPos','hiResV','behaviorZTrack',...
+    'projectionsTrack')
 save([dataFolder filesep 'heatData'],'G2','R2','gRaw','rRaw','Ratio2',...
     'gPhotoCorr','rPhotoCorr','acorr','cgIdx','cgIdxRev','ethoTrack','hasPointsTime');
