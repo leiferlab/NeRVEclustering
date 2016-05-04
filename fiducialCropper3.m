@@ -25,7 +25,7 @@ filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
 
 
 else
-    pointStatsFile=[dataFolder filesep 'PointStatsNew.mat'];
+    pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
     psFolder=dir([dataFolder filesep 'CLstraight*']);
     imageFolder=[dataFolder filesep psFolder.name];
 end

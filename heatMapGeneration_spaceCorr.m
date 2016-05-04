@@ -10,7 +10,7 @@ if nargin==0
 end
 
 %%
-fiducialIFiles=dir([dataFolder filesep 'wormFiducial*']);
+fiducialIFiles=dir([dataFolder filesep 'WormFiducial*']);
 fiducialIFiles={fiducialIFiles.name};
 pointFiles=cellfun(@(x) strfind(x,'oint'),fiducialIFiles,'Uniform',0);
 pointFiles=cellfun(@(x) ~isempty(x), pointFiles);
