@@ -41,7 +41,7 @@ timeVector=timeVector(timeIdx==runIdx);
 
 %% loop through selected neurons in list
 for iPointIdx=startIdxReal;
-    display([' Starting ' num2str(iPointIdx)]);
+    display([' Starting ' num2str(iPointIdx), 'Run' num2str(runIdx)]);
 
 comparePointEstimate_x=nan(nSubSample,nTime);
 comparePointEstimate_y=nan(nSubSample,nTime);
@@ -92,7 +92,9 @@ comparePointConf(iCounter,iFrame)=xyzI_conf;
 
     
     end
+    if ~mod(iCounter, 100)
         display(['Done ' num2str(iFrame), ' and ' num2str(iCounter)])
+    end
     catch me
         display(['Error at ' num2str(iFrame), ' and ' num2str(iCounter)])
     end
