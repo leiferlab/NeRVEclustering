@@ -33,7 +33,7 @@ nTime=length(pointStats2);
 nSubSample=nTime;
 
 startIdxReal=ceil(startIdx/groupSize);
-runIdx=mod(startIdx,groupSize);
+runIdx=mod(startIdx-1,groupSize);
 timeVector=1:nTime;
 timeIdx=floor(timeVector/max(timeVector+1)*groupSize);
 timeVector=timeVector(timeIdx==runIdx);
