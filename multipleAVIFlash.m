@@ -8,11 +8,15 @@ if length(d)>1
 else
 aviFolder=[dataFolder filesep d(1).name];
 end
+
 camFiles=dir([aviFolder filesep '*.avi']);
 camFiles={camFiles.name}';
-flashFiles=cellfun(@(x) strrep(x,'.avi','flashTrack.mat'),camFiles,'uniform',0);
+for i=1:length(camFiles)
+camFileFull=[aviFolder filesep camFiles{i}];
+    flashFiles=cellfun(@(x) strrep(x,'.avi','flashTrack.mat'),camFileFull,'uniform',0);
+
 
 if ~exist(flashFiles{1},'file')
-    fluorFlash=findFlash(camFiles{1});
+    fluorFlash=findFlash(camFileFull);
 end
-
+end
