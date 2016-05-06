@@ -1,4 +1,4 @@
-function autoCreateAlignment(alignmentName)
+function autoCreateAlignment()
 %createAlignment creates an alignment mapping out of images to be used with
 %worm segmentation and gcamp signal, only uses projective mapping
  

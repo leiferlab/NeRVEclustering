@@ -1,4 +1,4 @@
-function mutlipleAVIFlash(dataFolder)
+function multipleAVIFlash(dataFolder)
 
 
 d= dir([dataFolder filesep 'LowMagBrain*']);
