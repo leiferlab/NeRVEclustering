@@ -13,10 +13,10 @@ camFiles=dir([aviFolder filesep '*.avi']);
 camFiles={camFiles.name}';
 for i=1:length(camFiles)
 camFileFull=[aviFolder filesep camFiles{i}];
-    flashFiles=cellfun(@(x) strrep(x,'.avi','flashTrack.mat'),camFileFull,'uniform',0);
+    flashFiles= strrep(camFileFull,'.avi','flashTrack.mat');
 
 
-if ~exist(flashFiles{1},'file')
+if ~exist(flashFiles,'file')
     fluorFlash=findFlash(camFileFull);
 end
 end
