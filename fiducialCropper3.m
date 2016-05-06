@@ -27,7 +27,6 @@ filterKernal=filterKernal/sum(filterKernal);
 filterKernal2=gausswin(500);
 filterKernal2=filterKernal2-min(filterKernal2(:));
 filterKernal2=filterKernal2/sum(filterKernal2);
-filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
 
 %%
 pointStats2=pointStatsNew;
@@ -314,6 +313,7 @@ xPosTrack=xPos((find(diff(hiResData.stackIdx)>0)));
 xPosTrack=xPosTrack(hasPoints);
 yPosTrack=yPos((find(diff(hiResData.stackIdx)>0)));
 yPosTrack=yPosTrack(hasPoints);
+filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
  xV=imfilter((xPos),filterKernal2)./filterFactor2;
  yV=imfilter((yPos),filterKernal2)./filterFactor2;
 v=[gradient(xV) gradient(yV)];
