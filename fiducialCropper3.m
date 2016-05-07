@@ -122,13 +122,16 @@ Z=double(pointStatsTemp.transformz);
     nSize=size(X);
     
 trackIdx=pointStats2(i).trackIdx;
+trackWeights=pointStats2(i).trackWeights;
     straightPoints=pointStats2(presentIdx(i)).straightPoints;
   %  rawPoints=rawPoints(~isnan(pointStats2(presentIdx(i)).trackIdx),:);
     present=~isnan(trackIdx) & ~isnan(straightPoints(1:length(trackIdx),1));
     trackIdx=trackIdx(present);
+    trackWeights=trackWeights(present);
     if i==1
         GvalAll=nan(nnz(present),max([pointStats2.stackIdx]));
         RvalAll=GvalAll;
+        trackWeightAll=RvalAll;
     end
 
     straightPoints=straightPoints(present,:);
@@ -204,7 +207,9 @@ trackIdx=pointStats2(i).trackIdx;
         Gtemp(iPoint)=Gval;
         
     end
-    
+    if length(trackIdx)==length(trackWeights)
+        trackWeightAll(trackIdx,iFile)=trackWeights;
+    end
         RvalAll(trackIdx,iFile)=Rtemp;
         GvalAll(trackIdx,iFile)=Gtemp;
          %   rawPointsCell=num2cell(rawPoints);
@@ -396,4 +401,5 @@ ethoTrack=interp1(hiResFrameTime,ethoTrack,frameTimeTrack,'nearest');
 save([dataFolder filesep 'positionData'], 'xPos','yPos','hiResV','behaviorZTrack',...
     'projectionsTrack')
 save([dataFolder filesep 'heatData'],'G2','R2','gRaw','rRaw','Ratio2',...
-    'gPhotoCorr','rPhotoCorr','acorr','cgIdx','cgIdxRev','ethoTrack','hasPointsTime');
+    'gPhotoCorr','rPhotoCorr','acorr','cgIdx','cgIdxRev','ethoTrack','hasPointsTime',...
+    'trackWeightAll');

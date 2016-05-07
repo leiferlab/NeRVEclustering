@@ -212,12 +212,20 @@ for iTime=1:length(pointStats2)
     %using the covariance of the guess cloud, calculate the closes point in
     %terms of mahabalonis distance
     [mahD, closestPoint]=min(currentPoints_mahD);
+    closestPointIdx=unAnnotatedIdx(closestPoint);
     %if a point is closer than 1.5 cov away from the mean of the guesses
     %but previously unassigned, add the assignment.
     
     if any(mahD<1.5) && ~any(currentPS.trackIdx==pointIdx) 
-currentPS.trackIdx(unAnnotatedIdx(closestPoint))=pointIdx;
+currentPS.trackIdx(closestPointIdx)=pointIdx;
+currentPS.trackIdx(currentPS.trackIdx==pointIdx)=NaN;
+
+
+currentPS.trackWeights(closestPointIdx)=currentPS.trackWeights(pointIdx);
+currentPS.trackWeights(pointIdx)=0;
+
 pointStatsNew(iTime)=currentPS;
+
         newVec(pointIdx,:)=nan;
         detTemp(pointIdx)=nan;
     else
@@ -296,17 +304,6 @@ zMatAll=sort(zMatAll,1,'descend');
 %mislabelled, only one of the distsances will be off .
 zMatAll=zMatAll(1:15,:,:);
 zMatAll=squeeze(trimmean(zMatAll,10,1));
-% 
-% zMatAllOld=bsxfun(@minus, dMatAllOld,nanmean(dMatAllOld,3));
-% zMatSTDOld=nanstd(zMatAllOld,[],3);
-% zMatAllOld=bsxfun(@rdivide,zMatAllOld, zMatSTDOld);
-% 
-% zMatAllOld=sort(zMatAllOld,1,'descend');
-% zMatAllOld=zMatAllOld(1:10,:,:);
-% zMatAllOld=squeeze(nanmean(zMatAllOld,1));
-% figure
-
-% imagesc(zMatAllOld)
 
 
 
@@ -327,12 +324,12 @@ for i=1:length(pointStatsNew);
     iTime=i;%pointStatsNew(i).stackIdx;
     if any(check(:,iTime))
         replaceIdx=find(check(:,iTime));
-        
         for iReplace=replaceIdx'
             lookupIdx=pointStatsNew(i).trackIdx==iReplace;
             if any(lookupIdx)
                 pointStatsNew(i).straightPoints(lookupIdx,:)=...
 [newXAll2(iReplace,iTime),newYAll2(iReplace,iTime),newZAll2(iReplace,iTime)];
+                   pointStatsNew(i).trackWeights(lookupIdx)=-detAll(iReplace,iTime);
                 display([' Success? at ' num2str(iTime) ' ' num2str(iReplace)]);
             else
                 display([' mismatch? at ' num2str(iTime) ' ' num2str(iReplace)]);
@@ -340,6 +337,8 @@ for i=1:length(pointStatsNew);
             
         end
     end
+    % if point needs to be added beyond the number of points currently
+    % present in the frame
         newIdx=find(isnan(zScoreAll(1:limit1,iTime)));
         newIdx=newIdx(~ismember(newIdx,pointStatsNew(i).trackIdx));
         for iNew=newIdx'
@@ -349,10 +348,14 @@ for i=1:length(pointStatsNew);
                [newXAll(iNew,iTime),newYAll(iNew,iTime),newZAll(iNew,iTime)]];
            pointStatsNew(i).trackIdx=[pointStatsNew(i).trackIdx;...
                iNew];
+                   pointStatsNew(i).trackWeights(lookupIdx)=-detAll(iReplace,iTime);
+
            display('New Point');
             elseif sum(lookupIdx)==1
         pointStatsNew(i).straightPoints(lookupIdx,:)=...
                     [newXAll2(iNew,iTime),newYAll2(iNew,iTime),newZAll2(iNew,iTime)];
+                   pointStatsNew(i).trackWeights(lookupIdx)=-detAll(iReplace,iTime);
+
            display('Replace Point');
             end   
         
