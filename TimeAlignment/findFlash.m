@@ -17,6 +17,9 @@ if nargin==1
     flag.sparsesearch=0;
     flag.parPool=0;
 end
+if ~iscell(imFolderIn)
+    imFolderIn={imFolderIn};
+end
 if ~isfield(flag, 'custormRoi');
     flag.customRoi=0;
 end
@@ -26,11 +29,7 @@ end
 
 %% load images and find flash in images using user defined ROI
 for iFolder=1:length(imFolderIn)
-    if iscell(imFolderIn)
-        imFolder=imFolderIn{iFolder};
-    else
-        imFolder=imFolderIn;
-    end
+    imFolder=imFolderIn{iFolder};
     if isdir(imFolder)
         imFiles=dir([imFolder filesep '*.tif']);
         vidObj=[];

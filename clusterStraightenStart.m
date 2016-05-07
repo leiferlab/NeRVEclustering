@@ -68,7 +68,7 @@ stackRange= startStack:endStack;
 tic
 show=1;
 
-counter=1; %which volume to do
+counter=50; %which volume to do
 
 %Run straighten and segmentation on one volume
 [V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
