@@ -353,7 +353,7 @@ cg = clustergram(acorr);
 cgIdx=str2double(get(cg,'RowLabels'));
 [~,cgIdxRev]=sort(cgIdx);
 %cgIdx=cgIdx(cgIdx<(max(cgIdx)-2));
-
+close all hidden
 
 
 

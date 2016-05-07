@@ -127,7 +127,54 @@ hold off
 end
 
 
+%% calculate backgrounds and projections
 
+bfSize=[behaviorVidObj.Height,behaviorVidObj.Width];
+refPointsx=meshgrid(1:20:1088);
+refPointsy=refPointsx';
+refPoints=sub2ind([1088,1088],refPointsx(:),refPointsy(:));
+refIntensity=nan(length(refPoints),NFrames);
+parfor_progress(NFrames);
+parfor iTime=1:NFrames;
+   % if ~any(fluorAll.flashLoc==iTime)
+   
+   behaviorVidObj = VideoReader(behaviorMovie);
+        bfFrame =read(behaviorVidObj,[iTime]);
+        refIntensity(:,iTime)=bfFrame(refPoints);
+        parfor_progress;
+ %   end
+end
+
+%%
+behaviorVidObj = VideoReader(behaviorMovie);
+refIntensityM=mean(refIntensity);
+refIntensityM=refIntensityM-mean(refIntensityM);
+newZ2=refIntensityM;
+flashLoc=newZ2>(4*std(newZ2));
+refIntensityM=refIntensityM-mean(refIntensityM(:,~flashLoc));
+
+
+refIntensityMean=mean(refIntensity(:,~flashLoc),2);
+refIntensityZ=bsxfun(@minus, double(refIntensity),refIntensityMean);
+refIntensityZ(:,flashLoc)=nan;
+[coeff,score,latent,tsquared] = pca(refIntensityZ');
+flashLoc=find(flashLoc);
+
+
+%%
+bins=8;
+newZ2=colNanFill(score(:,1));
+gaussKernal=gausswin(1000, 4);
+gaussKernal=gaussKernal/sum(gaussKernal);
+newZ2=newZ2-conv(newZ2,gaussKernal,'same');
+newZ2(flashLoc)=nan;
+%newZ2=colNanFill(newZ2');
+%newZ2=smooth(newZ2,5);
+boundaryI=quantile(newZ2,10);
+newZ2=sum(bsxfun(@le,newZ2,boundaryI),2);
+newZ2=newZ2+1;
+zList=unique(newZ2);
+zList=zList(~isnan(zList));
 %% calculate multiple backgrounds for BF
 %progressbar(0);
 medBfAll=nan(bfSize(1),bfSize(2),length(zList));
@@ -184,59 +231,6 @@ imagesc(fluorBackground);
 
 imagesc(mean(meanBfAll,3));
 headRect=roipoly();
-
-
-
-%% calculate backgrounds and projections
-
-bfSize=[behaviorVidObj.Height,behaviorVidObj.Width];
-refPointsx=meshgrid(1:20:1088);
-refPointsy=refPointsx';
-refPoints=sub2ind([1088,1088],refPointsx(:),refPointsy(:));
-refIntensity=nan(length(refPoints),NFrames);
-parfor_progress(NFrames);
-parfor iTime=1:NFrames;
-   % if ~any(fluorAll.flashLoc==iTime)
-   
-   behaviorVidObj = VideoReader(behaviorMovie);
-        bfFrame =read(behaviorVidObj,[iTime]);
-        refIntensity(:,iTime)=bfFrame(refPoints);
-        parfor_progress;
- %   end
-end
-
-%%
-behaviorVidObj = VideoReader(behaviorMovie);
-refIntensityM=mean(refIntensity);
-refIntensityM=refIntensityM-mean(refIntensityM);
-newZ2=refIntensityM;
-flashLoc=newZ2>(4*std(newZ2));
-refIntensityM=refIntensityM-mean(refIntensityM(:,~flashLoc));
-
-
-refIntensityMean=mean(refIntensity(:,~flashLoc),2);
-refIntensityZ=bsxfun(@minus, double(refIntensity),refIntensityMean);
-refIntensityZ(:,flashLoc)=nan;
-[coeff,score,latent,tsquared] = pca(refIntensityZ');
-flashLoc=find(flashLoc);
-
-
-%%
-bins=8;
-newZ2=colNanFill(score(:,1));
-gaussKernal=gausswin(1000, 4);
-gaussKernal=gaussKernal/sum(gaussKernal);
-newZ2=newZ2-conv(newZ2,gaussKernal,'same');
-newZ2(flashLoc)=nan;
-%newZ2=colNanFill(newZ2');
-%newZ2=smooth(newZ2,5);
-boundaryI=quantile(newZ2,10);
-newZ2=sum(bsxfun(@le,newZ2,boundaryI),2);
-newZ2=newZ2+1;
-zList=unique(newZ2);
-zList=zList(~isnan(zList));
-
-%%
 meanBfAll2=meanBfAll;
 
 for iZ=1:size(meanBfAll,3);
