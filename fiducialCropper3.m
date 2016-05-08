@@ -127,8 +127,11 @@ trackWeights=pointStats2(i).trackWeights;
   %  rawPoints=rawPoints(~isnan(pointStats2(presentIdx(i)).trackIdx),:);
     present=~isnan(trackIdx) & ~isnan(straightPoints(1:length(trackIdx),1));
     trackIdx=trackIdx(present);
-    trackWeights=trackWeights(present);
-    if i==1
+    trackWeights=trackWeights(present(1:length(trackWeights)));
+    trackWeightstemp=zeros(size(trackIdx));
+    trackWeightstemp(1:length(trackWeights))=trackWeights;
+    trackWeights=trackWeightstemp;
+    if ~exist('GvalAll','var')
         GvalAll=nan(nnz(present),max([pointStats2.stackIdx]));
         RvalAll=GvalAll;
         trackWeightAll=RvalAll;
