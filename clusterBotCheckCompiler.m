@@ -239,7 +239,8 @@ for iTime=1:length(pointStats2)
                     [mahD, closestPoint]=min(currentPoints_mahD);
                     %if a point is closer than 1.5 cov away from the mean of the guesses
                     %but previously unassigned, add the assignment.
-                    
+                        closestPointIdx=unAnnotatedIdx(closestPoint);
+
                     if any(mahD<1.5) && ~any(currentPS.trackIdx==pointIdx)
                         currentPS.trackIdx(closestPointIdx)=pointIdx;
                         currentPS.trackIdx(currentPS.trackIdx==pointIdx)=NaN;
