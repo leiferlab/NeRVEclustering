@@ -96,15 +96,21 @@ transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
 
 transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
     
-%% build training set on frist 
+%% build training set on first 800 or so
 %    transitionMatrixi=double(transitionMatrixi);
 %  tic; tcorr3=corrcoef(transitionMatrixi');toc
 %      transitionMatrixi=or(transitionMatrixi,speye(size(transitionMatrixi)));
 %     transitionMatrixi=double(transitionMatrixi);
 %     
+%try loop to try to work around out of memory issues
+for iTry=0:5
+    
+    try
 nSelectRangeCell=[];
-NTrainingRange=min(800,N-1);
+NTrainingRange=800-100*iTry;
+NTrainingRange=min(NTrainingRange,N-1);
 nTraining=min(NTrainingRange,N-1);
+display(['Attempting nTraining of ' num2str(nTraining)]);
 nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
 for i=1:length(nSelect)-1
 nSelectRangeCell{i}=1+indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
@@ -165,6 +171,15 @@ normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
 
     c=cluster(Z,'cutoff',.9,'criterion','distance'); %normally .9999
     cInitial=c;
+    display(['Success with nTraining of ' num2str(nTraining)]);
+    break
+    catch me
+       display(['Failed with nTraining of ' num2str(nTraining)]);
+        me
+    end
+    
+end
+    
     %% raname clusters based on size 
     caccum=accumarray(c,ones(size(c))); %how many in each cluster    
 %    c(ismember(c,caccumN))=1;
