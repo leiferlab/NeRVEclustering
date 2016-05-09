@@ -242,11 +242,8 @@ for iTime=1:length(pointStats2)
                         closestPointIdx=unAnnotatedIdx(closestPoint);
 
                     if any(mahD<1.5) && ~any(currentPS.trackIdx==pointIdx)
-                        replaceIdx=currentPS.trackIdx==pointIdx;
                         currentPS.trackIdx(closestPointIdx)=pointIdx;
-                        currentPS.trackIdx(replaceIdx)=NaN;
-                        currentPS.trackWeights(closestPointIdx)=currentPS.trackWeights(replaceIdx);
-                        currentPS.trackWeights(replaceIdx)=0;
+                        currentPS.trackWeights(closestPointIdx)=.5;
                         pointStatsNew(iTime)=currentPS;
                         newVec(pointIdx,:)=nan;
                         detTemp(pointIdx)=nan;
