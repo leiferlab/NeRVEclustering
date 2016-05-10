@@ -9,9 +9,10 @@ aviFolder=[dataFolder filesep d(1).name];
 display(aviFolder)
 outputFolder=[aviFolder filesep 'CL_files'];
 CLfiles=dir([outputFolder filesep  'CL*']);
-CLcell=cell(1,length(CLfiles));
-CL_I=cell(1,length(CLfiles));
 nCells=16;
+
+CLcell=cell(1,nCells);
+CL_I=cell(1,nCells);
 for iFile=1:length(CLfiles)
     CLdata=load([outputFolder filesep CLfiles(iFile).name]);
     CLpos=str2double(CLfiles(iFile).name(4:5));
