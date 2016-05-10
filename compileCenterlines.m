@@ -20,7 +20,6 @@ for iFile=1:length(CLfiles)
 end
 
 
-
 %%
 CL_Lenght_Fun=@(x)  squeeze(sum(sqrt(sum(diff(x).^2,2))))';
 
@@ -29,6 +28,13 @@ CL_I_2=reshape(CL_I,2,nCells);
 
 CLcell_2(2,:)=cellfun(@(x) flipdim(x,3),CLcell_2(2,:),'uniform',0);
 CL_I_2(2,:)=cellfun(@(x) flipdim(x,3),CL_I_2(2,:),'uniform',0);
+
+%fill in missing
+isMissing=cellfun(@(x) isempty(x), CL_I_2);
+replace=circshift(isMissing,[1,0]);
+CLcell_2(isMissing)=CLcell_2(replace);
+CL_I_2(isMissing)=CL_I_2(replace);
+
 
 CL_Iall=cell2mat(CL_I_2(:)');
 
