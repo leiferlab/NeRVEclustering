@@ -11,8 +11,8 @@ outputFolder=[aviFolder filesep 'CL_files'];
 CLfiles=dir([outputFolder filesep  'CL*']);
 nCells=16;
 
-CLcell=cell(1,nCells);
-CL_I=cell(1,nCells);
+CLcell=cell(1,2*nCells);
+CL_I=cell(1,2*nCells);
 for iFile=1:length(CLfiles)
     CLdata=load([outputFolder filesep CLfiles(iFile).name]);
     CLpos=str2double(CLfiles(iFile).name(4:5));
