@@ -176,8 +176,17 @@ for iFrame=1:length(cellList);
         if cline_para.showFlag==0 && show2==0
         me
         end
+        if iFrame>1
            CLall(:,:,iFrame)=CLall(:,:,iFrame-1);
-            IsAll(:,iFrame)=IsAll(:,iFrame-1);
+           IsAll(:,iFrame)=IsAll(:,iFrame-1);
+        else
+            CLold=clStart{iCell};
+            CLold=distanceInterp(CLold,100);
+            CLall(:,:,iFrame)=CLold;
+            IsAll(:,iFrame)=0;
+        end
+        
+            
       
     end
 end
