@@ -28,11 +28,20 @@ for iFile=1:length(pList);
     idx=str2double(pList(iFile).name(11:15));
     input=load([psFolder filesep pList(iFile).name]);
     input=input.pointStats;
+    pointStats(idx).stackIdx=input.stackIdx;
+
+    if length(input.straightPoints)<200
     pointStats(idx).straightPoints=input.straightPoints;
     pointStats(idx).rawPoints=input.rawPoints;
-    pointStats(idx).stackIdx=input.stackIdx;
     pointStats(idx).pointIdx=input.pointIdx;
     pointStats(idx).Rintensities=input.Rintensities;
     pointStats(idx).Volume=input.Volume;
+    else
+    pointStats(idx).straightPoints=[];
+    pointStats(idx).rawPoints=[];
+    pointStats(idx).pointIdx=[];
+    pointStats(idx).Rintensities=[];
+    pointStats(idx).Volume=[];
+    end
 end
 save([dataFolder filesep 'PointsStats'],'pointStats');

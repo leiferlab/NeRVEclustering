@@ -723,6 +723,10 @@ Vproj=squeeze(nansum(V,3));
     wormBW2(cell2mat(cc.PixelIdxList(badRegions)'))=false;
     cc.PixelIdxList=cc.PixelIdxList(~badRegions);
     cc.NumObjects=nnz(~badRegions);
+    %hard cap at 200 neurons, occasionally  you have big fails that produce
+    %many hundreds of points. this is bad, just blank everything if this
+    %happens 
+    if cc.NumObjects<200 
      cc=bwconncomp(wormBW2,6);
     stats=regionprops(cc,V,'Centroid','MeanIntensity',...
         'Area');
@@ -737,10 +741,19 @@ Areas=[stats.Area]';
         interp3(zslice,P(:,2),P(:,1),P(:,3))];
     pointStats.straightPoints=P(:,1:3);
     pointStats.rawPoints=Poriginal;
-    pointStats.stackIdx=iStack;
     pointStats.pointIdx=(1:cc.NumObjects)';
     pointStats.Rintensities=intensities;
     pointStats.Volume=Areas;
+    
+    else
+        pointStats.straightPoints=[];
+        pointStats.pointIdx=[];
+        pointStats.Rintensities=[];
+        pointStats.Volume=[];
+        pointStats.rawPoints=[];
+    end
+        pointStats.stackIdx=iStack;
+
     pointStats.baseImg=logical(wormBW2);
     pointStats.transformx=uint16(xslice);
     pointStats.transformy=uint16(yslice);
