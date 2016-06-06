@@ -16,7 +16,7 @@ if isempty(fileList);
 end
 
 
-pointStats=load([dataFolder filesep 'PointsStats']);
+pointStats=load([dataFolder filesep 'PointsStats.mat']);
 pointStats=pointStats.pointStats;
 
 for i=1:length(pointStats);

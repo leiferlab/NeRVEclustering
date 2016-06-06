@@ -228,9 +228,10 @@ if midZ>zSize/2
 else
     midZ=ceil(midZ);
 end
+
 if midZ==1
     midZ=2;
-elseif midZ==zSize;
+elseif midZ>=zSize;
     midZ=zSize-1;
 end
 

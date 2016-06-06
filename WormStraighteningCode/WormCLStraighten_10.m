@@ -86,8 +86,9 @@ aviFiles={aviFiles.name}';
 aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
 
 d= dir([dataFolder filesep 'LowMagBrain*']);
+if ~isempty(d)
 aviFolder=[dataFolder filesep d(1).name];
-
+end
 if length(aviFiles)==2
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
     behaviorMovie=[dataFolder filesep aviFiles{~aviFluorIdx}];

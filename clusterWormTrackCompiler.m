@@ -33,6 +33,13 @@ windowSearch=5;
 
 %%
 [~,pointStats]=compileTrackMatrix(imFolder);
+% fill in wholes with error fits, will hopefully help with problems im
+% having
+for iPS=1:length(pointStats)
+    if isempty(pointStats(iPS).stackIdx);
+        pointStats(iPS).stackIdx=iPS;
+    end
+end
 
  presentIdx=cellfun(@(x) ~isempty(x),{pointStats.TrackMatrixi},'uniform',0);
 presentIdx=find(cell2mat(presentIdx));
@@ -316,6 +323,7 @@ ccell=mat2cell(c2,nSelectAdd);
     input=bsxfun(@rdivide,input,sqrt(sum(input.^2,2)));
     input(isnan(input))=0;
     %masterVec(masterVec<0)=5*masterVec(masterVec<0);
+    
 aTest=masterVec'*input';
 %aTest(aTest<0)=0;
 hitIdx=sub2ind(size(aTest),c3(ia),assignedNodes);
