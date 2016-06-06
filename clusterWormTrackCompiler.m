@@ -322,6 +322,9 @@ ccell=mat2cell(c2,nSelectAdd);
     input=subTranstionMatrix;
     input=bsxfun(@rdivide,input,sqrt(sum(input.^2,2)));
     input(isnan(input))=0;
+    size(input)
+    size(masterVec)
+
     %masterVec(masterVec<0)=5*masterVec(masterVec<0);
     
 aTest=masterVec'*input';
