@@ -45,7 +45,7 @@ end
 presentIdx=find(cell2mat(presentIdx));
 N=max(presentIdx);
 display([ 'Number of frames is ' num2str(N)]);
-presentIdx=1:N;
+presentIdx=1:length(pointStats);
 pointStats=pointStats(1:N);
 
 
