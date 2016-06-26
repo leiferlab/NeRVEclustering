@@ -538,7 +538,7 @@ plot(CL3all(:,1,clSlice),CL3all(:,2,clSlice));
      Nv(1:10:end,1,clSlice),Nv(1:10:end,2,clSlice))
 
 hold off
-axis auto equal
+axis auto equal off
 xlim([0 600]);ylim([0 600])
 %print(gcf,['Y:\Jeff\PowerPoint\New folder\MySavedPlot' num2str(iSlice,'%3.5d') ],'-dpng')
 pause(.1)
@@ -780,22 +780,19 @@ end
     %%    
     
     %TrackData{counter}=P;
-    
-
-%fileName=[imageFolder filesep 'image' num2str(iStack,'%3.5d') '.tif'];
 fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
 fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d')];
-
+if show>1
+    fileName4=[imageFolder2 filesep 'saveFile' num2str(iStack,'%3.5d')];
+    save(fileName4,'CL3all2', 'CL3all','Tv','Bv','Nv','worm2','V','Vsmooth','pointStats');
+end
 %tiffwrite(fileName,Vproj,'tif');
 tiffwrite(fileName2,single(V),'tif');
 save(fileName3,'pointStats'); 
 %save with compression reduces file size by more than 70%
-
 %save(fileName3,'wormRegions');
-
 fclose(Fid);
 catch me
     fileName=[imageFolder2 filesep 'ERROR' num2str(iStack,'%3.5d')];
-    
     save(fileName,'me');
 end

@@ -1,32 +1,42 @@
 function dataAll=highResTimeTraceAnalysisTriangle4(imFolder,row,col)
 %highResTimeTraceAnalysis takes folder with cameraframedata.txt,
-%labjackdata.txt, and sCMOS_Frames_U16_1024x1024.dat and finds alignments
+%labjackdata.txt, and sCMOS_Frames_U16_<rows>x<cols.dat and finds alignments
 %for timing.
+%modified 20160626 to work with dat files with different sizes
 
-if nargin<2
-row=1024;
-col=1024;
-end
+%if no input, select folder using uipickfiles
 if nargin==0
 imFolder=uipickfiles;
 imFolder=imFolder{1};
 
 end
 
-%%
+%% load text files
 camFrameData=importdata([imFolder filesep 'CameraFrameData.txt']);
 camFrameData=camFrameData.data;
+% camFrameData is text file with columns:
 %'Frame Number'  'DC Offset'  'Image StDev'
 saveIdx=camFrameData(:,2);
 
+
 labJackData=importdata([imFolder filesep 'LabJackData.txt']);
 labJackData=labJackData.data;
+% LabJackData is text file with columns:
 %FuncGen Voltage ZSensor FxnGenSync CameraTrigger savedFrameCount FrameCount {x y}
 
 %%
 %load images to find flash, flashes have intensity above 10 sigma
-datFile=[imFolder filesep 'sCMOS_Frames_U16_1024x1024.dat'];
+datFile=dir([imFolder filesep 'sCMOS_Frames_U16_*.dat']);
+datFile=[imFolder filesep datFile.name];
+
+%get size of dat file if image dimensions are not in input.
+if nargin<2
+    [row,col]=getdatdimensions(datFile);
+end
+%%
+%make time trace of intensity to find flash
 datFlashRaw=findDatFlash(datFile,row,col,10);
+%threshold to find flash.
 datFlash=datFlashRaw-nanmean(datFlashRaw);
 datFlash=datFlash>(nanstd(datFlash)*10);
 

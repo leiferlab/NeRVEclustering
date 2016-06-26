@@ -204,6 +204,9 @@ end
 
 
 function plotter(hObject,eventdata)
+% function does the actual plotting of image and points
+
+%get globals and gui settings
 handles=guidata(get(hObject,'Parent'));
 currentFrame=round(getappdata(handles.figure1,'currentFrame'));
 dataFrame=getappdata(handles.figure1,'dataFrame');
@@ -251,6 +254,7 @@ iTrack=find(cell2mat(trackRange)==imageNumber);
 set(handles.FrameIdx,'string',['t=' num2str(TrackData(iTrack).stackIdx,'%6.2f')]);
 heatData=getappdata(handles.figure1,'heatData');
 colorOrder='rygb';
+
 %color ball based on behavior, or if no ethotrack, just use default
 if isfield(heatData,'ethoTrack')
     currentcolor=colorOrder(heatData.ethoTrack(currentFrame)+2); 
@@ -259,15 +263,12 @@ else
 end
 
 if exist([rawImFolder filesep imageName '.tif'],'file') && any(iTrack)
-
-%iTrack=iImage;
 shapeVector='xso^d<>';
-        %show only points that have been assigned an ID
+%show only points that have been assigned an ID
 pointsi=TrackData(iTrack).straightPoints;
-
    nselect=str2double(get(handles.trackNeuron,'String'));
           regionSelect=(nselect);
-
+ %plot the type of points selected
 switch get(handles.pointShowType,'Value')
     case 1
 pointID=TrackData(iTrack).trackIdx;
@@ -286,6 +287,8 @@ end
 pointID=TrackData(iTrack).trackIdx;
 end
 pointID=pointID(:);
+
+%plot the selected heatmap data if present
 if ~isempty(heatData) && regionSelect>0
  switch get(handles.plotDisplay,'Value')
      case 1
@@ -422,7 +425,6 @@ text(pointsi(regionSelect,1),pointsi(regionSelect,2),pointIDstr(regionSelect),..
 
 if any(pointID(regionSelect)==nselect)
     nSelectIdx=pointID(regionSelect)==nselect;
-    
     text(pointsi(nSelectIdx,1),pointsi(nSelectIdx,2),pointIDstr(nSelectIdx),...
     'color','g','parent',handles.axes1);
     

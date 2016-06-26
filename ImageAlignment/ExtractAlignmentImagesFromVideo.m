@@ -1,10 +1,12 @@
 imFolder=uipickfiles();
 imFolder=imFolder{1};
+
 %% cut up dat file if present
 h=dir([imFolder filesep '*.dat']);
-rows=1200;cols=600;
 if ~isempty(h)
-    datFile=[imFolder filesep h(1).name];I
+    datFile=[imFolder filesep h(1).name];
+[rows, cols]=getdatdimensions(datFile);
+    
 camData=importdata([imFolder filesep 'cameraFrameData.txt']);
 frameno=camData.data(:,1);
 savedFrames=camData.data(:,2);

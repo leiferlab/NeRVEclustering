@@ -36,6 +36,7 @@ gaussKernal2=convnfft(gaussKernal2,gaussKernal2');
 
 
 
+
 Sfilter=max(gaussKernal2(:))-gaussKernal2;
 
 

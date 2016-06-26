@@ -12,8 +12,12 @@ if nargin==0
 end
 
 if nargin<3
+    try
+        [rows, cols]=getdatdimensions(datFile);
+    catch
     rows=1200;
     cols=600;
+    end
 end
 if nargin<4
     rowSearch=rows;

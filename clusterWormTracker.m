@@ -1,5 +1,21 @@
 function clusterWormTracker(filePath,startIdx,nGroups,offset,doGroups)
 %made specifically for 1hr queue, can only do ~ 250 comparisons per hour
+% clusterWormTracker compares a set of pointsets from WormStraighten code
+% and uses non rigid pointset registration to create match matrices
+
+%%%% Inputs
+% filePath : link to the complete PointStats file with data from all
+% volumes
+
+% startIdx : the index of the the run. If length(pointStats)=N, the total
+% number of runs is N*nGroups. For a complete analysis, startIdx will take
+% a value 1:N*nGroups for each run
+
+% nGroups : number of runs to each volume. A volume will be compared to 
+% 150 * nGroups reference volumes
+
+% offset : just zero for now
+% do group : number of runs to do, will run startIdx: startIdx + doGroups
  show=00;
  startTic=tic;
 if nargin==0
@@ -84,12 +100,14 @@ runIdxList=unique(runIdxList);
         try
 P1=pointStats(i);
 P2=pointStats(j);
+%%
 T1=[P1.straightPoints P1.Volume.^(1/3) P1.Rintensities];
 T2=[P2.straightPoints P2.Volume.^(1/3) P2.Rintensities];
 
-T1temp=pointStats(i).straightPoints(:,1:3);
-T2temp=pointStats(j).straightPoints(:,1:3);
+T1temp=P1.straightPoints(:,1:3);
+T2temp=P2.straightPoints(:,1:3);
 
+% do non rigid pointset regstration, first with entire pointset
 [Transformed_M, multilevel_ctrl_pts, multilevel_param] = ...
     gmmreg_L2_multilevel_jn(T2...
     ,T1,1, [ 1,.5], ...
@@ -102,6 +120,7 @@ idx = kmeans(trackInput(:,1:3),3);
 idx1=idx(1:length(T1temp));
 idx2=idx(length(T1temp)+1:end);
 %%
+% do non rigid pointset regstration with smaller subsets of points
 
 for iRegions=1:max(idx)
 
@@ -133,6 +152,7 @@ for iRegions=1:max(idx)
     counter=18;
     TrackOut=nan;
     if length( unique(trackInputi(:,end)))>1
+        %do matching of points
     while(all(isnan(TrackOut(:))))
         TrackOut=trackJN(trackInputi,counter,param);
         counter=counter-1;
