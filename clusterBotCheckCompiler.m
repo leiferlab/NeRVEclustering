@@ -183,7 +183,7 @@ for iTime=1:length(pointStats2)
     %% loop over time points
     display(['Starting ' num2str(iTime)]);
     save([dataFolder filesep 'errorCatch'],'iTime');
-    if ~isempty(pointStats2(iTime).stackIdx)
+    if ~isempty(pointStats2(iTime).straightPoints)
         imageFile=[imageFolder filesep 'image' num2str(pointStats2(iTime).stackIdx,'%4.5d') '.tif'];
         psFile=[imageFolder filesep 'pointStats' num2str(pointStats2(iTime).stackIdx,'%4.5d') '.mat'];
         % load image and lookup tables
