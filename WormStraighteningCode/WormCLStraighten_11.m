@@ -110,8 +110,6 @@ fluorVidObj= VideoReader(fluorMovie);
 
 
 %% set up high mag videos
-rows=1200;
-cols=600;
 nPix=rows*cols;
 if isempty(vidInfo)
 

@@ -1,11 +1,7 @@
 
 function clusterStraightenStart(dataFolder)
-rows=1200;
-cols=600;
-nPix=rows*cols;
 
-
-    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
+    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
 
 %bundle timing data
 

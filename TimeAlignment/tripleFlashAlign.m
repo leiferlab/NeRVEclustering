@@ -8,6 +8,8 @@ dataFolder=uipickfiles('FilterSpec',mostRecent);
 dataFolder=dataFolder{1};
 
 end
+
+
 %get data from low yamls
 if isempty(dir([dataFolder filesep '*.yaml']))
 [bf2fluorIdx,fluorAll,bfAll]=AviFlashAlign(dataFolder);
@@ -19,7 +21,14 @@ if exist([dataFolder filesep 'hiResData.mat'],'file')
     hiResData=load([dataFolder filesep 'hiResData']);
     hiResData=hiResData.dataAll;
 else
+    %if imsize not specified, will parse from string
+    if nargin<2
+    hiResData=highResTimeTraceAnalysisTriangle4(dataFolder);
+    else
     hiResData=highResTimeTraceAnalysisTriangle4(dataFolder,imSize(1),imSize(2));
+
+    end
+    
 end
 
 hiResFlashTime=(hiResData.frameTime(hiResData.flashLoc));
