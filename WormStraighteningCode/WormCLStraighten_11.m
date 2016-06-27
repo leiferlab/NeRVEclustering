@@ -110,10 +110,9 @@ fluorVidObj= VideoReader(fluorMovie);
 
 
 %% set up high mag videos
-nPix=rows*cols;
 if isempty(vidInfo)
 
-[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
+[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
 else
     bfAll=vidInfo.bfAll;
     fluorAll=vidInfo.fluorAll;
@@ -157,8 +156,13 @@ centerline=centerline.(CLfieldNames{CLfieldIdx});
 %% load images
 
          
-         Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
 
+         datFileDir=dir([dataFolder filesep 'sCMOS_Frames_U16_*']);
+         datFile=[dataFolder filesep datFileDir.name];
+         [rows,cols]=getdatdimensions(datFile);
+         nPix=rows*cols;
+         Fid=fopen(datFile);
+         
     hiResIdx=find(hiResData.stackIdx==iStack)+ zOffset;
     zRange=hiResData.Z(hiResIdx-zOffset);
                 bfIdx=round(bfIdxLookup(hiResIdx));
