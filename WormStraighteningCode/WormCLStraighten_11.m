@@ -173,13 +173,6 @@ centerline=centerline.(CLfieldNames{CLfieldIdx});
                fluorFrame=read(fluorVidObj,fluorIdxRange);
  %            bfFrame = read(behaviorVidObj,bfIdxRange);
              fluorFrame=squeeze(fluorFrame(:,:,1,:));
-%              bfFrame=squeeze(bfFrame(:,:,1,:));
-%                    bfFrame=imwarp(bfFrame,invert(lowResFluor2BF.t_concord),...
-%                  'OutputView',imref2d(size(fluorFrame)));
-%                bfFrame2=imwarp(bfFrame,Hi2LowResF.t_concord,...
-%                  'OutputView',Hi2LowResF.Rsegment);
-%                bfFrame2=bfFrame2((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
-%  
              fluorFrame2=imwarp(fluorFrame,Hi2LowResF.t_concord,...
                  'OutputView',Hi2LowResF.Rsegment);
              if all(size(fluorFrame2(:,:,1))==[rows cols]);
@@ -196,13 +189,6 @@ cropFlag=1;
     %% crop and align hi mag images
     segmentChannel=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
     segmentChannel=pedistalSubtract(segmentChannel);
-%     activityChannel=hiResImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3),:);
-%     activityChannel=imwarp(activityChannel,S2AHiRes.t_concord,'OutputView',S2AHiRes.Rsegment);
-%     activityChannel=pedistalSubtract(activityChannel);
-%ctrlPoints=fiducialPoints{iStack};
-
-
-
 
     %% filter to find center Z (some old things here)
    worm2=segmentChannel;     
@@ -253,15 +239,13 @@ hiResProj=normalizeRange(sum(segmentChannel,3));
 fluorProj=normalizeRange(fluorProj);
 boundaryRegion=ones(size(fluorProj));
 boundaryRegion(51:end-50,51:end-50)=0;
-[fcm_x fcm_y]=find(fluorProj.*~boundaryRegion==max(fluorProj(~boundaryRegion)));
+[fcm_x, fcm_y]=find(fluorProj.*~boundaryRegion==max(fluorProj(~boundaryRegion)));
 fcm_x=mean(fcm_x);
 fcm_y=mean(fcm_y);
 
 
 
 fluorProj2=convnfft(fluorProj,Sfilter2,'same');
-%fluorProj2=smooth2a(fluorProj,21,21);
-
 corrIm=conv2(fluorProjRaw,rot90(hiResProj,2),'same');
 [CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
 CLoffsetX=CLoffsetX-round(size(fluorProj,2)/2);
@@ -295,20 +279,13 @@ CL(:,2,cl_replace_idx)=cly2(:,cl_replace_idx);
 %%
 CL2=CL(:,:,ic);
 [CL2f(:,2,:),CL2f(:,1,:)]=transformPointsInverse(lowResFluor2BF.t_concord,CL2(:,2,:),CL2(:,1,:));
-
-%[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2(:,2,:),CL2(:,1,:));
 [CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(Hi2LowResF.t_concord,CL2f(:,2,:),CL2f(:,1,:));
 if cropFlag
 CL2(:,2,:)=CL2(:,2,:)-(rect1(2)-1);
 end
-%[CL2(:,1,:),CL2(:,2,:)]=transformPointsForward(hiResFix.t_concord,CL2(:,2,:),CL2(:,1,:));
-
 
 %% interpolate to parameterize by length
 
-%
-% CL3all=CL2(1:30,:,:);
-% CL3all=interp1(CL3all,linspace(1,size(CL3all,1),300),'pchip');
 CLlengthRange=2500;
 CL3all=zeros(CLlengthRange,2,size(CL2,3));
 

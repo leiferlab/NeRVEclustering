@@ -1587,6 +1587,7 @@ fiducialFile=uipickfiles('filterspec',parent);
 
 fiducialFile=fiducialFile{1};
 %fiducialData=load(fiducialFile);
+
 timeOffset=load([fiducialFile filesep 'timeOffset']);
 timeOffset=timeOffset.timeOffset;
 

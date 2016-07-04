@@ -64,12 +64,25 @@ S2AHiRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
 S2AHiRes=load(S2AHiRes{1});
 rect1=S2AHiRes.rect1;
 rect2=S2AHiRes.rect2;
+%% if there's a background image, load it as well into alignments.
+display('select a background image for this size himag video');
+
+backgroundImage=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\background');
+if iscell{backgroundImage}
+backgroundImage=load(backgroundImage{1});
+backgroundImage=backgroundImage.backgroundImage;
+else
+    backgroundImage=0;
+end
 
 
 %% if you select them individually, bundle them and save it for later use
 alignments.lowResFluor2BF=lowResFluor2BF;
 alignments.S2AHiRes=S2AHiRes;
 alignments.Hi2LowResF=Hi2LowResF;
+alignments.background=backgroundImage;
+
+
 
 save([dataFolder filesep 'alignments'],'alignments');
 
