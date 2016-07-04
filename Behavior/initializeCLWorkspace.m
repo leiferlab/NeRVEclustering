@@ -68,7 +68,7 @@ rect2=S2AHiRes.rect2;
 display('select a background image for this size himag video');
 
 backgroundImage=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\background');
-if iscell{backgroundImage}
+if iscell(backgroundImage)
 backgroundImage=load(backgroundImage{1});
 backgroundImage=backgroundImage.backgroundImage;
 else

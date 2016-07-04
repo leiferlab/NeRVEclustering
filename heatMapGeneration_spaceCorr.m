@@ -28,8 +28,6 @@ if ~isempty(pointFiles)
     end
 RvalsAll=RvalAll;
 GvalsAll=GvalAll;
-RvalsAll=RvalsAll-90;
-GvalsAll=GvalAll-90;
 RvalsAll(RvalsAll<25)=nan;
 GvalsAll(isnan(RvalsAll))=nan;
 else

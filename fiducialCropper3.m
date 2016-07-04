@@ -32,10 +32,12 @@ filterKernal2=filterKernal2/sum(filterKernal2);
 pointStats2=pointStatsNew;
 
 presentIdx=1:length(pointStats2);
-rows=1200;
-cols=600;
-nPix=rows*cols;
 %%
+    datFileDir=dir([dataFolder filesep 'sCMOS_Frames_U16_*']);
+         datFile=[dataFolder filesep datFileDir.name];
+         [rows,cols]=getdatdimensions(datFile);
+         nPix=rows*cols;
+
 try
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
 catch
@@ -63,6 +65,7 @@ try
     S2AHiRes=alignments.S2AHiRes;
     rect1=S2AHiRes.rect1;
 rect2=S2AHiRes.rect2;
+background=alignments.background;
 catch
 display('Select Hi Res Alignment')
 
@@ -70,6 +73,7 @@ S2AHiResFile=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
 S2AHiRes=load(S2AHiResFile{1});
 rect1=S2AHiRes.rect1;
 rect2=S2AHiRes.rect2;
+background=0;
 end
 
 %%
@@ -93,7 +97,7 @@ for i=1:length(pointStats2)
             iFile=pointStats2(i).stackIdx;
         pointFile=([imageFolder  filesep 'pointStats' num2str(iFile,'%2.5d') '.mat']);
 
-            Fid=fopen([dataFolder filesep 'sCMOS_Frames_U16_1024x1024.dat']);
+            Fid=fopen(datFile);
         Rout=zeros(12,1);
         Gout=Rout;
         backgroundOut=Gout;
@@ -107,7 +111,7 @@ for i=1:length(pointStats2)
     
 
     hiResImage=(reshape(pixelValues,rows,cols,nSlices));
-    
+    hiResImage=bsxfun(@minus,hiResImage,background);
     
         %% load transformation from striaghtened to original
     
