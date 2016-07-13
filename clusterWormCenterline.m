@@ -4,52 +4,55 @@ function clusterWormCenterline(dataFolder,iCell,show2)
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window. 
 
-d= dir([dataFolder filesep 'LowMagBrain*']);
-aviFolder=[dataFolder filesep d(1).name];
-display(aviFolder)
-gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
-gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
-temp=load('eigenWorms_full.mat');
-eigbasis=temp.eigvecs;
-setappdata(0,'eigbasis',eigbasis);
-workSpaceFile=[aviFolder filesep 'CLworkspace.mat'];
-CLworkspace=load(workSpaceFile);
-bfCell=CLworkspace.bfCell;
-meanBfAll2=CLworkspace.meanBfAll2;
-fluorBackground=CLworkspace.fluorBackground;
-clStart=CLworkspace.clStart;
-flashLoc=CLworkspace.flashLoc;
-newZ2=CLworkspace.newZ2;
-cline_para=CLworkspace.cline_para;
-refIdx=cline_para.refIdx;
-cline_para.showFlag=00;
-
 if nargin==2
     show2=0;
 end
 
-startFlag=1;
-cellList=bfCell{iCell};
-CLall=zeros(100,2,length(cellList));
-IsAll=zeros(100,length(cellList));
+%% initialize some kernels and flags
+STARTFLAG=1;
+
+gaussFilter=fspecial('gaussian',30,5);
+gaussFilter2=fspecial('gaussian',50,15);
+
 cm_fluor=[26 26];
 sdev_nhood=getnhood(strel('disk',5));
 
-%%
+%% select files video files and load avi files
+d= dir([dataFolder filesep 'LowMagBrain*']);
+aviFolder=[dataFolder filesep d(1).name];
+display(aviFolder);
+fluor_movie_file=[aviFolder filesep 'cam0.avi'];
+behavior_movie_file=[aviFolder filesep 'cam1.avi'];
+behavior_vidobj = VideoReader(behavior_movie_file);
+fluor_vidobj= VideoReader(fluor_movie_file);
+
+%% load eigenworms and set as global
+temp=load('eigenWorms_full.mat');
+eigbasis=temp.eigvecs;
+setappdata(0,'eigbasis',eigbasis);
+
+%% load initial variables from CLworkspace
+workSpaceFile=[aviFolder filesep 'CLworkspace.mat'];
+CLworkspace=load(workSpaceFile);
+bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
+mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
+f_background=CLworkspace.f_background;  %f_background fluorBackground
+initial_cl=CLworkspace.initial_cl; % initial_cl clStart
+flash_loc=CLworkspace.flash_loc; %flash_loc flashLoc
+frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
+cline_para=CLworkspace.cline_para;
+refIdx=cline_para.refIdx;
+cline_para.showFlag=00;
+
+framelist=bf_list_cell{iCell};
+cl_all=zeros(100,2,length(framelist)); %cl_all CLall
+cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll 
+
+%% create output folder
 outputFolder=[aviFolder filesep 'CL_files'];
 if ~exist(outputFolder,'dir')
     mkdir(outputFolder)
 end
-
-%% load avi data
-camData=importdata([ aviFolder  filesep 'CamData.txt']);
-time=camData.data(:,2);
-fluorMovie=[aviFolder filesep 'cam0.avi'];
-behaviorMovie=[aviFolder filesep 'cam1.avi'];
-NFrames=length(camData.data);
-
-behaviorVidObj = VideoReader(behaviorMovie);
-fluorVidObj= VideoReader(fluorMovie);
 
 
 %% load alignments
@@ -57,139 +60,137 @@ alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
 lowResFluor2BF=alignments.lowResFluor2BF;
 
-%%
-for iFrame=1:length(cellList);
+%% main loop
+for iframe=1:length(framelist);
     %%
-    iTime=cellList(iFrame);
+    itime=framelist(iframe);
     tic
-    
     try
-        if ~isnan(newZ2(iTime)) && ~any(flashLoc==iTime) && iTime>=1
-            %%
+        if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc==itime) && itime>=1
+            %% filter behavior images
+            bf_frame_raw = read(behavior_vidobj,itime,'native');
+            bf_frame_raw=double(bf_frame_raw.cdata);
+            backGroundRaw=mean_bf_all(:,:,frame_bg_lvl(itime));
+            %scale background for best match before subtraction. 
+            c=sum(sum(bf_frame_raw.*backGroundRaw))/sum(sum(backGroundRaw.^2));
+            bf_frame_raw=bf_frame_raw-backGroundRaw*c;
             
-            bfFrameRaw = read(behaviorVidObj,iTime,'native');
-            bfFrameRaw=double(bfFrameRaw.cdata);
-            backGroundRaw=meanBfAll2(:,:,newZ2(iTime));
-            c=sum(sum(bfFrameRaw.*backGroundRaw))/sum(sum(backGroundRaw.^2));
-            bfFrameRaw2=bfFrameRaw-backGroundRaw*c;
-            %bfFrameRaw2=abs(bfFrameRaw2);;
-            bfFrame=imtophat(bfFrameRaw2,strel('disk',50));
-            bfFramestd=stdfilt(bfFrameRaw2,sdev_nhood);
-            bfFramestd=normalizeRange(bfFramestd);
-            bfstdthresh=(bfFramestd>graythresh(bfFramestd));
-           bfFrame(bfstdthresh)=abs(bfFrame(bfstdthresh));
-            bfFramestd=bpass((bfFramestd),1,80);
-            bfFrame=normalizeRange(bpass(bfFrame,4,80));
+            % afew filter steps
+            bf_frame=imtophat(bf_frame_raw,strel('disk',50));
+            bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
+            bf_frame_std=normalizeRange(bf_frame_std);
+            bfstdthresh=(bf_frame_std>graythresh(bf_frame_std));
+            bf_frame(bfstdthresh)=abs(bf_frame(bfstdthresh));
+            bf_frame_std=bpass((bf_frame_std),1,80);
+            bf_frame=normalizeRange(bpass(bf_frame,4,80));
 
-            fluorFrameRaw=read(fluorVidObj,iTime,'native');
-            fluorFrameRaw=double(fluorFrameRaw.cdata)-fluorBackground;
-            fluorFrameRaw(fluorFrameRaw<0)=0;
-            fluorFrame2=fluorFrameRaw;
-            fluorFrame2=bpass(fluorFrame2,1,40);
+            %% filter fluor images
+            fluor_frame_raw=read(fluor_vidobj,itime,'native');
+            fluor_frame_raw=double(fluor_frame_raw.cdata)-f_background;
+            fluor_frame_raw(fluor_frame_raw<0)=0;
+            fluor_frame=fluor_frame_raw;
+            fluor_frame=bpass(fluor_frame,1,40);
             
-            %calculate centroid of fluor image
-            fluorMask=false(size(fluorFrame2));
-            fluorMask(round(cm_fluor(2))+(-25:25),...
+            %% calculate centroid of fluor image
+            fluor_mask=false(size(fluor_frame));
+            fluor_mask(round(cm_fluor(2))+(-25:25),...
                 round(cm_fluor(1))+(-25:25))=true;
-            fluorBW=(fluorFrame2>(max(fluorFrame2(:))/5));
-            fluorFrameMask=fluorBW.*fluorMask;
-            if (any(fluorFrameMask(:))) && ~startFlag
-                fluorBW=fluorFrameMask;
+            fluorBW=(fluor_frame>(max(fluor_frame(:))/5));
+            fluor_mask=fluorBW.*fluor_mask;
+            if (any(fluor_mask(:))) && ~STARTFLAG
+                fluorBW=fluor_mask;
             end
-            
             fluorBW=AreaFilter(fluorBW); %select only largest obj
-            
             [cmy,cmx]=find(fluorBW);
             cm_fluor=mean([cmx cmy]);
             cm=transformPointsForward(lowResFluor2BF.t_concord,cm_fluor);
-            inputImage=2*bfFrame/max(bfFrame(:))+normalizeRange(bfFramestd);
+            %% make input image
+            %combine filtered image and filtered sdev image
+            inputImage=2*bf_frame/max(bf_frame(:))+normalizeRange(bf_frame_std);
             inputImage(inputImage<0)=0;
-            %       inputImage=sqrt(inputImage);
+            %gassian filter
             inputImage=filter2(gaussFilter,inputImage,'same');
-            inputImage=inputImage-min(inputImage(:));
             inputImage=normalizeRange(inputImage);
-           % maxThresh=quantile(inputImage(inputImage>.2),.90);
-          %  inputImage=inputImage/maxThresh;
-            bfFramestd=normalizeRange(imfilter(bfFramestd,gaussFilter2));
-            bfFrameMask=(bfFramestd>min(graythresh(bfFramestd),.7));
-            tipImage=bfFrameMask.*inputImage;
-            bfFrameLTmask=bfFrameMask & tipImage<bfFramestd;
-            tipImage(bfFrameLTmask)=bfFramestd(bfFrameLTmask);
-            %%
-            if startFlag
-                
-                CLold=clStart{iCell};
-                CLold=distanceInterp(CLold,100);
-                
-                
-                [CLOut,Is]=ActiveContourFit_wormRef4(...
-                    inputImage,tipImage, cline_para, CLold,refIdx,cm);
-                startFlag=0;
+            
+            bf_frame_std=normalizeRange(imfilter(bf_frame_std,gaussFilter2));
+            bfFrameMask=(bf_frame_std>min(graythresh(bf_frame_std),.7));
+            
+            %make tip image, to help nailing down tips
+            tip_image=bfFrameMask.*inputImage;
+            bfFrameLTmask=bfFrameMask & tip_image<bf_frame_std;
+            tip_image(bfFrameLTmask)=bf_frame_std(bfFrameLTmask);
+            %% fit centerlines using previous centerline as starting point
+            %ActiveContourFit_wormRef4 does all the work. 
+            if STARTFLAG
+                % for first round, just load up initialized CL points as
+                % past frame
+                cl_old=initial_cl{iCell};
+                cl_old=distanceInterp(cl_old,100);
+                [cl,Is]=ActiveContourFit_wormRef4(...
+                inputImage,tip_image, cline_para, cl_old,refIdx,cm);
+                STARTFLAG=0;
             else
-                
-                oldTime=iFrame-1;
-                while isnan(newZ2(cellList(oldTime)));
+                oldTime=iframe-1;
+                while isnan(frame_bg_lvl(framelist(oldTime)));
                     oldTime=oldTime-1;
                 end
-                
-                CLold=CLall(:,:,oldTime);
-                [CLOut,Is,Eout]=ActiveContourFit_wormRef4(...
-                    inputImage,tipImage, cline_para, CLold,refIdx,cm);
-                
+                cl_old=cl_all(:,:,oldTime);
+                [cl,Is,Eout]=ActiveContourFit_wormRef4(...
+                    inputImage,tip_image, cline_para, cl_old,refIdx,cm);
             end
             
-            if ~mod(iTime,show2)
+            %plot some of the results
+            if ~mod(itime,show2)
                 subplot(1,2,1)
-                imagesc(bfFrameRaw2);
-                % colormap gray
+                imagesc(bf_frame);
                 hold on
-                plot(CLOut(:,1),CLOut(:,2),'r');
-                plot(CLOut([1 end],1),CLOut([1 end],2),'og');
+                plot(cl(:,1),cl(:,2),'r');
+                plot(cl([1 end],1),cl([1 end],2),'og');
                 scatter(cm(1),cm(2),'gx');
-                plot([CLOut(refIdx,1) cm(1)],[CLOut(refIdx,2) cm(2)],'g');
-                %quiver(xyzs(:,1),xyzs(:,2),fs(:,1),fs(:,2),'black');
+                plot([cl(refIdx,1) cm(1)],[cl(refIdx,2) cm(2)],'g');
                 hold off
                 subplot(1,2,2);
-                imagesc(tipImage);
-                % colormap gray
+                imagesc(tip_image);
                 hold on
-                plot(CLOut(:,1),CLOut(:,2),'r');
-                plot(CLOut([1 end],1),CLOut([1 end],2),'og');
+                plot(cl(:,1),cl(:,2),'r');
+                plot(cl([1 end],1),cl([1 end],2),'og');
                 scatter(cm(1),cm(2),'gx');
-                plot([CLOut(refIdx,1) cm(1)],[CLOut(refIdx,2) cm(2)],'g');
-                %quiver(xyzs(:,1),xyzs(:,2),fs(:,1),fs(:,2),'black');
+                plot([cl(refIdx,1) cm(1)],[cl(refIdx,2) cm(2)],'g');
                 hold off
                 drawnow
             end
-            CLOut=distanceInterp(CLOut,100);
             
-            CLall(:,:,iFrame)=CLOut;
-            IsAll(:,iFrame)=Is;
+            %reinterpolate to 100 points
+            cl=distanceInterp(cl,100);
+            cl_all(:,:,iframe)=cl;
+            cl_intensities(:,iframe)=Is;
         else
-            CLall(:,:,iFrame)=CLall(:,:,iFrame-1);
-            IsAll(:,iFrame)=IsAll(:,iFrame-1);
+            cl_all(:,:,iframe)=cl_all(:,:,iframe-1);
+            cl_intensities(:,iframe)=cl_intensities(:,iframe-1);
         end
-        display(['Completed frame '  num2str(iTime) ', cell '...
+        display(['Completed frame '  num2str(itime) ', cell '...
             num2str(iCell) ' in ' num2str(toc) ' s'])
     catch me
-        display(['error frame ' num2str(iTime) ', cell ' num2str(iCell)])
+        %if error, print error, reuse previous centerline
+        display(['error frame ' num2str(itime) ', cell ' num2str(iCell)])
         if cline_para.showFlag==0 && show2==0
         me
         end
-        if iFrame>1
-           CLall(:,:,iFrame)=CLall(:,:,iFrame-1);
-           IsAll(:,iFrame)=IsAll(:,iFrame-1);
+        if iframe>1
+           cl_all(:,:,iframe)=cl_all(:,:,iframe-1);
+           cl_intensities(:,iframe)=cl_intensities(:,iframe-1);
         else
-            CLold=clStart{iCell};
-            CLold=distanceInterp(CLold,100);
-            CLall(:,:,iFrame)=CLold;
-            IsAll(:,iFrame)=0;
+            %if this is the first frame of the list, zero the outputs
+            cl_old=initial_cl{iCell};
+            cl_old=distanceInterp(cl_old,100);
+            cl_all(:,:,iframe)=cl_old;
+            cl_intensities(:,iframe)=0;
         end
         
             
       
     end
 end
-
+%% save output
 outputFilename=[outputFolder filesep 'CL_' num2str(iCell,'%3.2d')];
-save(outputFilename,'CLall','IsAll','cellList');
+save(outputFilename,'cl_all','cl_intensities','framelist'); %note: cellList changed to frame list

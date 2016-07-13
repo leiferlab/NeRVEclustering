@@ -1,44 +1,41 @@
 
 function clusterStraightenStart(dataFolder)
 
-    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
 
-%bundle timing data
+counter=300; %which volume to do
 
-    vidInfo.bfAll=bfAll;
-    vidInfo.fluorAll=fluorAll;
-    vidInfo.hiResData=hiResData;
-    
+
+%% bundle timing data
+[bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
+vidInfo.bfAll=bfAll;
+vidInfo.fluorAll=fluorAll;
+vidInfo.hiResData=hiResData;
 
 %% make time alignments
+bf_ft=bfAll.frameTime;
+fluor_ft=fluorAll.frameTime;
+hi_ft=hiResData.frameTime;
+
 bfIdxList=1:length(bfAll.frameTime);
-fluorIdxList=1:length(fluorAll.frameTime);
-bfIdxLookup=interp1(bfAll.frameTime,bfIdxList,hiResData.frameTime,'linear','extrap');
-fluorIdxLookup=interp1(fluorAll.frameTime,fluorIdxList,hiResData.frameTime,'linear','extrap');
-
-[hiImageIdx,ib]=unique(hiResData.imageIdx);
-hiResLookup=interp1(hiImageIdx,ib,1:length(hiResData.frameTime));
-
+fluorIdxList=1:length(hi_ft);
+bfIdxLookup=interp1(bf_ft,bfIdxList,hi_ft,'linear','extrap');
+fluorIdxLookup=interp1(fluor_ft,fluorIdxList,hi_ft,'linear','extrap');
 stack2BFidx=bfIdxLookup(diff(hiResData.stackIdx)==1);
 stack2fluoridx=fluorIdxLookup(diff(hiResData.stackIdx)==1);
 
 topLimit=min(max(hiResData.stackIdx),length(stack2BFidx));
 BF2stackIdx=interp1(stack2BFidx,1:topLimit,bfIdxList,'nearest');
 fluor2stackIdx=interp1(stack2fluoridx,1:topLimit,fluorIdxList,'nearest');
-
-
-%% load centerline
-[centerline, CLoffset]=loadCLBehavior(dataFolder);
-
-%%
-
-minStart=max([min(BF2stackIdx(CLoffset+1)) min(fluor2stackIdx)])+1;
+%% load find the first frame with every video in it
+[~, CLoffset]=loadCLBehavior(dataFolder);
+first_frame=max([min(BF2stackIdx(CLoffset+1)) min(fluor2stackIdx)])+1;
+test_frame=first_frame+counter;
 
 %% load alignment data
 
-    %try to load the alignment file in the folder, otherwise, select them
-    %individual in the registration folder
-    alignments=load([dataFolder filesep 'alignments']);
+%try to load the alignment file in the folder, otherwise, select them
+%individual in the registration folder
+alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
 
 
@@ -55,33 +52,20 @@ destination= ['CLstraight_' datestr(now,'yyyymmdd')];
 imageFolder2=[dataFolder filesep destination];
 mkdir(imageFolder2);
 
-%% Select range of volumes to analyze
-
-startStack=minStart;
-endStack=max(hiResData.stackIdx);
-stackRange= startStack:endStack;
 %% do a sample image in range, for observation and for reference
+
 tic
-show=1;
-
-counter=300; %which volume to do
-
 %Run straighten and segmentation on one volume
-[V,pointStatsOut,Vtemplate,side,lastOffset,Vbw]=...
+[~,~,Vtemplate,side,~,~]=...
     WormCLStraighten_10(dataFolder,destination,vidInfo,...
-    alignments,[],[],zOffset,minStart+counter,'left',[],show);
-
+    alignments,[],[],zOffset,test_frame,'left',[],0);
+%we need these of the outputs to save for the cluster straightening
 
 % fields in the pointstats file that will be used
-poinStatsFields={'straightPoints','rawPoints','stackIdx','pointIdx',...
-    'Rintensities','Volume','controlPoints'};
 
-for iFields=1:length(poinStatsFields)
-    field=poinStatsFields{iFields};
-    pointStats(counter).(field)=pointStatsOut.(field);
-end
-
-show=0;
 display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
-%save initial workspace for testing and later use
-save([dataFolder filesep 'startWorkspace'])
+%save initial workspace from first sample for later use
+save([dataFolder filesep 'startWorkspace'],...
+    'destination', 'Vtemplate', 'zOffset', 'side','vidInfo')
+
+

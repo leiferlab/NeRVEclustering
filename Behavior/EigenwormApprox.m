@@ -1,5 +1,15 @@
 function [centerline_out,err,wc]=EigenwormApprox(centerline_in,refIdx2,eigbasis,eigen_range)
-%% recreates a centerline using the first 6 eigen worms
+% recreates a centerline using the first 6 eigen worms. The 2 points of the
+% intial centerline, given by refIdx2, are pinned to constrain the fitting.
+% 
+
+%centerline_in : the initial centerline to be reapproximated
+%refIdx2: the points of the initial worm to fix
+% eigenbasis: the matrix of eigenworms to be used to reconstruct the
+% centerline in, as nWorms x 100
+% eigen_range: the range of centerline points to use as the entire length
+% of the worm. ex. 1:50 will say that point 50 is the end of the worm.
+
 if nargin==3
     eigen_range=1:(length(centerline_in)-1);
 end

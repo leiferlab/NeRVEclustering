@@ -1,8 +1,9 @@
 
+%% Initialize fitting parameters
+
 maxFrame=Inf; %%% CHECK FOR LAST USEFUL FRAME IN VIDEO
 
 cline_para.refIdx=10;
-
 cline_para.tipRegion=45;
 cline_para.endRepulsion=.3;
 cline_para.repulsionD=20;
@@ -21,262 +22,236 @@ cline_para.refSpring=.01;
 cline_para.stretch_ends_flag=1;
 cline_para.refL=6;
 cline_para.memForce=.005;
-close all
-gaussFilter=fspecial('gaussian',30,5);%fspecial('gaussian',10,75);
-gaussFilter2=fspecial('gaussian',50,15);%fspecial('gaussian',10,75);
-%%
+
+
+nCells=16;
+
+%% Select datafolder for analysis
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
 
-
-%% set up different kernals
-
-gaussKernal2=gausswin(200);
-gaussKernal2=convnfft(gaussKernal2,gaussKernal2');
-
-
-
-
-Sfilter=max(gaussKernal2(:))-gaussKernal2;
-
-
-
 %% load alignment data
-try
+alignmentLocation='Y:\CommunalCode\3dbrain\registration';
+backgroundLocation='Y:\CommunalCode\3dbrain\background';
+if exist([dataFolder filesep 'alignments'],'file'))
     %try to load the alignment file in the folder, otherwise, select them
     %individual in the registration folder
     alignments=load([dataFolder filesep 'alignments']);
-alignments=alignments.alignments;
-catch
-display('Select Low Res Alignment')
-
-lowResFluor2BF=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
-lowResFluor2BF=load(lowResFluor2BF{1});
-lowResBF2FluorT=invert(lowResFluor2BF.t_concord);
-
-display('Select Hi to Low Fluor Res Alignment')
-Hi2LowResF=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
-Hi2LowResF=load(Hi2LowResF{1});
-
- display('Select Hi Res Alignment')
-
-S2AHiRes=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\registration');
-S2AHiRes=load(S2AHiRes{1});
-rect1=S2AHiRes.rect1;
-rect2=S2AHiRes.rect2;
-%% if there's a background image, load it as well into alignments.
-display('select a background image for this size himag video');
-
-backgroundImage=uipickfiles('FilterSpec','Y:\CommunalCode\3dbrain\background');
-if iscell(backgroundImage)
-backgroundImage=load(backgroundImage{1});
-backgroundImage=backgroundImage.backgroundImage;
+    alignments=alignments.alignments;
 else
-    backgroundImage=0;
-end
-
-
-%% if you select them individually, bundle them and save it for later use
-alignments.lowResFluor2BF=lowResFluor2BF;
-alignments.S2AHiRes=S2AHiRes;
-alignments.Hi2LowResF=Hi2LowResF;
-alignments.background=backgroundImage;
-
-
-
-save([dataFolder filesep 'alignments'],'alignments');
-
+    %Select the alignment files in the order prompted
+    display('Select Low Res Alignment')
+    
+    lowResFluor2BF=uipickfiles('FilterSpec',alignmentLocation);
+    lowResFluor2BF=load(lowResFluor2BF{1});
+    lowResBF2FluorT=invert(lowResFluor2BF.t_concord);
+    
+    display('Select Hi to Low Fluor Res Alignment')
+    Hi2LowResF=uipickfiles('FilterSpec',alignmentLocation);
+    Hi2LowResF=load(Hi2LowResF{1});
+    
+    display('Select Hi Res Alignment')
+    
+    S2AHiRes=uipickfiles('FilterSpec',alignmentLocation);
+    S2AHiRes=load(S2AHiRes{1});
+    rect1=S2AHiRes.rect1;
+    rect2=S2AHiRes.rect2;'
+    
+    % if there's a background image, load it as well into alignments.
+    display('select a background image for this size himag video');
+    
+    backgroundImage=uipickfiles('FilterSpec',backgroundLocation);
+    if iscell(backgroundImage)
+        backgroundImage=load(backgroundImage{1});
+        backgroundImage=backgroundImage.backgroundImage;
+    else
+        backgroundImage=0;
+    end
+    
+    
+    %% if you select them individually, bundle them and save it for later use
+    alignments.lowResFluor2BF=lowResFluor2BF;
+    alignments.S2AHiRes=S2AHiRes;
+    alignments.Hi2LowResF=Hi2LowResF;
+    alignments.background=backgroundImage;
+    save([dataFolder filesep 'alignments'],'alignments');
+    
 end
 
 
 %% set up low magvideos
+%import textdata
+camdata=importdata([ dataFolder  filesep 'camData.txt']);
+%get timing of each frames
+time=camdata.data(:,2);
+%setup paths to movies
+fluormovie=[dataFolder filesep 'cam0.avi'];
+behaviormovie=[dataFolder filesep 'cam1.avi'];
+%get movie length
+nframes=length(camdata.data);
+%initialize video objects
+behavior_vidobj = VideoReader(behaviormovie);
+fluor_vidobj= VideoReader(fluormovie);
 
-camData=importdata([ dataFolder  filesep 'camData.txt']);
-time=camData.data(:,2);
-fluorMovie=[dataFolder filesep 'cam0.avi'];
-behaviorMovie=[dataFolder filesep 'cam1.avi'];
-NFrames=length(camData.data);
 
+%% initialize centerline points
 
-behaviorVidObj = VideoReader(behaviorMovie);
-fluorVidObj= VideoReader(fluorMovie);
+%cut up the entire video into nCells chunks and then initialize nCells+1
+%centerlines for fitting each chunk forwards and backwards.
 
-%% select centerlines
-
-%%
-close all
-
-bfList=1:NFrames;
-nCells=16;
-nFrames=length(bfList);
-nSteps=ceil(nFrames/nCells);
+nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
 bfCell_i=cell(nCells,1);
-for i=1:nCells+1
-    low=min((i-1)*nSteps+1,nFrames);
-    high=min(nSteps*i,nFrames);
-    bfFrameRaw = read(behaviorVidObj,bfList(low));
-    display(['Select Points for frame ' num2str(i) ' of ' num2str(nCells+1)]);
-    fig=imagesc(bfFrameRaw);
+clStartI=cell(nCells+1,1);
+for ichunk=1:nCells+1
+    %get bounds for each chunk
+    lowframe=min((ichunk-1)*nSteps+1,nframes);
+    hiframe=min(nSteps*ichunk,nframes);
+    %read the lower frame
+    BFFrameRaw = read(behavior_vidobj,lowframe);
+    %select centerline points
+    display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1)]);
+    fig=imagesc(BFFrameRaw);
     [xpts,ypts]=getpts();
-    CL=[xpts,ypts];
-    clStartI{i}=CL;
+    clStartI{ichunk}=[xpts,ypts];
     pause(.3)
-    if i<=nCells
-        bfCell_i{i}=bfList(low:high);
-        
+    
+    if ichunk<=nCells
+        bfCell_i{ichunk}=lowframe:hiframe;
     end
+    
 end
 close all
 
- %% preview centerlines
- close all
+%% preview centerlines
+close all
 for i=1:nCells+1
-    low=min((i-1)*nSteps+1,nFrames);
-    bfFrameRaw = read(behaviorVidObj,bfList(low));
-    imagesc(bfFrameRaw)
+    lowframe=min((i-1)*nSteps+1,nframes);
+    BFFrameRaw = read(behavior_vidobj,lowframe);
+    imagesc(BFFrameRaw)
     hold on
     plot(clStartI{i}(:,1),clStartI{i}(:,2));
     pause(.3)
-hold off
+    hold off
 end
 
 
 %% calculate backgrounds and projections
-
-bfSize=[behaviorVidObj.Height,behaviorVidObj.Width];
-refPointsx=meshgrid(1:20:1088);
-refPointsy=refPointsx';
-refPoints=sub2ind([1088,1088],refPointsx(:),refPointsy(:));
-refIntensity=nan(length(refPoints),NFrames);
-parfor_progress(NFrames);
-parfor iTime=1:NFrames;
-   % if ~any(fluorAll.flashLoc==iTime)
-   
-   behaviorVidObj = VideoReader(behaviorMovie);
-        bfFrame =read(behaviorVidObj,[iTime]);
-        refIntensity(:,iTime)=bfFrame(refPoints);
-        parfor_progress;
- %   end
+bf_imsize=[behavior_vidobj.Height,behavior_vidobj.Width];
+refpoints_x=meshgrid(1:20:bf_imsize(1));
+refpoints_y=refpoints_x';
+refpoints=sub2ind(bf_imsize,refpoints_x(:),refpoints_y(:));
+refintensity=nan(length(refpoints),nframes);
+parfor_progress(nframes);
+parfor itime=1:nframes;
+    % if ~any(fluorAll.flash_loc==itime)
+    behavior_vidobj_par = VideoReader(behaviormovie);
+    bf_frame =read(behavior_vidobj_par,itime);
+    refintensity(:,itime)=bf_frame(refpoints);
+    parfor_progress;
+    %   end
 end
 
-%%
-behaviorVidObj = VideoReader(behaviorMovie);
-refIntensityM=mean(refIntensity);
-refIntensityM=refIntensityM-mean(refIntensityM);
-newZ2=refIntensityM;
-flashLoc=newZ2>(4*std(newZ2));
-refIntensityM=refIntensityM-mean(refIntensityM(:,~flashLoc));
+%% find flash locations by looking at intensity of reference points 4sdev above mean
+refintensity_mean=mean(refintensity);
+refintensityZ_frames=zscore(refintensity_mean);
+flash_loc=refintensityZ_frames>4;
+flash_loc=find(flash_loc);
 
+%% do PCA on reference point intensities to classify background frames
+refintensity_mean=mean(refintensity(:,~flash_loc),2);
+refintensityZ=bsxfun(@minus, double(refintensity),refintensity_mean);
+refintensityZ(:,flash_loc)=nan;
+[coeff,score,latent,tsquared] = pca(refintensityZ');
 
-refIntensityMean=mean(refIntensity(:,~flashLoc),2);
-refIntensityZ=bsxfun(@minus, double(refIntensity),refIntensityMean);
-refIntensityZ(:,flashLoc)=nan;
-[coeff,score,latent,tsquared] = pca(refIntensityZ');
-flashLoc=find(flashLoc);
+frame_zscore=colNanFill(score(:,1));
+smoothkernal=gausswin(1000, 4);
+smoothkernal=smoothkernal/sum(smoothkernal);
+frame_zscore=frame_zscore-conv(frame_zscore,smoothkernal,'same');
+frame_zscore(flash_loc)=nan;
+boundaryI=quantile(frame_zscore,10);
+frame_zscore=sum(bsxfun(@le,frame_zscore,boundaryI),2);
+frame_zscore=frame_zscore+1;
+frame_bg_lvl=unique(frame_zscore);
+frame_bg_lvl=frame_bg_lvl(~isnan(frame_bg_lvl));
 
-
-%%
-bins=8;
-newZ2=colNanFill(score(:,1));
-gaussKernal=gausswin(1000, 4);
-gaussKernal=gaussKernal/sum(gaussKernal);
-newZ2=newZ2-conv(newZ2,gaussKernal,'same');
-newZ2(flashLoc)=nan;
-%newZ2=colNanFill(newZ2');
-%newZ2=smooth(newZ2,5);
-boundaryI=quantile(newZ2,10);
-newZ2=sum(bsxfun(@le,newZ2,boundaryI),2);
-newZ2=newZ2+1;
-zList=unique(newZ2);
-zList=zList(~isnan(zList));
-%% calculate multiple backgrounds for BF
+%% calculate multiple background lvls for BF
 %progressbar(0);
-medBfAll=nan(bfSize(1),bfSize(2),length(zList));
-meanBfAll=medBfAll;
-parfor_progress(NFrames);
+mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_lvl));
+parfor_progress(nframes);
 
-parfor iZ=1:length(zList);
-    timeList=find(newZ2==zList(iZ));
-    fluor=zeros(bfSize(1),bfSize(2));
-    behaviorVidObj = VideoReader(behaviorMovie);
-
-    for iTime=1:length(timeList);
-        currentTime=timeList(iTime);
-        bfFrame = read(behaviorVidObj,currentTime);
-        fluor=fluor+double(bfFrame(:,:,1));
+%parfor loop over different background levels and calculate the mean image.
+%
+parfor i_bg=1:length(frame_bg_lvl);
+    time_list=find(frame_zscore==frame_bg_lvl(i_bg));
+    fluor=zeros(bf_imsize);
+    behavior_vidobj_par = VideoReader(behaviormovie);
+    
+    %add up each frame in a certain level
+    for i_time=1:length(time_list);
+        currentTime=time_list(i_time);
+        bf_frame = read(behavior_vidobj_par,currentTime);
+        fluor=fluor+double(bf_frame(:,:,1));
         parfor_progress
     end
-    
-    %  medBfAll(:,:,iZ)=median(bfStack,3);
-    meanBfAll(:,:,iZ)=(fluor/length(timeList));
-    
-    
-    %  progressbar(iZ/max(newZ2));
-    
+    %calculate average. 
+    meanBfAll(:,:,i_bg)=(fluor/length(time_list));
 end
-    behaviorVidObj = VideoReader(behaviorMovie);
 
 %% calculate  background for fluor
 progressbar(0);
-fluorStack=0;
-skip=10;
+fluor_stack=0;
+skip=10; %don't need to do every frame, only do 1 every skip. 
 counter=0;
-for iTime=1:skip:NFrames;
-    progressbar(iTime/NFrames);
-    if ~any(flashLoc==iTime)
-        fluorFrame = read(fluorVidObj,iTime);
-        fluorStack=fluorStack+double(fluorFrame(:,:,1));
+for itime=1:skip:nframes;
+    progressbar(itime/nframes);
+    if ~any(flash_loc==itime)
+        fluor_frame = read(fluor_vidobj,itime);
+        fluor_stack=fluor_stack+double(fluor_frame(:,:,1));
         counter=counter+1;
     end
 end
 progressbar(1);
-
-%  medBfAll(:,:,iZ)=median(bfStack,3);
-fluorFrameProj=(fluorStack/counter);
-%%
-imagesc(fluorFrameProj);
+fluor_stack_proj=(fluor_stack/counter);
+%% pick a region around the head to cut out. 
+%cut out the head and reinperpolate in to get a background without the
+%brain
+imagesc(fluor_stack_proj);
 hold on
-headRect=roipoly();
-fluorBackground=fluorFrameProj;
-fluorBackground(headRect)=nan;
-fluorBackground=inpaint_nans(fluorBackground);
-imagesc(fluorBackground);
-%%
+head_rectangle=roipoly();
+f_background=fluor_stack_proj;
+f_background(head_rectangle)=nan;
+f_background=inpaint_nans(f_background);
+imagesc(f_background);
+%% pick a region around the head to cut out, now for behavior
+%cut out the head and reinperpolate in to get a background without the
+%brain
+imagesc(mean(mean_bf_all,3));
+head_rectangle=roipoly();
 
-imagesc(mean(meanBfAll,3));
-headRect=roipoly();
-meanBfAll2=meanBfAll;
-
-for iZ=1:size(meanBfAll,3);
+for iZ=1:size(mean_bf_all,3);
     
-    temp=meanBfAll2(:,:,iZ);
-    temp(headRect)=nan;
+    temp=mean_bf_all(:,:,iZ);
+    temp(head_rectangle)=nan;
     temp=inpaint_nans(temp);
-    meanBfAll2(:,:,iZ)=temp;
+    mean_bf_all(:,:,iZ)=temp;
 end
-meanBfBW=meanBfAll2>90; %flip signs in bright area 
-imagesc(mean(meanBfAll2,3));
-%% make filter background
-meanBfAllFilt=meanBfAll;
-for iZ=1:size(meanBfAll,3);
-    temp=meanBfAll2(:,:,iZ);
+meanBfBW=mean_bf_all>90; %flip signs in bright area
+imagesc(mean(mean_bf_all,3));
+%% make filter background, might not be used yet. 
+mean_bf_all_filtered=mean_bf_all;
+for iZ=1:size(mean_bf_all_filtered,3);
+    temp=mean_bf_all_filtered(:,:,iZ);
     temp=bpass(temp,1,40);
-    meanBfAllFilt(:,:,iZ)=temp;
+    mean_bf_all_filtered(:,:,iZ)=temp;
 end
 
-
-%% View background subtraction
-bfStack=[];
-CLall=zeros(100,2,NFrames);
 %%
-startFlag=1;
+% flip the bfcell and interleave so that each cell is repeated once 
+%forward, once back
 
-
-%bfCell_i=bfCell_i(1:end-1);
-%%
 bfCellRev=cellfun(@(x) fliplr(x), bfCell_i, 'uniform',0);
-bfCell=reshape([bfCell_i,bfCellRev]',1,[]);
-clStart=reshape([clStartI;circshift(clStartI,[0 -1])],1,[]);
+bf_list_cell=reshape([bfCell_i,bfCellRev]',1,[]);
+initial_cl=reshape([clStartI;circshift(clStartI,[0 -1])],1,[]);
 %%
 CLcell=cell(1,2*nCells);
 CL_I=CLcell;
