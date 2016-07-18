@@ -1,409 +1,405 @@
 function clusterWormTrackCompiler(filePath,fileOutput)
 
+% Run after all images have straightened and segmented, and all the track
+% matrices have been created. This program is built to run on della. It
+% takes all of the positional fingerprints (track matrices) and clusters
+% them. The input is the file path to the main folder, which has a folder
+% with all of the track matrices (from clusterWormTracker). It also
+% requires a pointsstats.mat file in the folder. The program has no output,
+% but ssaves a pointStats2.mat folder, which adds a trackIdx field to the
+% original pointStats.
 
+% get folder
 if nargin==1
     fileOutput=filePath;
 end
 display(filePath);
 display(fileOutput);
-imFolder=fileparts(filePath);
-if isempty(imFolder)
-    imFolder=pwd;
+dataFolder=fileparts(filePath);
+if isempty(dataFolder)
+    dataFolder=pwd;
 end
-%%
-dataFolder=(imFolder);
+
 display(['Parent Folder is ' dataFolder]);
 display([ 'PS file is ' filePath]);
 
 
 %%
 
-options.thresh1=0.05;
-options.minObjSize=50;
-options.filterSize=[10,10,4];
-    options.method='invdist';
-    options.radius=20;
-    options.power=1;
+%load all pointStats with, which has all trackMatrix data
+[~,pointStats]=compileTrackMatrix(dataFolder);
 
-param.dim=3;
-param.excessive=4;
- param.quiet=1;
- param.difficult=2.e4;
-windowSearch=5;
-
-%%
-[~,pointStats]=compileTrackMatrix(imFolder);
-% fill in wholes with error fits, will hopefully help with problems im
-% having
+% fill in indexing holes with error fits,
 for iPS=1:length(pointStats)
     if isempty(pointStats(iPS).stackIdx);
         pointStats(iPS).stackIdx=iPS;
     end
 end
 
- presentIdx=cellfun(@(x) ~isempty(x),{pointStats.TrackMatrixi},'uniform',0);
-presentIdx=find(cell2mat(presentIdx));
-N=max(presentIdx);
+%find which pointStats had tracking completed
+track_present=cellfun(@(x) ~isempty(x),{pointStats.TrackMatrixi},'uniform',0);
+N=find(cell2mat(track_present),1,'last');
 display([ 'Number of frames is ' num2str(N)]);
-presentIdx=1:length(pointStats);
+
+%only go up to last trackmatrix present
 pointStats=pointStats(1:N);
+presentIdx=1:length(pointStats);
 
 
 
 
 %% do matching of tracks by clustering similarities in matching matrices
-TrackMatrix={pointStats.TrackMatrixi};
-TrackMatrix=TrackMatrix(1:N);
+%build cell array of all track matrices
+TrackMatrix={pointStats(presentIdx).TrackMatrixi};
+%get number of neurons found in each volume
 nObjs=cell2mat(cellfun(@(x) size(x,1),TrackMatrix,'uniform',0)');
+
+%neurons will all be linearly indexed, so a number is added to each index
+%depending on the timepoint the neuron is found in.
 indexAdd=[0; cumsum(nObjs(1:N))]';
-
-
- 
-outRange=1:N;%max(1,i-windowSearch):min(length(TrackData),i+windowSearch);
-    subTrackMatrix=TrackMatrix(outRange);
-    transitionMatrixSize=cellfun(@(x) size(x,1),subTrackMatrix,'uniform',0);
-    transitionMatrixSize=sum(cell2mat(transitionMatrixSize));
-    
-    
-%transitionMatrixi=speye(transitionMatrixSize);
-%%
+%for the references this can be pre
 indexAdd2=0:100:100*N;
-for i=1:N%:length(TrackMatrix)-windowSearch
-    %%
-    %transitionMatrix=false(size(cell2mat(TrackMatrix(outRange2{1})),1));
-%take individual match matrix
-        TrackMatrixTemp=pointStats(i).TrackMatrixi;
-       % DMatrixTemp=pointStats(i).DMatrixi_x.^2+pointStats(i).DMatrixi_y.^2 ...
-        %+pointStats(i).DMatrixi_z.^2;
 
-        if size(TrackMatrixTemp,1)>10 && any(TrackMatrixTemp(:)) 
-TrackMatrixTemp=TrackMatrixTemp(:,:);
-          validPoints=TrackMatrixTemp(:)>0;
-       % [outRangeoverlap,ia, ib]=intersect(outRange2{j},outRange2{i});
-      startIdx=indexAdd(outRange(i));
+transitionMatrixSize=sum(cell2mat(nObjs));
+%% loop through all track matrices to build binary feature vectors
+%each track matrix has an n neurons by t time points vector with each
+%neuron having a number (match index) for each time. To build the binary
+%feature vector 
+for i=1:N
+    %%
+    %take individual match matrix and linearize all matches
+    TrackMatrixTemp=pointStats(i).TrackMatrixi;
+    transitionIdxX=cell(1,N);
+    transitionIdxY=cell(1,N);
+    
+    if size(TrackMatrixTemp,1)>10 && any(TrackMatrixTemp(:))
+        validPoints=TrackMatrixTemp(:)>0;
+        %add index offset for for reference time points
         TrackMatrixTemp=bsxfun(@plus,TrackMatrixTemp , indexAdd2(1:size(TrackMatrixTemp,2)));
-      startIdx=indexAdd(outRange(i));
+        %add indexing offset for sample
+        startIdx=indexAdd(presentIdx(i));
         startPos=startIdx+(1:size(TrackMatrixTemp,1));
         startPos=repmat(startPos,size(TrackMatrixTemp,2),1)';
+        %get indeces for binary feature vectors
         transitionIdxX{i}=startPos(validPoints);
         transitionIdxY{i}=TrackMatrixTemp(validPoints);
-       % transitionW{i}=DMatrixTemp(validPoints);
-%         transitionIdx=sub2ind([transitionMatrixSize,transitionMatrixSize],startPos(validPoints),TrackMatrixTemp(validPoints));
-%         transitionIdx=transitionIdx(~isnan(transitionIdx));
-%         transitionMatrixIdx{i}=transitionIdx;
-end 
+    end
 end
-%%
+%% 
+%convert results into matrices
 transitionIdxX=cell2mat(transitionIdxX');
 transitionIdxY=cell2mat(transitionIdxY');
 
+%build binary sparce matrix, referred to as a transition matrix
 nTransitions=length(transitionIdxY);
 transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
     transitionMatrixSize,max(indexAdd2),nTransitions);
 
+%collapse away empty columns
 transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
-    
-%% build training set on first 800 or so
-%    transitionMatrixi=double(transitionMatrixi);
-%  tic; tcorr3=corrcoef(transitionMatrixi');toc
-%      transitionMatrixi=or(transitionMatrixi,speye(size(transitionMatrixi)));
-%     transitionMatrixi=double(transitionMatrixi);
-%     
+
+%% build training set on first 800 time points
+%if this fails, continuously decrease the number of training time points
+%until it works. 
+
 %try loop to try to work around out of memory issues
 for iTry=0:5
     
+        nSelectRangeCell=[];
+        NTrainingRange=800-100*iTry;
+        NTrainingRange=min(NTrainingRange,N-1);
+        nTraining=min(NTrainingRange,N-1);
+        
+        display(['Attempting nTraining of ' num2str(nTraining)]);
+        nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
+        nSelectRangeCell=cell(1,length(nSelect)-1);
+        for i=1:length(nSelect)-1
+            nSelectRangeCell{i}=1+indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
+        end
+        nSelectAdd=cellfun(@(x) length(x), nSelectRangeCell);
+        nSelectRange=cell2mat(nSelectRangeCell);
+        
     try
-nSelectRangeCell=[];
-NTrainingRange=800-100*iTry;
-NTrainingRange=min(NTrainingRange,N-1);
-nTraining=min(NTrainingRange,N-1);
-display(['Attempting nTraining of ' num2str(nTraining)]);
-nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
-for i=1:length(nSelect)-1
-nSelectRangeCell{i}=1+indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
-end
-nSelectAdd=cellfun(@(x) length(x), nSelectRangeCell);
-nSelectRange=cell2mat(nSelectRangeCell);
-%% correlation and cluster, can take up to 10 minutes
-subTranstionMatrix=transitionMatrixi(nSelectRange,:);
-      tic; tcorr2=sparseTransitionCorr(subTranstionMatrix',[],1);toc
- %     tic; tcorr2=sparseTransitionCorr(subTranstionMatrix');toc
- % need to re symmetrize if we want eigen vectors, which we dont right now
- if 0
-tsize=size(tcorr2);
- [x,y,v]=find(tcorr2);
- 
-uTri=x>y;
-x=x(uTri);
-y=y(uTri);
-v=v(uTri);
+        
+        %% correlation and cluster, can take up to 10 minutes  
+        %make subset of transition matrix
+        subTranstionMatrix=transitionMatrixi(nSelectRange,:);
+        %calculate distance matrix as correlation distance using custom 
+        %code for sparce correlations.
+        tic;
+        tcorr2=sparseTransitionCorr(subTranstionMatrix',[],1);
+        display(['Distance calculated in ' num2str(toc) 's']);
 
-tcorr2=sparse([x; y], [y;x],[v;v],tsize(1),tsize(2));
-
- end
-% transitionMatrixi=normr(transitionMatrixi);
-% subTranstionMatrix=transitionMatrixi(nSelectRange,:);
-
-normTransitionMatrixi=bsxfun(@rdivide,transitionMatrixi,sqrt(sum(transitionMatrixi.^2,2)));
-normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
-     %% calculate eigenvalues, approximately 100 eigenvalues / minute
-     if 0
-    tic
-    opts.issym=1;
-    opts.isreal=1;
-    opts.disp=0;
-    opts.maxit=500;
-    
-    opts.v0=(tcorr2(:,1));
-    [V,D,flag]=eigs(tcorr2,800,'la',opts);flag
-    toc     
-    D=sum(D,1);
-    Dplot=cumsum(D)';
-    dD=gradient(Dplot,5);
-    ddD=gradient(dD,5);
-    KD=abs(ddD)./(1+dD.^2).^(3/2);
-     end
-%% 
-%tcorr2=full(tcorr2);
-   % tcorr2=tcorr2.*~speye(size(tcorr2));
-    
-   %tcorr2(speye(size(tcorr2))>0)=0;
-   tic
-   tcorr2_lin=tcorr2(tril(true(length(tcorr2)),-1));
-  % tcorr2_lin=tcorr2_lin(:);
-   toc;
-   %tcorr2=squareform(tcorr2)
-    %% cluster
-       Z=linkage(1-tcorr2_lin','complete');
-
-    c=cluster(Z,'cutoff',.9,'criterion','distance'); %normally .9999
-    cInitial=c;
-    display(['Success with nTraining of ' num2str(nTraining)]);
-    break
+        normTransitionMatrixi=bsxfun(@rdivide,transitionMatrixi,sqrt(sum(transitionMatrixi.^2,2)));
+        normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
+   
+        %get lower triangular section of the matrix for using clustering
+        tcorr2_lin=tcorr2(tril(true(length(tcorr2)),-1));
+        
+        %% cluster
+        %find clusters with a cutoff distance .9
+        Z=linkage(1-tcorr2_lin','complete');
+        %clusters_initial is a linear list for each neuron in the subtransition matrix
+        %with a number indicating which cluster that neuron belongs to
+        clusters_initial=cluster(Z,'cutoff',.9,'criterion','distance'); 
+        
+        %if clusters successfully calculated, exit loop. 
+        display(['Success with nTraining of ' num2str(nTraining)]);
+        break
     catch me
-       display(['Failed with nTraining of ' num2str(nTraining)]);
+        display(['Failed with nTraining of ' num2str(nTraining)]);
         me
     end
     
 end
-    
-    %% raname clusters based on size 
-    caccum=accumarray(c,ones(size(c))); %how many in each cluster    
-%    c(ismember(c,caccumN))=1;
-%the rank of each cluster, giving things a new index based on rank rather than cluster group
-[~,iaAccum]=sort(caccum,'descend'); 
-    [~,iaAccum]=sort(iaAccum);
-    [cUnique,~,ib]=unique(c); % ib is posotion of unique terms)
-    cUnique=iaAccum(cUnique);
-%     [~,ic]=sort(ia);
-%     [~, id]=sort(ic);
-    c2=cUnique(ib);
-    
-    
 
-  %%  correction factor, optional, add groups that are cloes but were not clustered
-    subTcorr=[];subTcorr2=[];
-    uniqueIDs=unique(c2(~isnan(c2)));
-    uniqueIDs(uniqueIDs==0)=[];
-% average correlations matrices from each subgoup
-    for i=1:length(uniqueIDs)
-       subTcorr(:,uniqueIDs(i))=mean(tcorr2(:,c2==uniqueIDs(i)),2);
-    end
-    
-        for i=1:length(uniqueIDs)
-       subTcorr2(uniqueIDs(i),:)=mean(subTcorr(c2==uniqueIDs(i),:),1);
-        end
-        inGroup=subTcorr2(eye(size(subTcorr2,1))>0);
-      regroupCutoff=max(mean(inGroup)-std(inGroup)*2,.25);
+%% remove nans and zeros
+cluster_items=unique(clusters_initial(~isnan(clusters_initial)));
+cluster_items(cluster_items==0)=[];
+n_clusters=max(cluster_items);
 
-        [x,y,v]=find(subTcorr2.*((triu(subTcorr2,1)>regroupCutoff)));
-        [v,ia]=sort(v,'descend');
-        x=x(ia);
-        y=y(ia);
-        %%
-        newSumx=zeros(size(x));
-        newSumy=newSumx;
-        for i=1:length(x)
-        newSumx(i)=sum(c2==x(i));
-        newSumy(i)=sum(c2==y(i));
-        newSum=newSumx(i)+newSumy(i);
-        %[newSumx,newSumy,newSum,nTraining]
-        if newSum<nTraining*1.2
-      %      display(['adding ' num2str(newSum)])
-        c2(c2==x(i))=y(i);
-        else
-            checkx=find(c2==x(i));
-            checky=find(c2==y(i));
-            check_set=[checkx;checky];
-            checkCorr=tcorr2(check_set,check_set);
-            checkCorr=checkCorr(tril(true(newSum),-1));
-            Ztest=linkage(1-full(checkCorr)','complete');
-            recluster=cluster(Ztest,'maxclust',2);
-            if max(accumarray(recluster,ones(1,newSum)))<nTraining*1.2
-            c2(check_set(recluster==1))=x(i);
-            c2(check_set(recluster==2))=y(i);
-            end
-            
-            
-        end
-        end
+%%  correction factor, add groups that are close but were not clustered
 
-        %% order clusters, remove bad ones. 
-                  c2=c2+1;
+%build a new distance matrix with distance between formed clusters. 
+subTcorr=zeros(length(tcorr2),n_clusters);
+subTcorr2=zeros(n_clusters);
+% average correlations matrices from each subgoup in each of the two
+% directions
+for i=1:n_clusters
+    i_cluster=cluster_items(i);
+    subTcorr(:,i_cluster)=mean(tcorr2(:,clusters_initial==i_cluster),2);
+end
 
-                caccum=hist(c2,1:max(c2)); %how many in each cluster
+for i=1:n_clusters
+    i_cluster=cluster_items(i);
+    subTcorr2(i_cluster,:)=mean(subTcorr(clusters_initial==i_cluster,:),1);
+end
+%get value dy the diagnol, use it as distribution to determine whether off
+%diagnol terms are significant.
+inGroup=subTcorr2(eye(n_clusters)>0);
+%make a cutoff to determine if diagnol terms should be significant. 
+regroupCutoff=max(mean(inGroup)-std(inGroup)*2,.25);
 
-                % remove clusteres smaller than 40% of training, or larger
-                % than 120%
-    caccumN=find(caccum<nTraining*.4|caccum>nTraining*1.2); %bad clusters
-    
-    c2(ismember(c2,caccumN))=1;
-    c2(isnan(c2))=1;
-    %% again, raname based on size
-    caccum=accumarray(c2,ones(size(c))); %how many in each cluster
+%find clusters matched above cutoff
+[x,y,v]=find(subTcorr2.*((triu(subTcorr2,1)>regroupCutoff)));
+[~,ia]=sort(v,'descend');
+x=x(ia);
+y=y(ia);
+%% recombine clusters that are determined to have been matched together. 
 
-                [~,iaAccum]=sort(caccum,'descend'); %the rank of each cluster
-    [~,iaAccum]=sort(iaAccum);
-    
-    [cUnique,ia,ib]=unique(c2); % ib is posotion of unique terms)
-    cUnique=iaAccum(cUnique);
-    
-           c2=cUnique(ib);
-  c2(c2==1)=nan;
-  c2=c2-1;
-     %% calculate co-cluster correlation and in cluster average
-       %%  correction factor, optional, add groups that are cloes but were not clustered
-    subTcorr=[];subTcorr2=[];
-    uniqueIDs=unique(c2(~isnan(c2)));
-    uniqueIDs(uniqueIDs==0)=[];
-% average correlations matrices from each subgoup
-    for i=1:length(uniqueIDs)
-       subTcorr(:,uniqueIDs(i))=mean(tcorr2(:,c2==uniqueIDs(i)),2);
-    end
-    
-        for i=1:length(uniqueIDs)
-       subTcorr2(uniqueIDs(i),:)=mean(subTcorr(c2==uniqueIDs(i),:),1);
+for i=1:length(x)
+    % get the neurontimes that belong into the clusters to be merged
+    newSumx=sum(clusters_initial==x(i));
+    newSumy=sum(clusters_initial==y(i));
+    %the new number in that cluster is the sum of the two old clusters
+    newSum=newSumx+newSumy;
+    %if the sum of the two clusters is not more than the number of training
+    %times x 1.2, just straight merge them
+    if newSum<nTraining*1.2
+        clusters_initial(clusters_initial==x(i))=y(i);
+    else
+        %if they are larger combine the two clusters and recluster them so
+        %that the number of objects is less then 1.2xnTraining. 
+        checkx=find(clusters_initial==x(i));
+        checky=find(clusters_initial==y(i));
+        check_set=[checkx;checky];
+        %make distance matrix for subset
+        checkCorr=tcorr2(check_set,check_set);
+        checkCorr=checkCorr(tril(true(newSum),-1));
+        %make clusters
+        Ztest=linkage(1-full(checkCorr)','complete');
+        recluster=cluster(Ztest,'maxclust',2);
+        if max(accumarray(recluster,ones(1,newSum)))<nTraining*1.2
+            clusters_initial(check_set(recluster==1))=x(i);
+            clusters_initial(check_set(recluster==2))=y(i);
         end
         
-        %%
-
-ccell=mat2cell(c2,nSelectAdd);
-    neuronsinFrame=cell2mat(cellfun(@(x) sum(~isnan(x)),ccell,'uniform',0));
-    
-   %% try to plot the clusters
-    assignedNodes1=find(~isnan(c2));
-    c3=c2(~isnan(c2));
-    [~,ia]=sort(c3);
-    assignedNodes=assignedNodes1(ia);
-
-    %%
-    uniqueIDs=unique(c2(~isnan(c2)));
-    uniqueIDs(uniqueIDs==0)=[];
-    nNeurons=max(uniqueIDs);
-      masterVec=[];
-      masterVecVar=[];
-      % find "basis" by averaging over a cluster. 
-    for i=1:length(uniqueIDs)
-       masterVec(:,uniqueIDs(i))=mean(subTranstionMatrix(c2==uniqueIDs(i),:),1);
-       totalVec(:,uniqueIDs(i))=sum(subTranstionMatrix(c2==uniqueIDs(i),:),1);
-       masterVecVar(:,uniqueIDs(i))=std(subTranstionMatrix(c2==uniqueIDs(i),:),[],1);
-       
+        
     end
-    masterVec=bsxfun(@minus,masterVec,mean(masterVec,1));
-    
-    c3=c2(~isnan(c2));
-    caccum=accumarray(c3,ones(size(c3))); %how many in each cluster
-    masterVecVar(masterVecVar<.1)=.1;
-    masterWeights=1./masterVecVar;
-    masterVec=sparse(masterVec);
-   % masterVecVar=sparese(masterVecVar);
+end
 
-    masterVec=normc(masterVec.*masterWeights);
-    input=subTranstionMatrix;
-    input=bsxfun(@rdivide,input,sqrt(sum(input.^2,2)));
-    input(isnan(input))=0;
-    size(input)
-        size(masterVec)
+%% order clusters, remove bad ones.
+%add one to clusters, anything equal to one will be removed
+clusters_initial=clusters_initial+1;
+ %how many in each cluster
+caccum=hist(clusters_initial,1:max(clusters_initial));
+% remove clusteres smaller than 40% of training, or larger
+% than 120%
+caccumN=find(caccum<nTraining*.4|caccum>nTraining*1.2); %bad clusters
 
-    %masterVec(masterVec<0)=5*masterVec(masterVec<0);
+% set bad clusters and nans to one for later removal. 
+clusters_initial(ismember(clusters_initial,caccumN))=1;
+clusters_initial(isnan(clusters_initial))=1;
+%%  raname based on size of cluster, so cluster 1 will be largest
+caccum=accumarray(clusters_initial,ones(size(clusters_initial))); 
+
+[~,iaAccum]=sort(caccum,'descend'); %the rank of each cluster
+[~,iaAccum]=sort(iaAccum);
+
+[cluster_items,ia,ib]=unique(clusters_initial); % ib is posotion of unique terms)
+cluster_items=iaAccum(cluster_items);
+
+c2=cluster_items(ib);
+c2(c2==1)=nan;
+c2=c2-1;
+
+%%  make new distance matrix between clusters for saving, 
+%not currently used elsewhere
+cluster_items=unique(c2(~isnan(c2)));
+cluster_items(cluster_items==0)=[];
+n_clusters=max(cluster_items);
+
+subTcorr=zeros(length(tcorr2),n_clusters);
+subTcorr2=zeros(n_clusters);
+% average correlations matrices from each subgoup
+for i=1:n_clusters
+    i_cluster=cluster_items(i);
+    subTcorr(:,i_cluster)=mean(tcorr2(:,c2==i_cluster),2);
+end
+
+for i=1:n_clusters
+    i_cluster=cluster_items(i);
+    subTcorr2(i_cluster,:)=mean(subTcorr(c2==i_cluster,:),1);
+end
+
+%% try to plot the clusters
+assignedNodes1=find(~isnan(c2));
+c3=c2(~isnan(c2));
+[~,ia]=sort(c3);
+assignedNodes=assignedNodes1(ia);
+
+%% find "basis" by averaging over a cluster.
+
+masterVec=[];
+masterVecVar=[];
+% 
+for i=1:n_clusters
+    %loop over clusters get average, sum and std of the trainingset
+    %transition matrix for the items in a cluster
+    i_cluster=cluster_items(i);
+    masterVec(:,i_cluster)=mean(subTranstionMatrix(c2==i_cluster,:),1);
+    totalVec(:,i_cluster)=sum(subTranstionMatrix(c2==i_cluster,:),1);
+    masterVecVar(:,i_cluster)=std(subTranstionMatrix(c2==i_cluster,:),[],1);
     
+end
+%subtract off mean to get mean subtracted means of the trainingset
+%transition matrix
+masterVec=bsxfun(@minus,masterVec,mean(masterVec,1));
+%make a minimum value for the std
+masterVecVar(masterVecVar<.1)=.1;
+%use 1/std as the weighting for each vector
+masterWeights=1./masterVecVar;
+masterVec=sparse(masterVec);
+
+%apply the weightings to the mastervectors
+masterVec=normc(masterVec.*masterWeights);
+
+
+
+%% project training set data onto master vectors for each cluster
+input=subTranstionMatrix;
+input=bsxfun(@rdivide,input,sqrt(sum(input.^2,2)));
+input(isnan(input))=0;
+
+%project training data onto masters, aTests is a n training neurons by m
+%clusters, with the match score of each cluster in the rows. 
 aTest=masterVec'*input';
-%aTest(aTest<0)=0;
+
+
+
+
+%% 
+%compare the distribution of values in the projection that are expected to
+%be  hits and the ones expected not to be. Find the cutoff which makes us
+%80% sure that a hit should be a hit. 
+
+
+%make list of indices that should be theoretically 
 hitIdx=sub2ind(size(aTest),c3(ia),assignedNodes);
-hitmap=false(size(aTest));
+%turn that list onto a logical matrix, where each training neuron has 1
+%for the cluster it belongs to and 0 everywhere else. 
+hitMap=false(size(aTest));
 hitMap(hitIdx)=true;
+% get the actual values of the projections at the locations we expect 1
 hitValues=aTest(hitMap);
+% and get the other values to compare
 notHitValues=aTest(~hitMap);
+
+%compare distributions to find cutoff
 histX=0:.02:1;
+%histogram two distributions
 nHit=hist(hitValues,histX);
 nMiss=hist(notHitValues,histX);
+%find probability that a value is a hit
 gamma=nHit./(nHit+nMiss);
+%cutoff is where p(hit) is greater than 20%. 
 hitCutoff=histX(find(gamma>.2,1,'first'));
-%hitCutoff=quantile(hitValues,.01);
 
 %% project data onto clustered components and detect values larger than threshold
 matchProjectionsRaw=masterVec'*normTransitionMatrixi';
-% %%
-% acorrTest=aTest*aTest';
-% [V,D]=eig(full(acorrTest));
-% aTestV=V'*aTest;
-% %%
 matchProjections=matchProjectionsRaw.*(matchProjectionsRaw>hitCutoff);
-%normMatchProjections=bsxfun(@rdivide, matchProjections,sum(matchProjections));
-%normMatchProjections(isnan(normMatchProjections))=0;
 
 aMax = max(matchProjections);
+%if there is no hit, set the max high, the projection will never equal it
 aMax(aMax==0)=10;
+%find where the best match occurs
 matchBool=bsxfun(@eq, matchProjections,aMax);
 matchBool=matchProjections.*matchBool;
 [c4,c4x,c4w]=find(matchBool);
+
+% make sparse linear matrix with all matches, c4 has the clustered index 
+% for each neuron 
 c4=sparse(c4x,ones(size(c4x)),c4,max(indexAdd),1);
 c4=full(c4);
 c4(c4==0)=nan;
-ccell=mat2cell(c4,diff(indexAdd));
-ccellProj=sparse(c4x,ones(size(c4x)),matchProjections(matchBool>0),max(indexAdd),1);
 
+%turn all cluster assignments into cell
+ccell=mat2cell(c4,diff(indexAdd));
+%turn all cluster weights (value of projection onto that cluster master
+%vec) into cell
+ccellProj=sparse(c4x,ones(size(c4x)),matchProjections(matchBool>0),max(indexAdd),1);
 ccellProj=mat2cell(full(ccellProj),diff(indexAdd));
-matchProjectionsCell=mat2cell(full(matchProjectionsRaw),nNeurons,diff(indexAdd));
+matchProjectionsCell=mat2cell(full(matchProjectionsRaw),n_clusters,diff(indexAdd));
 
 
 %% clear doubles
+%find if there are time points with doubles
 ccellDoubles=cellfun(@(x) check4doubles(x),ccell,'uniform',0);
 frames2check=find(cellfun(@(x) ~isempty(x),ccellDoubles));
 
+%loop over all frames with doubles
 for iCheck=(frames2check)'
+    %get the indices which appear twice
     ccellTemp=ccell{iCheck};
     doubleTerm=ccellDoubles{iCheck};
+    %also get the weights for each of them, 
     weights=ccellProj{iCheck};
+    %loop over all doubles in that frame
     for iiCheck=doubleTerm'
+        % get the neurons that were assigned to the same index
         doubleSearch=find(ccellTemp==iiCheck);
+        % get the weights for each of them
         w=weights(doubleSearch);
+        % remove the one with the smaller projection. 
         idx2Remove=doubleSearch(w~=max(w));
         ccellTemp(idx2Remove)=nan;
+        % also set that weight to zero
         weights(idx2Remove)=0;
     end
+    %repopulate the cells
     ccell{iCheck}=ccellTemp;
     ccellProj{iCheck}=weights;
 end
 
-%     masterVec=sparse(masterVec);
-%     masterVec=bsxfun(@rdivide,masterVec,sum(masterVec));
-%     input=bsxfun(@rdivide,subTranstionMatrix,sum(subTranstionMatrix,2));
-    
-    
+
 %% add new identities into track matrix, kill off unidentified cell
 
 pointStats2=pointStats;
-
 for i=1:length(ccell)
-    
-   pointStats2(presentIdx(i)).trackIdx=ccell{i};
-   pointStats2(presentIdx(i)).trackWeights=ccellProj{i};
-    
-    
+    pointStats2(presentIdx(i)).trackIdx=ccell{i};
+    pointStats2(presentIdx(i)).trackWeights=ccellProj{i};
 end
-pointStats=pointStats2;
-%% YOU SHOULD SAVE HERE %%
+%% SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save([fileOutput],'pointStats2');
 save(fileOutput_stats,'masterVec','matchProjectionsCell','cInitial','c2','caccum','subTcorr2')
