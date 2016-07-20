@@ -270,8 +270,9 @@ assignedNodes=assignedNodes1(ia);
 
 %% find "basis" by averaging over a cluster.
 
-masterVec=[];
-masterVecVar=[];
+masterVec=zeros(length(subTranstionMatrix),n_clusters);
+totalVec=zeros(length(subTranstionMatrix),n_clusters);
+masterVecVar=zeros(length(subTranstionMatrix),n_clusters);
 % 
 for i=1:n_clusters
     %loop over clusters get average, sum and std of the trainingset
