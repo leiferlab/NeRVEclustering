@@ -1,10 +1,7 @@
 
 function clusterStraightenStart(dataFolder)
-
-
-counter=300; %which volume to do
-
-
+%which volume to do for initial
+counter=300; 
 %% bundle timing data
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
 vidInfo.bfAll=bfAll;
@@ -17,7 +14,7 @@ fluor_ft=fluorAll.frameTime;
 hi_ft=hiResData.frameTime;
 
 bfIdxList=1:length(bfAll.frameTime);
-fluorIdxList=1:length(hi_ft);
+fluorIdxList=1:length(fluor_ft);
 bfIdxLookup=interp1(bf_ft,bfIdxList,hi_ft,'linear','extrap');
 fluorIdxLookup=interp1(fluor_ft,fluorIdxList,hi_ft,'linear','extrap');
 stack2BFidx=bfIdxLookup(diff(hiResData.stackIdx)==1);
@@ -42,8 +39,11 @@ alignments=alignments.alignments;
 %% calculate offset between frame position and zposition
 zWave=hiResData.Z;
 zWave=gradient(zWave);
-zWave=smooth(zWave,10);
-[ZSTDcorrplot,lags]=(crosscorr(abs(zWave),hiResData.imSTD,40));
+zWave=smooth(zWave,100);
+image_std=hiResData.imSTD;
+image_std=image_std-mean(image_std);
+image_std(image_std>100)=0;
+[ZSTDcorrplot,lags]=(crosscorr(abs(zWave),image_std,40));
 ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 
@@ -56,12 +56,10 @@ mkdir(imageFolder2);
 
 tic
 %Run straighten and segmentation on one volume
-[~,~,Vtemplate,side,~,~]=...
-    WormCLStraighten_10(dataFolder,destination,vidInfo,...
-    alignments,[],[],zOffset,test_frame,'left',[],0);
+[~,~,Vtemplate,side,~,~]=WormCLStraighten_11(...
+    dataFolder,destination,vidInfo,alignments,[],zOffset,test_frame,'left',0); 
+        
 %we need these of the outputs to save for the cluster straightening
-
-% fields in the pointstats file that will be used
 
 display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
 %save initial workspace from first sample for later use

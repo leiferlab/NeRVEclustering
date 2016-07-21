@@ -13,14 +13,15 @@ zOffset=straightenData.zOffset;
 side=straightenData.side;
 vidInfo=straightenData.vidInfo;
 
+%% make output folders
+display(dataFolder)
+imageFolder2=[dataFolder filesep destination];
+
 %% load alignments
 alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
 
-
-display(dataFolder)
-imageFolder2=[dataFolder filesep destination];
-
+%% loop through range of stacks to do straightening
 for iStack=nStart:(nStart+nRange-1)
     %set up image and pointstats names
     fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
@@ -28,6 +29,7 @@ for iStack=nStart:(nStart+nRange-1)
     % does not overwrite if both files are present
     if ~exist(fileName2,'file') && ~exist(fileName3,'file')
         tic
+        % do straightening for this istack
         WormCLStraighten_11(dataFolder,destination,vidInfo,...
             alignments,Vtemplate,zOffset,iStack,side,0); 
         display(['image' num2str(iStack,'%3.5d') 'completed in ' num2str(toc) 's']);

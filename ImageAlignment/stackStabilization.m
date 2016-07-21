@@ -1,5 +1,12 @@
 function [Vout, tformOut]=stackStabilization(V,searchRad,show,outputFlag)
-% stackStabilization goes through a 3D image and aligns the points to the
+% stackStabilization goes through a 3D image and aligns the points between
+% consecutive frames. It starts at the middle frame and moves outward,
+% finding peaks in each frame. It matches the peaks to the previous frame
+% and calculates the affine transformation between the frames. It then
+% accumulates the affine transforms from the middle so that a single
+% transform can be applied to each slice
+
+
 if nargin<4
     outputFlag=true;
 end
@@ -14,8 +21,10 @@ if show
     outputFlag=1;
 end
    
+%
 thresh=.01;
 sliceLag=1;
+V=normalizeRange(V);
 imSize=size(V);
 param.dim=2;
 param.excessive=4;
@@ -56,8 +65,6 @@ for iHalf=1:2
             pointsHistory{iSlice}=pointsB;
             
         if iSlice>sliceLag
-%             imgARaw=(Vtemp(:,:,iSlice-sliceLag))/maxI;
-%             imgA=imgARaw;
             imgA= VsmoothHistory(:,:,iSlice-sliceLag);
             imgA=(imgA);
             imgA(imgA<thresh)=0;
@@ -68,32 +75,11 @@ for iHalf=1:2
         end
         else
             imgA=0;
-            
             imgB=0;
         end
         
         if  nnz(imgB) && nnz(imgA) && iSlice>sliceLag
-            %%
-            
-            
-            
-            % pointsA = detectFASTFeatures(imgA, 'MinContrast', ptThresh);
-            % pointsB = detectFASTFeatures(imgB, 'MinContrast', ptThresh);
 
-            % if show
-            %     %%
-            % subplot(1,2,1); imagesc(imgA); hold on;
-            % scatter(pointsA(:,1),pointsA(:,2));
-            % title('Corners in A');
-            % hold off
-            %
-            %
-            % subplot(1,2,2); imagesc(imgB); hold on;
-            % scatter(pointsB(:,1),pointsB(:,2));
-            % title('Corners in B');
-            % hold off
-            % pause(.2)
-            % end
             trackInput=[pointsA  ones(size(pointsA(:,1))); ...
                 pointsB 2*ones(size(pointsB(:,1)))];
             
