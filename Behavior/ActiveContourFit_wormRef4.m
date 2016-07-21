@@ -270,10 +270,11 @@ for i=1:cline_para.iterations;
     %% memory force pushes the centerline towards the initial centerline.
     f_memory=-xyzs+cline_initial;
     %scale that force by the worm intensity. 
-    f_memory=bsxfun(@times, f_memory, Is_initial./mean(Is_initial));
-    f_memory=f_memory*cline_para.memForce;
-    fs=fs+f_memory;
-
+    if any(Is_initial) %normalization breaks if all Is_initial is zero
+        f_memory=bsxfun(@times, f_memory, Is_initial./mean(Is_initial));
+        f_memory=f_memory*cline_para.memForce;
+        fs=fs+f_memory;
+    end
     %% plot some results if show is on
     
     if cline_para.showFlag && ~mod(i,cline_para.showFlag)

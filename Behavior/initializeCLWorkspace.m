@@ -26,6 +26,9 @@ cline_para.memForce=.005;
 
 nCells=16;
 
+smoothkernal=gausswin(1000, 4);
+smoothkernal=smoothkernal/sum(smoothkernal);
+
 %% Select datafolder for analysis
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
@@ -33,10 +36,10 @@ dataFolder=dataFolder{1};
 %% load alignment data
 alignmentLocation='Y:\CommunalCode\3dbrain\registration';
 backgroundLocation='Y:\CommunalCode\3dbrain\background';
-if exist([dataFolder filesep 'alignments'],'file'))
+if exist([dataFolder filesep 'alignments.mat'],'file')
     %try to load the alignment file in the folder, otherwise, select them
     %individual in the registration folder
-    alignments=load([dataFolder filesep 'alignments']);
+    alignments=load([dataFolder filesep 'alignments.mat']);
     alignments=alignments.alignments;
 else
     %Select the alignment files in the order prompted
@@ -55,7 +58,7 @@ else
     S2AHiRes=uipickfiles('FilterSpec',alignmentLocation);
     S2AHiRes=load(S2AHiRes{1});
     rect1=S2AHiRes.rect1;
-    rect2=S2AHiRes.rect2;'
+    rect2=S2AHiRes.rect2;
     
     % if there's a background image, load it as well into alignments.
     display('select a background image for this size himag video');
@@ -102,6 +105,9 @@ fluor_vidobj= VideoReader(fluormovie);
 nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
 bfCell_i=cell(nCells,1);
 clStartI=cell(nCells+1,1);
+display(['Click the points of the centerline starting at the head. When '
+        'you are done, double click the last point.']);
+
 for ichunk=1:nCells+1
     %get bounds for each chunk
     lowframe=min((ichunk-1)*nSteps+1,nframes);
@@ -155,34 +161,40 @@ end
 refintensity_mean=mean(refintensity);
 refintensityZ_frames=zscore(refintensity_mean);
 flash_loc=refintensityZ_frames>4;
-flash_loc=find(flash_loc);
+flash_loc_idx=find(flash_loc);
 
 %% do PCA on reference point intensities to classify background frames
-refintensity_mean=mean(refintensity(:,~flash_loc),2);
+%get z scores
+refintensity_mean=nanmean(refintensity(:,~flash_loc),2);
 refintensityZ=bsxfun(@minus, double(refintensity),refintensity_mean);
 refintensityZ(:,flash_loc)=nan;
+%do PCA
 [coeff,score,latent,tsquared] = pca(refintensityZ');
 
+%get projection onto first PC for all frames
 frame_zscore=colNanFill(score(:,1));
-smoothkernal=gausswin(1000, 4);
-smoothkernal=smoothkernal/sum(smoothkernal);
+
+%filter scores
 frame_zscore=frame_zscore-conv(frame_zscore,smoothkernal,'same');
+%remove flashes
 frame_zscore(flash_loc)=nan;
+
+%get the quantil each frame falls in, 
 boundaryI=quantile(frame_zscore,10);
-frame_zscore=sum(bsxfun(@le,frame_zscore,boundaryI),2);
-frame_zscore=frame_zscore+1;
-frame_bg_lvl=unique(frame_zscore);
-frame_bg_lvl=frame_bg_lvl(~isnan(frame_bg_lvl));
+frame_bg_lvl=sum(bsxfun(@le,frame_zscore,boundaryI),2);
+frame_bg_lvl=frame_bg_lvl+1;
+frame_bg_list=unique(frame_zscore);
+frame_bg_list=frame_bg_list(~isnan(frame_bg_list));
 
 %% calculate multiple background lvls for BF
 %progressbar(0);
-mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_lvl));
+mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_list));
 parfor_progress(nframes);
 
 %parfor loop over different background levels and calculate the mean image.
 %
-parfor i_bg=1:length(frame_bg_lvl);
-    time_list=find(frame_zscore==frame_bg_lvl(i_bg));
+parfor i_bg=1:length(frame_bg_list);
+    time_list=find(frame_zscore==frame_bg_list(i_bg));
     fluor=zeros(bf_imsize);
     behavior_vidobj_par = VideoReader(behaviormovie);
     
@@ -194,7 +206,7 @@ parfor i_bg=1:length(frame_bg_lvl);
         parfor_progress
     end
     %calculate average. 
-    meanBfAll(:,:,i_bg)=(fluor/length(time_list));
+    mean_bf_all(:,:,i_bg)=(fluor/length(time_list));
 end
 
 %% calculate  background for fluor
@@ -204,7 +216,7 @@ skip=10; %don't need to do every frame, only do 1 every skip.
 counter=0;
 for itime=1:skip:nframes;
     progressbar(itime/nframes);
-    if ~any(flash_loc==itime)
+    if ~any(flash_loc_idx==itime)
         fluor_frame = read(fluor_vidobj,itime);
         fluor_stack=fluor_stack+double(fluor_frame(:,:,1));
         counter=counter+1;
@@ -215,6 +227,8 @@ fluor_stack_proj=(fluor_stack/counter);
 %% pick a region around the head to cut out. 
 %cut out the head and reinperpolate in to get a background without the
 %brain
+display('Select an ROI around the bright brain region')
+
 imagesc(fluor_stack_proj);
 hold on
 head_rectangle=roipoly();
@@ -225,6 +239,7 @@ imagesc(f_background);
 %% pick a region around the head to cut out, now for behavior
 %cut out the head and reinperpolate in to get a background without the
 %brain
+display('Select an ROI around the bright brain region')
 imagesc(mean(mean_bf_all,3));
 head_rectangle=roipoly();
 
@@ -255,4 +270,13 @@ initial_cl=reshape([clStartI;circshift(clStartI,[0 -1])],1,[]);
 %%
 CLcell=cell(1,2*nCells);
 CL_I=CLcell;
-save([dataFolder filesep 'CLworkspace']);
+save([dataFolder filesep 'CLworkspace'],...
+    'bf_list_cell',...
+    'mean_bf_all',...
+    'f_background',...
+    'initial_cl',...
+    'flash_loc_idx',...
+    'frame_bg_lvl',...
+    'cline_para');
+
+

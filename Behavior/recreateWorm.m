@@ -1,6 +1,6 @@
 function centerline_out=recreateWorm(varargin)
 % recreate Worm takes wormcentered data several coordinates of point
-% indices in order to recreate the shape of the worm. 
+% indices in order to recreate the shape of the worm.
 
 %%% centerline_out=recreateWorm(wc,ref_index,ref_point,ref_angle,worm_length)
 %%% wc : worm centered coordinates
@@ -15,50 +15,54 @@ function centerline_out=recreateWorm(varargin)
 %%% them)
 %%% ref_index : index of point being used as the refence (2 of them)
 
+%get inputs
 wc=varargin{1};
 ref_point=varargin{3};
 ref_index=varargin{2};
 
 if nargin==5
     ref_angle=varargin{4};
-worm_length=varargin{end};
-
-angleOffset=ref_angle-wc(ref_index);
-wc2=wc+angleOffset;
-
-tVector=worm_length/length(wc2)*[sin(wc2) cos(wc2)];
-X=cumsum(tVector);
-centerline_out=bsxfun(@plus, X, -X(ref_index,:)+ref_point);
+    worm_length=varargin{end};
+    %get angle offset by finding difference between the ref_angle and the
+    %wormcentered angle at that point
+    angleOffset=ref_angle-wc(ref_index);
+    %add that offset everywhere
+    wc2=wc+angleOffset;
+    %build all tangent vectors using trig, also rescale length
+    tVector=worm_length/length(wc2)*[sin(wc2) cos(wc2)];
+    %add up all the steps to build up centerline coordinates
+    centerline=cumsum(tVector);
 elseif nargin>=3
-
-        
-        
+    %find difference between two reference points
     delta_ref=ref_point(2,:)-ref_point(1,:);
+    %get angle betwen the two ref points
     ref_angle=atan2(delta_ref(2),delta_ref(1));
+    %get all vectors for the centerline based on worm centered coordinate
     tVector=[sin(wc(:)) cos(wc(:))];
-X=cumsum(tVector);
-delta_x_ref=X(ref_index(2),:)-X(ref_index(1),:);
-sample_angle=atan2(delta_x_ref(2),delta_x_ref(1));
-
-
-angleOffset=ref_angle-sample_angle;
-
-wc2=wc-angleOffset;
-
-tVector=[sin(wc2(:)) cos(wc2(:))];
-X=cumsum(tVector);
-        if nargin==4;
-            worm_length=varargin{end};
-            X=X*worm_length/length(wc2);
-        else
-            delta_x_ref=X(ref_index(2),:)-X(ref_index(1),:);
-X=X*mean(delta_ref./delta_x_ref);
-
-        end
-        
-
-centerline_out=bsxfun(@plus, X, -X(ref_index(1),:)+ref_point(1,:));
+    
+    centerline_raw=cumsum(tVector);
+    %find angle between ref ponits without scaling/rotation yet
+    delta_x_ref=centerline_raw(ref_index(2),:)-centerline_raw(ref_index(1),:);
+    sample_angle=atan2(delta_x_ref(2),delta_x_ref(1));
+    %find difference between angles in centerline and the ref points, will need
+    %to rotate the centerline to match that
+    angleOffset=ref_angle-sample_angle;
+    %rotate centerline by adding agle offset to wormcentered
+    wc2=wc-angleOffset;
+    %build centerline again now with proper angle
+    tVector=[sin(wc2(:)) cos(wc2(:))];
+    centerline=cumsum(tVector);
+    if nargin==4; %scale centerline by length if total length given
+        worm_length=varargin{end};
+        centerline=centerline*worm_length/length(wc2);
+    else
+        %if total length not given, scale up by difference between ref poitns
+        delta_x_ref=centerline(ref_index(2),:)-centerline(ref_index(1),:);
+        centerline=centerline*mean(delta_ref./delta_x_ref);
+    end
 end
 
-    
-    
+%add xy offset 
+xy_offset= -centerline(ref_index(1),:)+ref_point(1,:);
+centerline_out=bsxfun(@plus, centerline, xy_offset);
+

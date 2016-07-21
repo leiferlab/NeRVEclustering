@@ -1,10 +1,7 @@
 
 function clusterStraightenStart(dataFolder)
-
-
-counter=300; %which volume to do
-
-
+%which volume to do for initial
+counter=300; 
 %% bundle timing data
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
 vidInfo.bfAll=bfAll;
@@ -56,12 +53,10 @@ mkdir(imageFolder2);
 
 tic
 %Run straighten and segmentation on one volume
-[~,~,Vtemplate,side,~,~]=...
-    WormCLStraighten_10(dataFolder,destination,vidInfo,...
-    alignments,[],[],zOffset,test_frame,'left',[],0);
+[~,~,Vtemplate,side,~,~]=WormCLStraighten_11(...
+    dataFolder,destination,vidInfo,alignments,[],zOffset,test_frame,'left',0); 
+        
 %we need these of the outputs to save for the cluster straightening
-
-% fields in the pointstats file that will be used
 
 display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
 %save initial workspace from first sample for later use

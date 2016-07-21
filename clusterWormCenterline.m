@@ -11,8 +11,8 @@ end
 %% initialize some kernels and flags
 STARTFLAG=1;
 
-gaussFilter=fspecial('gaussian',30,5);
-gaussFilter2=fspecial('gaussian',50,15);
+GAUSSFILTER=fspecial('gaussian',30,5);
+GAUSSFILTER2=fspecial('gaussian',50,15);
 
 cm_fluor=[26 26];
 sdev_nhood=getnhood(strel('disk',5));
@@ -27,8 +27,8 @@ behavior_vidobj = VideoReader(behavior_movie_file);
 fluor_vidobj= VideoReader(fluor_movie_file);
 
 %% load eigenworms and set as global
-temp=load('eigenWorms_full.mat');
-eigbasis=temp.eigvecs;
+eigbasis=load('eigenWorms_full.mat');
+eigbasis=eigbasis.eigvecs;
 setappdata(0,'eigbasis',eigbasis);
 
 %% load initial variables from CLworkspace
@@ -38,9 +38,10 @@ bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
 mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
 f_background=CLworkspace.f_background;  %f_background fluorBackground
 initial_cl=CLworkspace.initial_cl; % initial_cl clStart
-flash_loc=CLworkspace.flash_loc; %flash_loc flashLoc
+flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
 frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
 cline_para=CLworkspace.cline_para;
+
 refIdx=cline_para.refIdx;
 cline_para.showFlag=00;
 
@@ -63,17 +64,19 @@ lowResFluor2BF=alignments.lowResFluor2BF;
 %% main loop
 for iframe=1:length(framelist);
     %%
+    %get frame from framelist
     itime=framelist(iframe);
     tic
     try
-        if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc==itime) && itime>=1
+        
+        if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc_idx==itime) && itime>=1
             %% filter behavior images
             bf_frame_raw = read(behavior_vidobj,itime,'native');
             bf_frame_raw=double(bf_frame_raw.cdata);
-            backGroundRaw=mean_bf_all(:,:,frame_bg_lvl(itime));
+            background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
             %scale background for best match before subtraction. 
-            c=sum(sum(bf_frame_raw.*backGroundRaw))/sum(sum(backGroundRaw.^2));
-            bf_frame_raw=bf_frame_raw-backGroundRaw*c;
+            c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
+            bf_frame_raw=bf_frame_raw-background_raw*c;
             
             % afew filter steps
             bf_frame=imtophat(bf_frame_raw,strel('disk',50));
@@ -109,13 +112,13 @@ for iframe=1:length(framelist);
             inputImage=2*bf_frame/max(bf_frame(:))+normalizeRange(bf_frame_std);
             inputImage(inputImage<0)=0;
             %gassian filter
-            inputImage=filter2(gaussFilter,inputImage,'same');
+            inputImage=filter2(GAUSSFILTER,inputImage,'same');
             inputImage=normalizeRange(inputImage);
             
-            bf_frame_std=normalizeRange(imfilter(bf_frame_std,gaussFilter2));
+            bf_frame_std=normalizeRange(imfilter(bf_frame_std,GAUSSFILTER2));
             bfFrameMask=(bf_frame_std>min(graythresh(bf_frame_std),.7));
             
-            %make tip image, to help nailing down tips
+            %make tip image, to help provide forces of extenstion for tip
             tip_image=bfFrameMask.*inputImage;
             bfFrameLTmask=bfFrameMask & tip_image<bf_frame_std;
             tip_image(bfFrameLTmask)=bf_frame_std(bfFrameLTmask);
@@ -193,4 +196,5 @@ for iframe=1:length(framelist);
 end
 %% save output
 outputFilename=[outputFolder filesep 'CL_' num2str(iCell,'%3.2d')];
-save(outputFilename,'cl_all','cl_intensities','framelist'); %note: cellList changed to frame list
+save(outputFilename,'cl_all','cl_intensities','framelist');
+%note: cellList changed to frame list
