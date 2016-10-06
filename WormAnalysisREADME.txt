@@ -11,25 +11,25 @@ All of the analysis is done in matlab, but many of them are called on DELLA, whi
 
 STEP 0: TIMING SYNCHRONIZATION FOR VIDEOS
 	submitWormFlashFinder.py
-	highResTimeTraceAnalysisTriangle4.m
-	multipleAVIFlash.m
+		highResTimeTraceAnalysisTriangle4.m
+		multipleAVIFlash.m
 STEP 1: WORM CENTERLINE DETECTION
 	initializeCLWorkspace.m (done locally for centerline initialization)
 	submitWormAnalysisCenterline.py
-	clusterWormCenterline.m
+		clusterWormCenterline.m
 STEP 2: STRAIGHTEN AND SEGMENTATION
 	submitWormStraightening.py
-	clusterStraightenStart.m
-	clusterWormStraightening.m
+		clusterStraightenStart.m
+		clusterWormStraightening.m
 STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
-	submitWormAnalysisPipelineFull
-	clusterWormTracker.m
-	clusterWormTrackCompiler.m
+	submitWormAnalysisPipelineFull.py
+		clusterWormTracker.m
+		clusterWormTrackCompiler.m
 STEP 4: ERROR CORRECTION
-	submitWormAnalysisPipelineFull
-	clusterBotChecker.m
-	clusterBotCheckCompiler.
-
+	submitWormAnalysisPipelineFull.py
+		clusterBotChecker.m
+		clusterBotCheckCompiler.
+	
 
 #########################################################################
 USEFUL GUIS FOR VISUALIZATION
@@ -37,11 +37,6 @@ USEFUL GUIS FOR VISUALIZATION
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
 VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
-
-
-
-
-
 
 
 #########################################################################
