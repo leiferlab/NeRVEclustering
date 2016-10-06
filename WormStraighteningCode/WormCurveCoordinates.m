@@ -1,5 +1,8 @@
 function [Tv,Nv,Bv]=WormCurveCoordinates(centerline)
-% make coordinate system around the worm
+% make coordinate system around the worm by building the tangent, normal,
+% and binormal vectors around a 3D curve. 
+% Input:
+%   centerline, an N*3 matrix of x,y,z coordinates
 cl_size=size(centerline);
     
   Tv=zeros(cl_size(1),3,cl_size(3));
