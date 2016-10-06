@@ -2,29 +2,84 @@
 Worm analysis protocol:
 
 
-This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. 
+This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2016. 
+
+#########################################################################
+QUICK SUMMARY
+
+All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs.
+
+STEP 0: TIMING SYNCHRONIZATION FOR VIDEOS
+	submitWormFlashFinder.py
+	highResTimeTraceAnalysisTriangle4.m
+	multipleAVIFlash.m
+STEP 1: WORM CENTERLINE DETECTION
+	initializeCLWorkspace.m (done locally for centerline initialization)
+	submitWormAnalysisCenterline.py
+	clusterWormCenterline.m
+STEP 2: STRAIGHTEN AND SEGMENTATION
+	submitWormStraightening.py
+	clusterStraightenStart.m
+	clusterWormStraightening.m
+STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
+	submitWormAnalysisPipelineFull
+	clusterWormTracker.m
+	clusterWormTrackCompiler.m
+STEP 4: ERROR CORRECTION
+	submitWormAnalysisPipelineFull
+	clusterBotChecker.m
+	clusterBotCheckCompiler.
+
+
+#########################################################################
+USEFUL GUIS FOR VISUALIZATION
+
+ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
+wormCLviewer.m - Gui to view darkfield worm images along with the centerline
+VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
 
 
 
 
-Folder requirements:
-sCMOS_Frames_U16_1024x1024.dat  -	binary image file from the Leifer Lab's WholeBrainImaging labview program. The image is not actuallylly 1024x1024, but 1200x600 unsigned 16 bit integers.
-
-
-LabJackData.txt - tab separated data file from lab jack from Leifer Lab's WholeBrainImaging labview program. Has stage, function generator, and Piezo data, recorded at 1kHz. 
-
-
-CameraFrameData.txt - tab separated data file from lab jack from Leifer Lab's WholeBrainImaging labview program. Has image data, and is output at the rate of image capture (200Hz)
 
 
 
-*fluor*.avi -	 video of low magnification fluorescent video from the Leifer lab's Colbert code 
+#########################################################################
+FOLDER DATA REQUIREMENTS
 
-*fluor*.yaml -	 metadata for low magnification fluorescent video from the Leifer lab's Colbert code, includes timing data
+======Worm Videos======
+sCMOS_Frames_U16_1024x1024.dat  -	binary image file from the Leifer Lab's WholeBrainImaging labview program. The images do not need to be 1024 by 1024.The image is produced by a dual view setup so that the left and right images represent the RFP and the GCaMP6s images in some order. 
 
-*behav*.avi - 		video of low magnification behavior video from the Leifer lab's Colbert code, will be used for centerline extraction 
+LowMagBrain* folder containing all low magnification data including
+cam0.avi	-	low magnification fluorescent images of the worm’s brain
+cam1.avi	-	low magnification dark field images of the worm’s posture
+CamData.txt	-	text file with relative timing for every frame
 
-*behav*.yaml -	 metadata for low magnification behavior video from the Leifer lab's Colbert code, includes timing data
+======Raw Text files======
+These files contain timing information for every frame of each of the video feeds. They also contain information about the positions of the stage and the objective. This information, along with the videos themselves, are used to align the timing for all of the videos. Several camera flashes are used throughout the recording. The timing of  
+
+labJackData.txt - 	Raw outputs from LabVIEW for the stage, the piezo that drives the objective, the sCMOS camera, and the function generator (FG), taken at 1kHz. The objective is mounted on a piezo stage that is driven by the output voltage of the function generator. The 1kHz clock acts as the timing for each event.
+
+	Columns:
+	FuncGen - 	Programmed output from FG, a triangle wave at 6 Hz. 
+	Voltage - 	Actual FG output
+	Z Sensor - 	voltage from piezo, which controls Z position of objective.
+	FxnGen Sync- 	Trigger output from FG, triggers at the center of the triangle.
+	Camera Trigger-	Voltage from HiMag camera, down sweeps indicate a frame has been grabbed from HiMag Camera
+	Frame Count - 	Number of frames that have been grabbed from HiMag Camera. Not all frames that are grabbed are saved, and the saved frames will be 			indicated in the saved frames field in the next text file. 
+	Stage X -	X position from stage
+	Stage Y - 	Y position from stage
+
+
+CameraFrameData.txt - 	Metadata from each grabbed frame for HiMag  images, saved in LabVIEW. The timing for each of these frames can be pulled from the labJackData.txt.
+
+	Columns:
+	Total Frames -	Total number of grabbed frames
+	Saved Frames - 	The current save index, not all grabbed frames are saved. If this increments, the frame has been saved.
+	DC offset    -	This is the signal sent to the FG to translate center of the triangle wave to keep the center of the worm in the middle of the wave.
+	Image STdev - 	standard deviation of all pixel intensities in each image.
+
+
 
 alignments.mat -matlab structure with fields containing the affine transforms for image alignment. Alignments created using the createAlignment.m program: The file has the following fields
 lowResFluor2BF	- affine transform between low magnification fluorescent and behavior images
@@ -33,28 +88,3 @@ Hi2LowResFluor	- affine transformation between the RFP hi magnification image (b
 
 
 
-
-
-
-#########################################################################
-
-Main scripts in analysis pipeline:
-
-STEP 1: CENTERLINE DETECTION 
-tripleImageCenterline_par.m
-
-STEP 2: STRAIGHTEN AND SEGMENTATION 
-StraightenWormFolder20150910.m
-STEP 3: TRACKING ON CLUSTER USING PYTHON SCRIPTS submitWormAnalysisPipeline.py
-STEP 4: COMPILE CLUSTER RESULTS AND FILL HOLES compileBotChecker.m
-STEP 5: CROP REGIONS AROUND TRACKED POINTS 
-fiducialCropper2.m
-
-
-
-
-#########################################################################
-Useful GUI programs
-ScanBinaryImageStack.m - Gui to view raw .dat file movies. This alsow works with .avi files
-wormCLviewer.m - Gui to view darkfield worm images along with the centerline
-VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
