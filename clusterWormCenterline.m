@@ -1,8 +1,10 @@
 function clusterWormCenterline(dataFolder,iCell,show2)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %clusterworm tracker fits centerlines to behavior videos from our whole
 %brain imaging setup. a CL workspace must be loaded with initial parameters
 %and paths in order to run this code, and the activeContourFit program
-%requires the eigenworms to be loaded as "eigbasis" on to the main window. 
+%requires the eigenworms to be loaded as "eigbasis" on to the main window.
+%
 
 if nargin==2
     show2=0;

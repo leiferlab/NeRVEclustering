@@ -1,7 +1,14 @@
 function clusterWormStraigthening(dataFolder,nStart,nRange)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % calls worm straightening code if a startWorkspace.mat file is already
 % created in the dataFolder being analyzed, program runs to straighten
-% stacks nStart:nStart+nRange-1
+% stacks nStart:nStart+nRange-1. Made to run on a cluster
+% Inputs:
+%   dataFolder- same requirements as the clusterStraightenStart program,
+%               including the output of that program, startWorkspace.mat
+%   nStart-     Volume to start straightening, made for cluster array jobs
+%   nRange-     Number of volumes to straighten in this job.
 
 
 %% load initial variables

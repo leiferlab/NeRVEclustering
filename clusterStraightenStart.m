@@ -1,5 +1,16 @@
 
 function clusterStraightenStart(dataFolder)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Creates Initial files for Straightening images
+% Inputs:
+%   dataFolder- file path to data folder containing raw .dat file
+%               timing results, behavior folder, lowmag folder,
+%               alignments file. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
 %which volume to do for initial
 counter=300; 
 %% bundle timing data
