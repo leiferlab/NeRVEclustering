@@ -61,8 +61,7 @@ iteration_list=mod(idx2analyze,nGroups);
 %list of stacks presents
 runIdxListAll=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
 presentN=length(runIdxListAll);
-presentIdx=nan(1,length(pointStats));
-presentIdx(runIdxListAll)=[pointStats.stackIdx];
+presentIdx=[pointStats.stackIdx];
 
 %how many volumes to analyze in a single groups
 run_length=floor(presentN/nGroups);
@@ -94,15 +93,15 @@ for iCounter=1:doGroups
     runIdxList=presentIdx(runIdxList);
     
     %get sample points being matched
-    i_ps=presentIdx(iIdx);
+    i_ps=presentIdx(vol_idx);
     P1=pointStats(i_ps);
-    
+    length_P1=size(P1.straightPoints,1);
     %initialize trackMatrix, which will hold all the matches
     TrackMatrixi=zeros(size(P1.straightPoints,1),length(runIdxList));
     DMatrixi_x=TrackMatrixi;
     DMatrixi_y=TrackMatrixi;
     DMatrixi_z=TrackMatrixi;
-    
+    %%
     for runIdx=1:length(runIdxList)
         itic=tic;
         % get reference points being matched
@@ -116,9 +115,9 @@ for iCounter=1:doGroups
             %make note of old points
             T1temp=P1.straightPoints(:,1:3);
             T2temp=P2.straightPoints(:,1:3);
-            
+    length_P2=size(P2.straightPoints,1);
             % do non rigid pointset regstration, first with entire pointset
-            [Transformed_M, ~, ~] = ...
+            [T2_trans, ~, ~] = ...
                 gmmreg_L2_multilevel_jn(...
                 T2,T1,1, [ 1,.5], ...
                 [.000008, 0.0000008, 0.0008],[0 0],...
@@ -127,21 +126,20 @@ for iCounter=1:doGroups
             %put together old points and transformed points for use in
             %kmeans clustering to break the pointsets into smaller groups
             
-            trackInput=[T1temp ;
-                Transformed_M(:,1:3) ];
+            trackInput=[T1temp ;T2_trans(:,1:3) ];
             idx = kmeans(trackInput(:,1:3),3);
             
             %get the cluster for each point in the sample and the reference
-            idx1=idx(1:length(T1temp));
-            idx2=idx(length(T1temp)+1:end);
+            idx1=idx(1:length_P1);
+            idx2=idx(length_P1+1:end);
             %%
             % do non rigid pointset regstration with each of the cluseters
             % seperately
             
             for iRegions=1:max(idx)
-                [Transformed_M(idx2==iRegions,:), ~, ~] = ...
+                [T2_trans(idx2==iRegions,:), ~, ~] = ...
                     gmmreg_L2_multilevel_jn(...
-                    Transformed_M(idx2==iRegions,:),T1(idx1==iRegions,:), ...
+                    T2_trans(idx2==iRegions,:),T1(idx1==iRegions,:), ...
                     2, [ 3,.3,.3], ...
                     [0.005,.0005, 0.002, 0.08],[0 0],...
                     [ 0.000001 0.000001 0.000001 0.001],show);
@@ -155,13 +153,20 @@ for iCounter=1:doGroups
             %2. the untransformed points
             %3. the index of the point (1:length of points)
             %4. the time, either 1 or 2.
-            trackInput=[T1temp T1temp  (1:length(T1temp))'  ones(size(T1temp(:,1))); ...
-                Transformed_M(:,1:3) T2temp  (1:length(T2temp))' 2*ones(size(Transformed_M(:,1)))];
+            trackInput_t1=[...
+                T1temp T1temp  (1:length_P1)'  ones(length_P1,1)];
+            trackInput_t2=[...
+                T2_trans(:,1:3) T2temp  (1:length_P2)' 2*ones(length_P1,1)];
+            
+            trackInput=[trackInput_t1;trackInput_t2];
             %loop through each cluster and do tracking
             for iRegions=1:max(idx)
-                if any(idx==iRegions)
-                    %select only points in that cluster
-                    trackInputi=trackInput(idx==iRegions,:);
+                %select only points in that cluster
+                trackInputi=trackInput(idx==iRegions,:);
+                %get different times of points, to make sure that both
+                %time points are represented
+                track_times=trackInputi(:,end);
+                if length(unique(track_times))>2
                     %counter is the max distance between matched points. If
                     %the tracking fails, reduce this and try again.
                     counter=18;
@@ -171,9 +176,6 @@ for iCounter=1:doGroups
                         TrackOut=trackJN(trackInputi,counter,param);
                         counter=counter-1;
                     end
-                    
-                    %parse outputs
-                    
                     %% get the indices of the matched points
                     TrackStats=round(TrackOut(:,7:end));
                     track1i=TrackStats(1:2:end,1);
@@ -190,7 +192,7 @@ for iCounter=1:doGroups
             %playing around with distances, not currently used
             presentIJ=TrackMatrixi(:,runIdx)>0;
             points1=T1temp(track1,1:3);
-            points2=Transformed_M(track2,1:3);
+            points2=T2_trans(track2,1:3);
             pointsDiff=abs(points1-points2);
             
             DMatrixi_x(presentIJ,runIdx)=pointsDiff(:,1);

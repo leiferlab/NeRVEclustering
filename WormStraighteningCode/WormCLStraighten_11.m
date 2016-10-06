@@ -15,7 +15,7 @@ outputRadiusZ=63.5; %z serach radius around centerilne
 outputLength=200; % serach radius along centerline about center
 
 %buffer to add around search radius, to be removed  after alignments
-outputRadiusBuff=30;    
+outputRadiusBuff=30;
 outputLengthBuff=100;
 
 
@@ -131,7 +131,7 @@ centerline=centerline.(CLfieldNames{CLfieldIdx});
 
 %%
 %try the entire pipeline, workspace in case of error for further
-%troubleshooting. 
+%troubleshooting.
 try
     %% load images
     
@@ -146,7 +146,7 @@ try
     %get z values of those frames
     zRange=hiResData.Z(hiResIdx-zOffset);
     zSize=length(hiResIdx);
-
+    
     %get correspoinding fluor indices
     fluorIdx=round(fluorIdxLookup(hiResIdx));
     fluorIdxRange=[min(fluorIdx) max(fluorIdx)];
@@ -159,8 +159,8 @@ try
     fluor_trans=imwarp(fluor_raw,Hi2LowResF.t_concord,...
         'OutputView',Hi2LowResF.Rsegment);
     fluor_trans=fluor_trans((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
-
-        %do something with status errors!
+    
+    %do something with status errors!
     status=fseek(Fid,2*(hiResIdx(1))*nPix,-1);
     
     pixelValues=fread(Fid,nPix*(length(hiResIdx)),'uint16',0,'l');
@@ -174,8 +174,8 @@ try
     %% filter to find center Z (some old things here)
     %3d bpass filter
     worm_smooth=bpass3(worm_im,.5,[20 20 3]);
-
-    %% find middle plane by looking for large thresholded objects. 
+    
+    %% find middle plane by looking for large thresholded objects.
     % additional boxcar smoothing in XY
     worm_smooth_thresh=smooth3(worm_smooth,'box',[15,15,1]);
     % thresholded smooth image
@@ -197,7 +197,7 @@ try
     [~,midZ]=max(smooth(max_dist_plot,3));
     %incase there are repeat vallues, just take the mean (rare)
     midZ=(mean(midZ));
-    %round the middle plane in the direction of the middle 
+    %round the middle plane in the direction of the middle
     if midZ>zSize/2
         midZ=floor(midZ);
     else
@@ -209,10 +209,10 @@ try
     elseif midZ>=zSize;
         midZ=zSize-1;
     end
-
-    %% try fix centerline alignemnt by looking at lowmag fluor and finding 
+    
+    %% try fix centerline alignemnt by looking at lowmag fluor and finding
     % a correction offset between the transformed lowmag fluor and the high
-    % mag segmentation. 
+    % mag segmentation.
     
     % get lowmag fluor and threshold, and project
     % cast fluor image
@@ -221,12 +221,12 @@ try
     fluor_thresh=(fluor_trans>(graythresh(fluor_trans(:))));
     fluor_thresh_proj=normalizeRange(sum(fluor_thresh,3));
     
-    %remove boundary 
-    boundaryRegion=ones(size(fluor_thresh_proj)); 
+    %remove boundary
+    boundaryRegion=ones(size(fluor_thresh_proj));
     boundaryRegion(51:end-50,51:end-50)=0;
     fluor_thresh_proj=fluor_thresh_proj.*~boundaryRegion;
     
- 
+    
     %% get proper centerlines to use that correspond to the hiresframes
     hires_range=min(hiResIdx):max(hiResIdx);
     CLIdx=round(bfIdxLookup(hires_range));
@@ -244,10 +244,10 @@ try
     clx_med=medfilt2(clx,[1,5]);
     cly_med=medfilt2(cly,[1,5]);
     
-    % cl err is the squared distance from original CL and med filtered 
+    % cl err is the squared distance from original CL and med filtered
     cl_err=sqrt(mean((clx_med-clx).^2+(cly_med-cly).^2));
     cl_replace_idx=find(cl_err'>30 & ia>1 & ia<max(ia));
-    % if distance is large, replace CL with medfiltered one. 
+    % if distance is large, replace CL with medfiltered one.
     CL_lo(:,1,cl_replace_idx)=clx_med(:,cl_replace_idx);
     CL_lo(:,2,cl_replace_idx)=cly_med(:,cl_replace_idx);
     
@@ -257,7 +257,7 @@ try
     %get the centerlines, one for each hires frame, with some repeats
     
     %CL_hi is CL hi mag coordinate, with low mag spacing
-    CL_hi=CL_lo(:,:,ic); 
+    CL_hi=zeros(size(CL_lo));
     
     %centerline from behavior coordinate system to fluor coordinate system
     [CL_fluor(:,2,:),CL_fluor(:,1,:)]=transformPointsInverse(...
@@ -266,12 +266,12 @@ try
     [CL_hi(:,1,:),CL_hi(:,2,:)]=transformPointsForward(....
         Hi2LowResF.t_concord,CL_fluor(:,2,:),CL_fluor(:,1,:));
     %subtract the rectangle size
-        CL_hi(:,2,:)=CL_hi(:,2,:)-(rect1(2)-1);
+    CL_hi(:,2,:)=CL_hi(:,2,:)-(rect1(2)-1);
     CL_size=size(CL_hi);
     
     %% interpolate to parameterize by length
     %range to interpolate from tip, in highres pixels. This can be generous
-    %to start, as the output length is determined byt outputLength. 
+    %to start, as the output length is determined byt outputLength.
     CL_range=2500;
     CL2_hi=zeros(CL_range,2,CL_size(3));
     
@@ -284,7 +284,7 @@ try
         s=[0;cumsum(ds) ];
         %reinterpolate from initial distances to pixel distances
         CL2temp=interp1(s,CL2temp,1:1:CL_range,'linear','extrap');
-        CL2temp(:,:,iCL)=CL2temp;
+        CL2_hi(:,:,iCL)=CL2temp;
         if show
             if iCL==1
                 close all
@@ -301,7 +301,7 @@ try
     %% align centerlines parameterizations by correlation
     % centerlines points can be offset to each other because nothing stops
     % cls from sliding if the tips are not fixed. We need to align the
-    % consecutive centerlines to each other.  
+    % consecutive centerlines to each other.
     % Alignment of  centerlines using plotMatch2 (distance based) to account
     % for centerline sliding.
     
@@ -309,8 +309,8 @@ try
     shiftVec=zeros(1,length(ia)-1);
     for i=2:length(ia);
         %find best offset between consecutive centerlines.
-        CL1temp=CL2_hi(:,:,ia(i));
-        CL2temp=CL2_hi(:,:,ia(i-1));
+        CL1temp=CL2_hi(:,:,i);
+        CL2temp=CL2_hi(:,:,i-1);
         [corrtemp,r]=plotMatch2(CL1temp,CL2temp);
         [~,shift]=min(corrtemp);
         shiftVec(i)=r(shift);
@@ -345,7 +345,7 @@ try
     end
     
     %% find offset to better align centerline with hi mag worm brain.
- 
+    
     %this occurs in three steps, we find the offset between the brightest
     %centerline point and the brightest image point in lowmag fluor
     %the we find the offset between the centerlines
@@ -353,9 +353,9 @@ try
     %coordinates), and then finding the offset between the transformed
     %lowmag fluorecent images and the hi mag images. The transformation
     %from bead selection is often off by a bit and it changes over time. If
-    %I find a better straightening algorithm then I can dump all of this. 
-
-    [fcm_x, fcm_y]=find(fluor_thresh_proj==max(fluor_thresh_proj));
+    %I find a better straightening algorithm then I can dump all of this.
+    
+    [fcm_x, fcm_y]=find(fluor_thresh_proj==max(fluor_thresh_proj(:)));
     fcm_x=mean(fcm_x);
     fcm_y=mean(fcm_y);
     
@@ -370,7 +370,7 @@ try
     
     CL2X=reshape(mean(CL2_hi_long(:,1,1:end),3),[],1,1);
     CL2Y=reshape(mean(CL2_hi_long(:,2,1:end),3),[],1,1);
-
+    
     %shift around the centerline to optimize overlap between centerline and
     %fluorescence image
     
@@ -378,7 +378,7 @@ try
     fluor_filt=convnfft(fluor_thresh_proj,Sfilter2,'same');
     % ignore boundary pixels
     fluor_filt=fluor_filt.*~boundaryRegion;
- 
+    
     %serach for offset that when added to centerline, maximizes the overlap
     %between the centerline and the fluor_filt image, starting with
     %xyOffset2
@@ -387,16 +387,16 @@ try
     
     
     % do correlation to find xy offset between images
-    % z project highmag and transfrome fluor images 
+    % z project highmag and transfrome fluor images
     hiResProj=normalizeRange(sum(worm_im,3));
     
-    %do correlation to find offsets 
+    %do correlation to find offsets
     corrIm=conv2(fluor_thresh_proj,rot90(hiResProj,2),'same');
     [CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
     CLoffsetX=CLoffsetX-round(size(fluor_thresh_proj,2)/2);
-    CLoffsetY=CLoffsetY-round(size(fluor_thresh_proj,1)/2);  
+    CLoffsetY=CLoffsetY-round(size(fluor_thresh_proj,1)/2);
     
-    %add together all centerline offsets. 
+    %add together all centerline offsets.
     xyOffset3=xyOffset2_min-[CLoffsetX CLoffsetY];
     
     %apply offsets so that centerlines better overlap with high mag images
@@ -416,7 +416,7 @@ try
     %find distance squared between centerline points in all frames and the
     %middle of the hi res image
     CLcenter=sum(bsxfun(@minus, CL2_hi_long,rect1(3:4)/2).^2,2);
-    %find the index of the closest point. 
+    %find the index of the closest point.
     [~,CLcenter]=min(CLcenter,[],1);
     CLcenter=mean(CLcenter(:));
     %add buffer to output length, will be cropped off later
@@ -426,33 +426,33 @@ try
     %interpolate to pull out CL points in that range.
     CL2_hi=interp1(CL2_hi_long,inImageRange,'*linear','extrap');
     CL2_size=size(CL2_hi);
-    %% show middle imagee with overlayed centerline
-
+    %% show middle image with overlayed centerline
+    
     % pickout central centerline and middle slice
     % only needed for display purposes
     if show || isempty(side)
-    %for middle image, take the 3 middle slices and zproject them.
-    midIm=mean(worm_im(:,:,midZ+(-1:1)),3);
-    midIm=double(midIm);
-    
-    %apply band pass filters
-    midIm=bpass(midIm,2,[20,20]);
-    
-    %another badpass filter to really emphasize middle portion of
-    %wormbrain. this helps pick out the central centerline
-    midImS=imfilter(midIm,Sfilter);    
-    
-    %take the X and Y components of the centerlines
-    CL3allX=(CL2_hi(:,1,:));
-    CL3allY=(CL2_hi(:,2,:));
-    
-    %go through all centerlines and see which one has greates overlap with
-    %middle slice midImS, that is the central centerline for visualization.
-    minSearch=interp2(midImS,CL3allX,CL3allY);
-    minSearch=squeeze(nansum(minSearch,1));
-    minY=find(minSearch==max(minSearch));
-    midZCL=round(mean(minY));
-    CL_mid=CL2_hi(:,:,midZCL);
+        %for middle image, take the 3 middle slices and zproject them.
+        midIm=mean(worm_im(:,:,midZ+(-1:1)),3);
+        midIm=double(midIm);
+        
+        %apply band pass filters
+        midIm=bpass(midIm,2,[20,20]);
+        
+        %another badpass filter to really emphasize middle portion of
+        %wormbrain. this helps pick out the central centerline
+        midImS=imfilter(midIm,Sfilter);
+        
+        %take the X and Y components of the centerlines
+        CL3allX=(CL2_hi(:,1,:));
+        CL3allY=(CL2_hi(:,2,:));
+        
+        %go through all centerlines and see which one has greates overlap with
+        %middle slice midImS, that is the central centerline for visualization.
+        minSearch=interp2(midImS,CL3allX,CL3allY);
+        minSearch=squeeze(nansum(minSearch,1));
+        minY=find(minSearch==max(minSearch));
+        midZCL=round(mean(minY));
+        CL_mid=CL2_hi(:,:,midZCL);
     end
     
     if show
@@ -465,35 +465,8 @@ try
         drawnow
     end
     %% make coordinate system around the worm
-    Tv=zeros(CL2_size(1),3,CL2_size(3));
-    Bv=Tv; Nv=Tv;
-    % for each centerline, make the Tangent, Normal, and Binormal vectors
-    for iSlice=1:CL2_size(3);
-        % T, N and B are first made in 2D,
-        current_cl=CL2_hi(:,:,iSlice);
-        T=normr(gradient(current_cl',5)');
-        N=[T(:,2) -T(:,1)];
-        B=T(:,1).*N(:,2)-T(:,2).*N(:,1);
-        N=bsxfun(@times, N,sign(B));
-        B=sign(B);
-        % and then the Zcomponent is added
-        T=[T zeros(size(current_cl(:,1)))];
-        N=[N zeros(size(current_cl(:,1)))];
-        B=[zeros(size(current_cl(:,1))) zeros(size(current_cl(:,1))) B];
-        %compile results into vectors containing TBN for each centerline
-        Tv(:,:,iSlice)=T;
-        Nv(:,:,iSlice)=N;
-        Bv(:,:,iSlice)=B;
-        
-    end
-    %fix any sign flipping in the binormal and normal vector. Make the
-    %binormal always be positive, tangent points from tail to head, normal
-    %fits in according the right hand rule
-    signVector=sign(Bv(:,3,:));
-    Bv=bsxfun(@times,Bv,signVector);
-    Nv=bsxfun(@times,Nv,signVector);
-    
-    %% select worm orientation 
+[Tv,Nv,Bv]=WormCurveCoordinates(CL2_hi);
+%% select worm orientation
     % the side input specifies the side of the nervcord. If the nerve chord
     % is on the left, flip the B and N vectors so that in interpolation, it
     % will come out on the right. This is so that different worms look
@@ -501,7 +474,7 @@ try
     % part doesnt matter and any input, right or left, can be used and the
     % worms might flip (as is currently the case). Would be nice to do a
     % simple machine vision task of automatically finding the side in the
-    % initializer. 
+    % initializer.
     
     if isempty(side)
         %if side is not input, use popup to pick side
@@ -513,19 +486,19 @@ try
             side='Right';
         end
     end
-    %flip worm if side is left. 
+    %flip worm if side is left.
     if ~isempty(strfind(side,'eft'))
         Bv=-Bv;
         Nv=-Nv;
     end
-
+    
     
     plane_num=size(Tv,1);
     %make the first and last 'endround' tbn vectors the same so nothing
     %strange happens at the ends.
     
     %if number of points is larger than 10, use end round of 5. If smaller
-    %than 10, use half the range, but something probably went wrong. 
+    %than 10, use half the range, but something probably went wrong.
     if plane_num>10
         endround=5;
     else
@@ -545,7 +518,7 @@ try
         end
     end
     
-
+    
     
     
     %% show stack with centerline
@@ -568,11 +541,11 @@ try
         end
     end
     
-    %% build straightening coordinate system. 
+    %% build straightening coordinate system.
     %define range to interpolate outward from centerline, adding a buffer
-    %that will be removed later after additional template alignments. 
+    %that will be removed later after additional template alignments.
     
-
+    
     
     outputRadius2=outputRadius+outputRadiusBuff;
     %create a 2*window +1 square around each point for interpolationg using
@@ -582,8 +555,8 @@ try
     
     % build z coordinates using Nv and Bv vectors. For this, the binormal
     % vector Bv will almost always point in the Z direction, while the Z
-    % component of the normal vector will be zero. 
-
+    % component of the normal vector will be zero.
+    
     % the coordinate system is built by multiplying the J and K coordinates
     % with the normal and binormal vectors, taking only the Z direction.
     % This will tell me which slices in the unstraightened images to pull
@@ -591,19 +564,19 @@ try
     zslice=bsxfun(@times,J,permute(Nv(:,3,1),[3,2,1]))*zRatio+...
         bsxfun(@times,K,permute(Bv(:,3,1),[3,2,1]))*zRatio+midZ;
     
-    % get the z values (which slice from the raw image) for every slice in 
-    % the straightened space. They will all be the same so I just need one 
-    % point from each slice. 
+    % get the z values (which slice from the raw image) for every slice in
+    % the straightened space. They will all be the same so I just need one
+    % point from each slice.
     zLevels=((zslice(:,1,1)));
     
     %correct for non monoticity, there is occasionally an error where the z
-    %values are non monotonic because of small noise or are repeated.  
+    %values are non monotonic because of small noise or are repeated.
     if sign(nanmean(diff(zRange)))==-1
         % for downstroke of the triangle wave
         
         %cummin ensures that the range is never increasing, then take
-        %unique so that the range is monotonic. 
-        zRange2=unique(cummin(zRange)); 
+        %unique so that the range is monotonic.
+        zRange2=unique(cummin(zRange));
         zRange2=zRange2-zRange2(midZ);
         %do interpolation trick to avoid any repeats
         adjusted_z=zLevels/10-zLevels(round(outputRadiusZ+1))/10;
@@ -616,7 +589,7 @@ try
         zRange2=unique(cummax(zRange));
         zRange2=zRange2-zRange2(midZ);
         %do interpolation trick to avoid any repeats
-
+        
         adjusted_z=zLevels/10-zLevels(round(outputRadiusZ+1))/10;
         zInterp=interp1(zRange2,1:length(zRange2),adjusted_z);
     end
@@ -624,25 +597,25 @@ try
     % remake zslice with new zInterp so direction is correct with no
     % repeats
     zslice=repmat(zInterp,1,2*outputRadius2+1,size(Bv,1));
-    
+    %get the centerline indexes corresponding to each frame
     %bound the z at the top by the image size and bottom by the lowest
-    %unique centerline. 
-    zLevels(zLevels<min(ia))=min(ia);
-    zLevels(zLevels>raw_size(3))=raw_size(3);
-    
+    %unique centerline.
+    cl_levels=interp1(ia,1:CL_size(3),zLevels,'linear','extrap');
+    cl_levels(cl_levels<min(ia))=min(ia);
+    cl_levels(cl_levels>CL_size(3))=CL_size(3);
     %interpolate the centerlines X and Y coordinates to get one for each
-    %zLevel. 
-    CL3xinterp=interp1(squeeze(CL2_hi(:,1,:))',zLevels,'linear')';
+    %zLevel.
+    CL3xinterp=interp1(squeeze(CL2_hi(:,1,:))',cl_levels,'linear')';
     CL3xinterp=permute(CL3xinterp,[2,3,1]);
-    CL3yinterp=interp1(squeeze(CL2_hi(:,2,:))',zLevels,'linear')';
+    CL3yinterp=interp1(squeeze(CL2_hi(:,2,:))',cl_levels,'linear')';
     CL3yinterp=permute(CL3yinterp,[2,3,1]);
     
     %interpolate the normal and binormal vector coordinate systems to get
-    %one for each z level. 
-    NvInterpx=interp1(squeeze(Nv(:,1,:))',zLevels,'linear');
-    NvInterpy=interp1(squeeze(Nv(:,2,:))',zLevels,'linear');
-    BvInterpx=interp1(squeeze(Bv(:,1,:))',zLevels,'linear');
-    BvInterpy=interp1(squeeze(Bv(:,2,:))',zLevels,'linear');
+    %one for each z level.
+    NvInterpx=interp1(squeeze(Nv(:,1,:))',cl_levels,'linear');
+    NvInterpy=interp1(squeeze(Nv(:,2,:))',cl_levels,'linear');
+    BvInterpx=interp1(squeeze(Bv(:,1,:))',cl_levels,'linear');
+    BvInterpy=interp1(squeeze(Bv(:,2,:))',cl_levels,'linear');
     
     %build the coordinate systems by first muliplying the J and K space
     %along the N and V vectors, then adding that to the centerline.
@@ -655,11 +628,11 @@ try
         bsxfun(@times,K,permute(BvInterpy,[1,3,2]));
     yslice=bsxfun(@plus, yslice,CL3yinterp);
     
-    %permute transformations so sizes and directions work. 
+    %permute transformations so sizes and directions work.
     xslice=permute(xslice,[3,2,1]);
     yslice=permute(yslice,[3,2,1]);
     zslice=permute(zslice,[3,2,1]);
- 
+    
     % round all transformations
     xslice=round(xslice);yslice=round(yslice);zslice=round(zslice);
     
@@ -711,16 +684,15 @@ try
     Vsmooth=zeros(size(xslice));
     V=Vsmooth;
     % use indexing to apply the straightening transformation on the
-    % smoothed and unsmoothed images. 
+    % smoothed and unsmoothed images.
     Vsmooth(inImageMap)=worm_smooth(inImageMapIdx);
     V(inImageMap)=worm_im(inImageMapIdx);
     imsize=size(V);
-
+    
     %% Correlation align with template image
     
     if ~isempty(Vtemplate)
         Vproj=squeeze(nansum(V,3)); %do z projection
-
         %do cross correlation and look for peak to find offset which
         %maximizes overlap between the template and the current Vproj
         xIm=conv2(Vproj,rot90(Vtemplate,2),'same');
@@ -729,7 +701,11 @@ try
         
     else
         %if no template is given, assume no shifts are required.
-        lags=[0 0];
+        Vproj=squeeze(nanmean(V,3)); %do z projection
+        Vproj=normalizeRange(Vproj);
+        [x,y]=find(Vproj>graythresh(Vproj));
+        lags=[mean(x),mean(y)]-size(Vproj)/2;
+        
     end
     %% apply offsets to the straightened image and all of the transformations
     %make ndgrid for interpolation
@@ -741,7 +717,7 @@ try
     
     % get pixels that are still within the image after the shift that would
     % happen from the correlation alignment
-    %something strange here, 
+    %something strange here,
     inImage=(ndY>0 & ndX>0 &  ndX<=imsize(1) & ndY<=imsize(2));
     inImageIdx=sub2ind_nocheck(...
         imsize,ndX(inImage),ndY(inImage),ndZ(inImage));
@@ -772,11 +748,13 @@ try
     temp2=temp(output_yrange,output_xrange,:);
     Vsmooth=temp2;
     
+    Vproj=squeeze(nanmean(V,3)); %do z projection
+    
     %% segmentation
     imsize=size(V);
-
+    
     V(isnan(V))=0;
-    Vsmooth(isnan(Vsmooth))=0; 
+    Vsmooth(isnan(Vsmooth))=0;
     % option, to use presmoothed version, much faster but may not be a s good
     % do segmentation on straightened worm
     [wormBW2,~]=WormSegmentHessian3dStraighten(V,options,Vsmooth);
@@ -785,7 +763,7 @@ try
     % stack, we want to remove this. This will be done by projecting along
     % the x and y of the image mask to get a plot of number of pixels vs Z.
     % We expect to find a peak in the number of pixels close to the ends of
-    % the stack. 
+    % the stack.
     
     %project along x and y
     BWplot=(squeeze(sum(sum(wormBW2,1),2)));
@@ -811,7 +789,7 @@ try
     if isempty(botpoint2);botpoint2=imsize(3);end;
     botpoint2=botpoint2(end);
     % if the troughs founds are more than a quarter away from the edges,
-    % then there probably isnt any noise artifact at the edges, so move 
+    % then there probably isnt any noise artifact at the edges, so move
     botpoint1(botpoint1>imsize(3)*1/4)=1;
     botpoint2(botpoint2<imsize(3)*3/4)=imsize(3);
     
@@ -820,14 +798,14 @@ try
     
     %kill of objects that touch the deletion zone
     %function that take linear pixel idx and returns Z
-    zindexer=@(x,s) x./(s)+1; 
+    zindexer=@(x,s) x./(s)+1;
     %apply zindexer to each of the objects from bwconncomp
     objectZ=cellfun(@(x) zindexer(x,imsize(1)*imsize(2)),cc.PixelIdxList...
         ,'uniformoutput',0);
     
     %label objects as bad if theh touch the deletion zones
-    badRegions_bot=cellfun(@(x) any(objectZ<=botpoint1),objectZ);
-    badRegions_top=cellfun(@(x) any(objectZ>=botpoint2),objectZ);
+    badRegions_bot=cellfun(@(x) any(x<=botpoint1),objectZ);
+    badRegions_top=cellfun(@(x) any(x>=botpoint2),objectZ);
     badRegions=(badRegions_bot | badRegions_top)';
     
     % remove bad objects by setting all their pixels to false
@@ -841,7 +819,7 @@ try
     %many hundreds of points. this is bad, just blank everything if this
     %happens
     cc=bwconncomp(wormBW2,6);
-
+    
     if cc.NumObjects<200
         %get results from binary mask using region props
         stats=regionprops(cc,V,'Centroid','MeanIntensity',...
@@ -857,7 +835,7 @@ try
         %get roi volumes
         Areas=[stats.Area]';
         %centroids from unstraightened coordinate system using
-        %interpolation. 
+        %interpolation.
         Poriginal=[interp3(xslice,P(:,2),P(:,1),P(:,3)) ...
             interp3(yslice,P(:,2),P(:,1),P(:,3)) ...
             interp3(zslice,P(:,2),P(:,1),P(:,3))];
@@ -886,7 +864,7 @@ try
     pointStats.transformx=uint16(xslice);
     pointStats.transformy=uint16(yslice);
     pointStats.transformz=uint16(zslice);
-
+    
     
     %% save results
     %set up paths for saving
@@ -906,7 +884,7 @@ try
     tiffwrite(image_destination,single(V),'tif');
     % save pointStats into mat file
     save(mat_destination,'pointStats');
-
+    
     fclose(Fid);
 catch me
     %if an error occurs, display the error and save the entire workspace
