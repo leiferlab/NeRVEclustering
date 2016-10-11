@@ -1,3 +1,6 @@
 [submodule "MindControlAccessUtils"]
 	path = MindControlAccessUtils
 	url = https://github.com/leiferlab/MindControlAccessUtils.git
+[submodule "CenterlineTracking"]
+	path = CenterlineTracking
+	url = https://github.com/leiferlab/CenterlineTracking.git
