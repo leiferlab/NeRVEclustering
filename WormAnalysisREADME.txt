@@ -10,23 +10,39 @@ QUICK SUMMARY
 All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs.
 
 STEP 0: TIMING SYNCHRONIZATION FOR VIDEOS
-	submitWormFlashFinder.py
+	Python submission code:
+		submitWormFlashFinder.py
+	Matlab analysis code:
 		highResTimeTraceAnalysisTriangle4.m
 		multipleAVIFlash.m
+
 STEP 1: WORM CENTERLINE DETECTION
-	initializeCLWorkspace.m (done locally for centerline initialization)
-	submitWormAnalysisCenterline.py
+	initializeCLWorkspace.m (done locally for manual centerline initialization)
+	Python submission code:
+		submitWormAnalysisCenterline.py
+	Matlab analysis code:
 		clusterWormCenterline.m
+
+	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by AL to manually adjust centerlines
+
 STEP 2: STRAIGHTEN AND SEGMENTATION
-	submitWormStraightening.py
+	Python submission code:
+		submitWormStraightening.py
+	Matlab analysis code:
 		clusterStraightenStart.m
 		clusterWormStraightening.m
+
 STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
-	submitWormAnalysisPipelineFull.py
+	Python submission code:
+		submitWormAnalysisPipelineFull.py
+	Matlab analysis code:
 		clusterWormTracker.m
 		clusterWormTrackCompiler.m
+
 STEP 4: ERROR CORRECTION
-	submitWormAnalysisPipelineFull.py
+	Python submission code:
+		submitWormAnalysisPipelineFull.py
+	Matlab analysis code:
 		clusterBotChecker.m
 		clusterBotCheckCompiler.
 	
