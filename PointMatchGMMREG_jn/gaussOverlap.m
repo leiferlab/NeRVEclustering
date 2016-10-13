@@ -11,7 +11,7 @@ function  [f, g]= gaussOverlap(A,B,scales,peaks,limit)
 %exactly. Speed is now slightly faster than mex_GaussTransform
 
 % inputs:   A pointset of scene, If A is n*3, scales and peaks are
-% specified sepearately. if A is n*4, the 4th D is the scales, if A is n*5,
+% specified sepearately in inputs. if A is n*4, the 4th D is the scales, if A is n*5,
 % 5th D is the peaks 
 %           B pointset of model, same format as A;
 %           scale is the variances of each point. if it is scalar, all
@@ -79,12 +79,6 @@ expMat(dmat2>limit.^2)=0;
 end
     f=sum(expMat(:));
 
-% fmatx=(1./(2*pi*varMat)).*expMat.*2.*dmatx;
-% fmaty=(1./(2*pi*varMat)).*expMat.*2.*dmaty;
-% fmatz=(1./(2*pi*varMat)).*expMat.*2.*dmatz;
-% fmatx=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,1);
-% fmaty=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,2);
-% fmatz=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,3);
 expMat2=-(4./(varMat)).*expMat;
 fmat=bsxfun(@times,expMat2,dmatAll);
 g=reshape(sum(fmat,2),Apoints,3);

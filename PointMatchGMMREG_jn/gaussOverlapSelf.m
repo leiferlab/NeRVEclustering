@@ -81,12 +81,6 @@ expMat(dmat2>limit.^2)=0;
 end
     f=sum(expMat(:));
 
-% fmatx=(1./(2*pi*varMat)).*expMat.*2.*dmatx;
-% fmaty=(1./(2*pi*varMat)).*expMat.*2.*dmaty;
-% fmatz=(1./(2*pi*varMat)).*expMat.*2.*dmatz;
-% fmatx=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,1);
-% fmaty=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,2);
-% fmatz=-(1./(varMat)).*expMat.*4.*dmatAll(:,:,3);
 expMat2=-(4./(varMat)).*expMat;
 fmat=bsxfun(@times,expMat2,dmatAll);
 g=reshape(sum(fmat,2),Apoints,3);

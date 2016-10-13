@@ -14,3 +14,9 @@ See the website at
 for the source code and references to the relevant papers describing the methods.
 
 For any questions, please contact bing.jian@gmail.com
+
+
+%%%% MODIFIED BY JN 20160301
+changed how distances were calculated using pdist to find distances between points, matlab is now fast enough that mex files are not needed.
+
+gaussOverlapSelf.m - Changed distance calculations between point sets to include information from amplitude and std of gaussians so the gaussians better represent the image of the neurons. 
