@@ -1,4 +1,4 @@
-function clusterWormStraigthening(dataFolder,nStart,nRange)
+function clusterWormStraightening(dataFolder,nStart,nRange)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % calls worm straightening code if a startWorkspace.mat file is already
