@@ -93,9 +93,9 @@ CameraFrameData.txt - 	Metadata from each grabbed frame for HiMag  images, saved
 
 
 alignments.mat -matlab structure with fields containing the affine transforms for image alignment. Alignments created using the createAlignment.m program: The file has the following fields
-lowResFluor2BF	- affine transform between low magnification fluorescent and behavior images
-S2AHiRes	- affine transformation between the RFP channel and the Gcamp6s channel of the hi magnification image along the the cropping rectangles for each of them.
-Hi2LowResFluor	- affine transformation between the RFP hi magnification image (before cropping) and the hi magnification fluorescent images
+	lowResFluor2BF	- affine transform between low magnification fluorescent and behavior images
+	S2AHiRes	- affine transformation between the RFP channel and the Gcamp6s channel of the hi magnification image along the the cropping rectangles for each of them.
+	Hi2LowResFluor	- affine transformation between the RFP hi magnification image (before cropping) and the hi magnification fluorescent images
 
 
 
