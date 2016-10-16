@@ -82,16 +82,44 @@ else
 end
 
 
-%% set up low magvideos
-%import textdata
-camdata=importdata([ dataFolder  filesep 'camData.txt']);
-%get timing of each frames
-time=camdata.data(:,2);
-%setup paths to movies
-fluormovie=[dataFolder filesep 'cam0.avi'];
-behaviormovie=[dataFolder filesep 'cam1.avi'];
-%get movie length
-nframes=length(camdata.data);
+%% set up low magvideos, we've changed the way we save data, the older version
+%includes a HUDS avi file and yaml files for metadata
+
+aviFiles=dir([dataFolder filesep '*.avi']);
+aviFiles={aviFiles.name}';
+HUDFiles=aviFiles(cellfun(@(x) ~isempty(strfind(x,'HUDS')),aviFiles));
+oldFlag=length(HUDFiles);
+
+if ~oldFlag
+    
+    %import textdata
+    camdata=importdata([ dataFolder  filesep 'camData.txt']);
+    %get timing of each frames
+    time=camdata.data(:,2);
+    %setup paths to movies
+    fluormovie=[dataFolder filesep 'cam0.avi'];
+    behaviormovie=[dataFolder filesep 'cam1.avi'];
+    %get movie length
+    nframes=length(camdata.data);
+    bf2fluor_lookup=[];
+else
+    aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
+    aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
+    behaviormovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
+    fluormovie=[dataFolder filesep aviFiles{aviFluorIdx}];
+     %% set up timing alignments and lookups
+
+    %get timing sync for old data movies, folders were hard saved at
+    %1200x600
+    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[1200 600]);
+    nframes=length(bfAll.frameTime);
+    fluorIdxList=1:length(fluorAll.frameTime);
+    bf2fluor_lookup=interp1(fluorAll.frameTime,fluorIdxList,bfAll.frameTime,'linear');
+    
+end
+
+
+
 %initialize video objects
 behavior_vidobj = VideoReader(behaviormovie);
 fluor_vidobj= VideoReader(fluormovie);
@@ -105,8 +133,8 @@ fluor_vidobj= VideoReader(fluormovie);
 nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
 bfCell_i=cell(nCells,1);
 clStartI=cell(nCells+1,1);
-display(['Click the points of the centerline starting at the head. When '
-        'you are done, double click the last point.']);
+display(['Click the points of the centerline starting at the head. When '...
+    'you are done, double click the last point.']);
 
 for ichunk=1:nCells+1
     %get bounds for each chunk
@@ -116,7 +144,7 @@ for ichunk=1:nCells+1
     BFFrameRaw = read(behavior_vidobj,lowframe);
     %select centerline points
     display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1)]);
-    fig=imagesc(BFFrameRaw);
+    imagesc(BFFrameRaw);
     [xpts,ypts]=getpts();
     clStartI{ichunk}=[xpts,ypts];
     pause(.3)
@@ -178,12 +206,15 @@ frame_zscore=colNanFill(score(:,1));
 frame_zscore=frame_zscore-conv(frame_zscore,smoothkernal,'same');
 %remove flashes
 frame_zscore(flash_loc)=nan;
+frame_zscore=frame_zscore/nanstd(frame_zscore);
 
-%get the quantil each frame falls in, 
+%remove outliers for better quantiles
+frame_zscore(abs(frame_zscore)>4)=nan;
+%get the quantil each frame falls in,
 boundaryI=quantile(frame_zscore,10);
 frame_bg_lvl=sum(bsxfun(@le,frame_zscore,boundaryI),2);
 frame_bg_lvl=frame_bg_lvl+1;
-frame_bg_list=unique(frame_zscore);
+frame_bg_list=unique(frame_bg_lvl);
 frame_bg_list=frame_bg_list(~isnan(frame_bg_list));
 
 %% calculate multiple background lvls for BF
@@ -194,7 +225,7 @@ parfor_progress(nframes);
 %parfor loop over different background levels and calculate the mean image.
 %
 parfor i_bg=1:length(frame_bg_list);
-    time_list=find(frame_zscore==frame_bg_list(i_bg));
+    time_list=find(frame_bg_lvl==frame_bg_list(i_bg));
     fluor=zeros(bf_imsize);
     behavior_vidobj_par = VideoReader(behaviormovie);
     
@@ -203,16 +234,17 @@ parfor i_bg=1:length(frame_bg_list);
         currentTime=time_list(i_time);
         bf_frame = read(behavior_vidobj_par,currentTime);
         fluor=fluor+double(bf_frame(:,:,1));
-        parfor_progress
+        parfor_progress;
     end
-    %calculate average. 
+    %calculate average.
     mean_bf_all(:,:,i_bg)=(fluor/length(time_list));
 end
+display('finished!')
 
 %% calculate  background for fluor
 progressbar(0);
 fluor_stack=0;
-skip=10; %don't need to do every frame, only do 1 every skip. 
+skip=10; %don't need to do every frame, only do 1 every skip.
 counter=0;
 for itime=1:skip:nframes;
     progressbar(itime/nframes);
@@ -224,7 +256,7 @@ for itime=1:skip:nframes;
 end
 progressbar(1);
 fluor_stack_proj=(fluor_stack/counter);
-%% pick a region around the head to cut out. 
+%% pick a region around the head to cut out.
 %cut out the head and reinperpolate in to get a background without the
 %brain
 display('Select an ROI around the bright brain region')
@@ -236,6 +268,7 @@ f_background=fluor_stack_proj;
 f_background(head_rectangle)=nan;
 f_background=inpaint_nans(f_background);
 imagesc(f_background);
+hold off
 %% pick a region around the head to cut out, now for behavior
 %cut out the head and reinperpolate in to get a background without the
 %brain
@@ -252,7 +285,7 @@ for iZ=1:size(mean_bf_all,3);
 end
 meanBfBW=mean_bf_all>90; %flip signs in bright area
 imagesc(mean(mean_bf_all,3));
-%% make filter background, might not be used yet. 
+%% make filter background, might not be used yet.
 mean_bf_all_filtered=mean_bf_all;
 for iZ=1:size(mean_bf_all_filtered,3);
     temp=mean_bf_all_filtered(:,:,iZ);
@@ -261,7 +294,7 @@ for iZ=1:size(mean_bf_all_filtered,3);
 end
 
 %%
-% flip the bfcell and interleave so that each cell is repeated once 
+% flip the bfcell and interleave so that each cell is repeated once
 %forward, once back
 
 bfCellRev=cellfun(@(x) fliplr(x), bfCell_i, 'uniform',0);
@@ -277,6 +310,7 @@ save([dataFolder filesep 'CLworkspace'],...
     'initial_cl',...
     'flash_loc_idx',...
     'frame_bg_lvl',...
-    'cline_para');
+    'cline_para',...
+    'bf2fluor_lookup');
 
 

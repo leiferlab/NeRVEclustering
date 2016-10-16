@@ -19,19 +19,23 @@ GAUSSFILTER2=fspecial('gaussian',50,15);
 cm_fluor=[26 26];
 sdev_nhood=getnhood(strel('disk',5));
 
-%% select files video files and load avi files
-d= dir([dataFolder filesep 'LowMagBrain*']);
-aviFolder=[dataFolder filesep d(1).name];
-display(aviFolder);
-fluor_movie_file=[aviFolder filesep 'cam0.avi'];
-behavior_movie_file=[aviFolder filesep 'cam1.avi'];
-behavior_vidobj = VideoReader(behavior_movie_file);
-fluor_vidobj= VideoReader(fluor_movie_file);
 
 %% load eigenworms and set as global
 eigbasis=load('eigenWorms_full.mat');
 eigbasis=eigbasis.eigvecs;
 setappdata(0,'eigbasis',eigbasis);
+
+%% get folders that have the avi files
+%Lowmag folder only exist for new set
+d= dir([dataFolder filesep 'LowMagBrain*']);
+if isempty(d)
+    %for old
+    aviFolder=dataFolder;
+else
+    %for new
+    aviFolder=[dataFolder filesep d(1).name];
+end
+display(aviFolder);
 
 %% load initial variables from CLworkspace
 workSpaceFile=[aviFolder filesep 'CLworkspace.mat'];
@@ -43,13 +47,32 @@ initial_cl=CLworkspace.initial_cl; % initial_cl clStart
 flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
 frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
 cline_para=CLworkspace.cline_para;
-
+bf2fluor_lookup=CLworkspace.bf2fluor_lookup; %for old setup of avi files
 refIdx=cline_para.refIdx;
 cline_para.showFlag=00;
 
 framelist=bf_list_cell{iCell};
 cl_all=zeros(100,2,length(framelist)); %cl_all CLall
-cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll 
+cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll
+
+
+%% select files video files and load avi files
+if isempty(bf2fluor_lookup)
+    %for the newer setup, avi files are in seperate folder
+    fluor_movie_file=[aviFolder filesep 'cam0.avi'];
+    behavior_movie_file=[aviFolder filesep 'cam1.avi'];
+else
+    %for older setup
+    aviFiles=dir([aviFolder filesep '*.avi']);
+    aviFiles={aviFiles.name}';
+    aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
+    aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
+    behavior_movie_file=[aviFolder filesep aviFiles{~aviFluorIdx}];
+    fluor_movie_file=[aviFolder filesep aviFiles{aviFluorIdx}];
+end
+
+behavior_vidobj = VideoReader(behavior_movie_file);
+fluor_vidobj= VideoReader(fluor_movie_file);
 
 %% create output folder
 outputFolder=[aviFolder filesep 'CL_files'];
@@ -59,7 +82,7 @@ end
 
 
 %% load alignments
-alignments=load([dataFolder filesep 'alignments']);
+alignments=load([aviFolder filesep 'alignments']);
 alignments=alignments.alignments;
 lowResFluor2BF=alignments.lowResFluor2BF;
 
@@ -70,13 +93,12 @@ for iframe=1:length(framelist);
     itime=framelist(iframe);
     tic
     try
-        
         if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc_idx==itime) && itime>=1
             %% filter behavior images
             bf_frame_raw = read(behavior_vidobj,itime,'native');
-            bf_frame_raw=double(bf_frame_raw.cdata);
+            bf_frame_raw=double(bf_frame_raw(:,:,1));
             background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
-            %scale background for best match before subtraction. 
+            %scale background for best match before subtraction.
             c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
             bf_frame_raw=bf_frame_raw-background_raw*c;
             
@@ -88,10 +110,23 @@ for iframe=1:length(framelist);
             bf_frame(bfstdthresh)=abs(bf_frame(bfstdthresh));
             bf_frame_std=bpass((bf_frame_std),1,80);
             bf_frame=normalizeRange(bpass(bf_frame,4,80));
-
+            
             %% filter fluor images
-            fluor_frame_raw=read(fluor_vidobj,itime,'native');
-            fluor_frame_raw=double(fluor_frame_raw.cdata)-f_background;
+            % this is empty for new setup, not empty for old
+            if ~isempty(bf2fluor_lookup)
+                fluor_time=round(bf2fluor_lookup(itime));
+                %band aid solution for if time's dont align well (behavior starts
+                %after fluor), this doesnt happen for new setup
+                if isnan(fluor_time) || fluor_time<1;
+                    fluor_time=1;
+                end
+            else
+                fluor_time= itime;
+            end
+            
+            %% load fluorescent images
+            fluor_frame_raw=read(fluor_vidobj,fluor_time,'native');
+            fluor_frame_raw=double(fluor_frame_raw(:,:,1))-f_background;
             fluor_frame_raw(fluor_frame_raw<0)=0;
             fluor_frame=fluor_frame_raw;
             fluor_frame=bpass(fluor_frame,1,40);
@@ -125,14 +160,14 @@ for iframe=1:length(framelist);
             bfFrameLTmask=bfFrameMask & tip_image<bf_frame_std;
             tip_image(bfFrameLTmask)=bf_frame_std(bfFrameLTmask);
             %% fit centerlines using previous centerline as starting point
-            %ActiveContourFit_wormRef4 does all the work. 
+            %ActiveContourFit_wormRef4 does all the work.
             if STARTFLAG
                 % for first round, just load up initialized CL points as
                 % past frame
                 cl_old=initial_cl{iCell};
                 cl_old=distanceInterp(cl_old,100);
                 [cl,Is]=ActiveContourFit_wormRef4(...
-                inputImage,tip_image, cline_para, cl_old,refIdx,cm);
+                    inputImage,tip_image, cline_para, cl_old,refIdx,cm);
                 STARTFLAG=0;
             else
                 oldTime=iframe-1;
@@ -144,7 +179,7 @@ for iframe=1:length(framelist);
                     inputImage,tip_image, cline_para, cl_old,refIdx,cm);
             end
             
-            %plot some of the results
+            %% plot some of the results if show2 is 1
             if ~mod(itime,show2)
                 subplot(1,2,1)
                 imagesc(bf_frame);
@@ -165,11 +200,12 @@ for iframe=1:length(framelist);
                 drawnow
             end
             
-            %reinterpolate to 100 points
+            %% reinterpolate to 100 points
             cl=distanceInterp(cl,100);
             cl_all(:,:,iframe)=cl;
             cl_intensities(:,iframe)=Is;
         else
+            %if theres a frame error, reuse the previous frame's CL. 
             cl_all(:,:,iframe)=cl_all(:,:,iframe-1);
             cl_intensities(:,iframe)=cl_intensities(:,iframe-1);
         end
@@ -179,11 +215,11 @@ for iframe=1:length(framelist);
         %if error, print error, reuse previous centerline
         display(['error frame ' num2str(itime) ', cell ' num2str(iCell)])
         if cline_para.showFlag==0 && show2==0
-        me
+            me
         end
         if iframe>1
-           cl_all(:,:,iframe)=cl_all(:,:,iframe-1);
-           cl_intensities(:,iframe)=cl_intensities(:,iframe-1);
+            cl_all(:,:,iframe)=cl_all(:,:,iframe-1);
+            cl_intensities(:,iframe)=cl_intensities(:,iframe-1);
         else
             %if this is the first frame of the list, zero the outputs
             cl_old=initial_cl{iCell};
@@ -192,8 +228,8 @@ for iframe=1:length(framelist);
             cl_intensities(:,iframe)=0;
         end
         
-            
-      
+        
+        
     end
 end
 %% save output
