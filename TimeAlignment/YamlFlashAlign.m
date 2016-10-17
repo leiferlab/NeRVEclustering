@@ -62,7 +62,7 @@ end
 
 bits=[flashes,fluors,yamls];
 caseNumber=bi2de(fliplr(bits));
-
+%%
 for iMat=1:length(matName)
     switch caseNumber(iMat);
         case 4

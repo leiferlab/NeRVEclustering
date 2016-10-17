@@ -72,7 +72,10 @@ aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
 d= dir([dataFolder filesep 'LowMagBrain*']);
 if ~isempty(d)
     aviFolder=[dataFolder filesep d(1).name];
+else
+    aviFolder=dataFolder;
 end
+
 if length(aviFiles)==2
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
     fluorMovie=[dataFolder filesep aviFiles{aviFluorIdx}];
@@ -166,9 +169,11 @@ try
     pixelValues=fread(Fid,nPix*(length(hiResIdx)),'uint16',0,'l');
     hiResImage=reshape(pixelValues,rows,cols,length(hiResIdx));
     %subtract background
-    
-    hiResImage=bsxfun(@minus, hiResImage,alignments.background);
-    
+    if isfield(alignments,'background') && numel(alignments.background)>1
+        hiResImage=bsxfun(@minus, hiResImage,alignments.background);
+    else
+        hiResImage=pedistalSubtract(hiResImage);
+    end
     %% crop and align hi mag images
     worm_im=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
     raw_size=size(worm_im);

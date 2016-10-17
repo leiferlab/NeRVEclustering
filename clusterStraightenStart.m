@@ -80,7 +80,7 @@ tic
         
 %we need these of the outputs to save for the cluster straightening
 
-display(['Finished image ' num2str(startStack,'%3.5d') ' in ' num2str(toc) 's'])
+display(['Finished image ' num2str(test_frame,'%3.5d') ' in ' num2str(toc) 's'])
 %save initial workspace from first sample for later use
 save([dataFolder filesep 'startWorkspace'],...
     'destination', 'Vtemplate', 'zOffset', 'side','vidInfo')
