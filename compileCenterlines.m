@@ -1,12 +1,26 @@
 
 function compileCenterlines(dataFolder)
 
-% compileCenterlines works on a dataFolder, find the CLfiles created but
+% compileCenterlines works on a dataFolder, find the CLfiles created by
 % clusterWormCenterlines, bundles them and calculates the eigenworm
-% projections, and centerlines
+% projections, and centerlines. The centerlines are produced with a forward
+% pass and a back pass. The program attempts to pick out the best one. The
+% input is the dataFolder being analyzed that contains the dat file. 
+
+
+%% get folders that have the avi files
+%Lowmag folder only exist for new set
 d= dir([dataFolder filesep 'LowMagBrain*']);
-aviFolder=[dataFolder filesep d(1).name];
+if isempty(d)
+    %for old
+    aviFolder=dataFolder;
+else
+    %for new
+    aviFolder=[dataFolder filesep d(1).name];
+end
+
 display(aviFolder)
+%% load CL files
 outputFolder=[aviFolder filesep 'CL_files'];
 CLfiles=dir([outputFolder filesep  'CL*']);
 nCells=16;
@@ -16,63 +30,74 @@ CL_I=cell(1,2*nCells);
 for iFile=1:length(CLfiles)
     CLdata=load([outputFolder filesep CLfiles(iFile).name]);
     CLpos=str2double(CLfiles(iFile).name(4:5));
-    CLcell{CLpos}=CLdata.CLall;
-    CL_I{CLpos}=CLdata.IsAll;
+    %load all CL coordinates from each job
+    CLcell{CLpos}=CLdata.cl_all;
+    %load all CL pixel intensities from each job
+    CL_I{CLpos}=CLdata.cl_intensities;
 end
 
 
 %%
-CL_Lenght_Fun=@(x)  squeeze(sum(sqrt(sum(diff(x).^2,2))))';
+%make simple length function 
+CL_Lenghth_Fun=@(x)  squeeze(sum(sqrt(sum(diff(x,2).^2,2))))';
 
+%reorganize data to 2x16 cell array, with 1x16 forward, 1x16 backward
 CLcell_2=reshape(CLcell,2,nCells);
 CL_I_2=reshape(CL_I,2,nCells);
-
+%permute matrix dimensions for ease.
 CLcell_2(2,:)=cellfun(@(x) flipdim(x,3),CLcell_2(2,:),'uniform',0);
 CL_I_2(2,:)=cellfun(@(x) flipdim(x,3),CL_I_2(2,:),'uniform',0);
 
-%fill in missing
+%fill in missing jobs with complete job for that cell (replace forward with
+%back and vice versa as needed)
 isMissing=cellfun(@(x) isempty(x), CL_I_2);
 replace=circshift(isMissing,[1,0]);
 CLcell_2(isMissing)=CLcell_2(replace);
 CL_I_2(isMissing)=CL_I_2(replace);
 
-
+%convert intensities to matrix.
 CL_Iall=cell2mat(CL_I_2(:)');
 
-%%
+%% try to determine some measure of how good the CL works
+%check intensities
+%get mean intensities of pixels above some threshold
 CL_bright_check=mean(CL_Iall>graythresh(CL_Iall));
 CL_Iavg=trimmean(CL_Iall(:,CL_bright_check>.4),30,2);
 
+%get mean subtracted intensities
 CL_Isum=cellfun(@(x) sum(bsxfun(@minus,x,CL_Iavg).^2), CL_I_2,'uniform',0);
-CL_Csum=cellfun(@(x) squeeze(sum(sqrt(sum((diff(x,2)).^2,2)),1))',CLcell_2,'uniform',0);
+%get lengths of each CL
+CL_length=cellfun(@(x) CL_Lenghth_Fun(x),CLcell_2,'uniform',0);
+%weight for worms that arent too long, and arent too bright (might be
+%refelction, subjecto to change)
 CL_Isum=cell2mat(CL_Isum);
-CL_Csum=cell2mat(CL_Csum);
-CL_Isum=CL_Isum+CL_Csum/2;
-% CL_Isum(1,:)=smooth(CL_Isum(1,:),300);
-% CL_Isum(2,:)=smooth(CL_Isum(2,:),300);
-[~,idx]=min(CL_Isum);
+CL_Csum=cell2mat(CL_length);
+CL_Isum=CL_Isum+CL_Csum/100;
 
-CL_length=cellfun(@(x) CL_Lenght_Fun(x),CLcell_2,'uniform',0);
-CL_length=cell2mat(CL_length);
-% centerline lengths for forward fitting and backward fitting
+%% pick out centerlines that look better
+
+%organise matrices
 CL_f=cell2mat(permute(CLcell_2(1,:),[1 3 2]));
 CL_b=cell2mat(permute(CLcell_2(2,:),[1 3 2]));
 CL_If=cell2mat(CL_I_2(1,:));
 CL_Ib=cell2mat(CL_I_2(2,:));
 CL_Iout=CL_If;
 CL=CL_f;
+
+%take only parts of CL's we like
+[~,idx]=min(CL_Isum);
 CL(:,:,idx==2)=CL_b(:,:,idx==2);
 CL_Iout(:,idx==2)=CL_Ib(:,idx==2);
 
-NFrames=size(CL_Iout,2);
 %% save the data
 centerline=CL;
 centerline=flip(centerline,2);
 save([dataFolder filesep 'centerline_jn3'],'centerline');
+%save forward CL
 centerline=CL_f;
 centerline=flip(centerline,2);
-
 save([dataFolder filesep 'centerline_jnf'],'centerline');
+%save reverse CL
 centerline=CL_b;
 centerline=flip(centerline,2);
 save([dataFolder filesep 'centerline_jnb'],'centerline');

@@ -166,6 +166,7 @@ try
     pixelValues=fread(Fid,nPix*(length(hiResIdx)),'uint16',0,'l');
     hiResImage=reshape(pixelValues,rows,cols,length(hiResIdx));
     %subtract background
+    
     hiResImage=bsxfun(@minus, hiResImage,alignments.background);
     
     %% crop and align hi mag images

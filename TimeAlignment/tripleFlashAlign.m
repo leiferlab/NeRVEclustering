@@ -10,11 +10,11 @@ dataFolder=dataFolder{1};
 end
 
 
-%get data from low yamls
+%get data from low yamls(old) or avi metadata text file (new)
 if isempty(dir([dataFolder filesep '*.yaml']))
-[bf2fluorIdx,fluorAll,bfAll]=AviFlashAlign(dataFolder);
+[~,fluorAll,bfAll]=AviFlashAlign(dataFolder);
 else
-    [bf2fluorIdx,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
+    [~,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
 end
 
 if exist([dataFolder filesep 'hiResData.mat'],'file')

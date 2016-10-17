@@ -11,7 +11,8 @@ function clusterStraightenStart(dataFolder)
 
 
 
-%which volume to do for initial
+%which volume to do for initial, not too close to begining because start
+%might not have all video feeds tracking properly
 counter=300; 
 %% bundle timing data
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
@@ -34,6 +35,8 @@ stack2fluoridx=fluorIdxLookup(diff(hiResData.stackIdx)==1);
 topLimit=min(max(hiResData.stackIdx),length(stack2BFidx));
 BF2stackIdx=interp1(stack2BFidx,1:topLimit,bfIdxList,'nearest');
 fluor2stackIdx=interp1(stack2fluoridx,1:topLimit,fluorIdxList,'nearest');
+
+
 %% load find the first frame with every video in it
 [~, CLoffset]=loadCLBehavior(dataFolder);
 first_frame=max([min(BF2stackIdx(CLoffset+1)) min(fluor2stackIdx)])+1;
@@ -46,6 +49,11 @@ test_frame=first_frame+counter;
 alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
 
+% deal with missing backgrounds
+if ~isfield(alignments,'background');
+    alignments.background=0;
+    save([dataFolder filesep 'alignments'],'alignments');
+end
 
 %% calculate offset between frame position and zposition
 zWave=hiResData.Z;
