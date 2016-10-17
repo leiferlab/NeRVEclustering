@@ -19,43 +19,43 @@ fluors=cellfun(@(x) ~isempty(x), fluors)';
 flashes=regexpi(matName','flash');
 flashes=cellfun(@(x) ~isempty(x), flashes)';
 
-if length(yamls)<2 ||length(flashes)<2
+if sum(yamls)<2 ||sum(flashes)<2
     dyamls=dir([dataFolder filesep '*.yaml']);
-if isempty(dyamls)
-   if length( yamls)<2
-    display('Select Yaml Files');
-yamlFiles=uipickfiles('filterspec', dataFolder);
-   end
-else
-    yamlFiles={dyamls.name};
-    yamlFiles=cellfun(@(x) [dataFolder filesep x],yamlFiles,'uniform',0);
-end
-davis=dir([dataFolder filesep '*.avi']);
-davis={davis.name};
-davis=davis(cellfun(@(x) isempty(strfind(x, 'HUDS')),davis));
-if isempty(davis)
-if length(flashes)<2
-display('Select avi files');
-aviFiles=uipickfiles('filterspec', dataFolder);
-end
-else
-    aviFiles=davis;
-    aviFiles=cellfun(@(x) [dataFolder filesep x],aviFiles,'uniform',0);
-
-end
-
-findFlash(aviFiles);
-makeMatFileFromYaml(yamlFiles);
-
-dd=dir([dataFolder filesep '*.mat']);
-matName={dd.name}';
-yamls=regexpi(matName','yaml');
-yamls=cellfun(@(x) ~isempty(x), yamls)';
-fluors=regexpi(matName','fluor');
-fluors=cellfun(@(x) ~isempty(x), fluors)';
-flashes=regexpi(matName','flash');
-flashes=cellfun(@(x) ~isempty(x), flashes)';
-
+    if isempty(dyamls)
+        if length( yamls)<2
+            display('Select Yaml Files');
+            yamlFiles=uipickfiles('filterspec', dataFolder);
+        end
+    else
+        yamlFiles={dyamls.name};
+        yamlFiles=cellfun(@(x) [dataFolder filesep x],yamlFiles,'uniform',0);
+    end
+    davis=dir([dataFolder filesep '*.avi']);
+    davis={davis.name};
+    davis=davis(cellfun(@(x) isempty(strfind(x, 'HUDS')),davis));
+    if isempty(davis)
+        if length(flashes)<2
+            display('Select avi files');
+            aviFiles=uipickfiles('filterspec', dataFolder);
+        end
+    else
+        aviFiles=davis;
+        aviFiles=cellfun(@(x) [dataFolder filesep x],aviFiles,'uniform',0);
+        
+    end
+    
+    findFlash(aviFiles);
+    makeMatFileFromYaml(yamlFiles);
+    
+    dd=dir([dataFolder filesep '*.mat']);
+    matName={dd.name}';
+    yamls=regexpi(matName','yaml');
+    yamls=cellfun(@(x) ~isempty(x), yamls)';
+    fluors=regexpi(matName','fluor');
+    fluors=cellfun(@(x) ~isempty(x), fluors)';
+    flashes=regexpi(matName','flash');
+    flashes=cellfun(@(x) ~isempty(x), flashes)';
+    
 end
 
 
@@ -74,7 +74,7 @@ for iMat=1:length(matName)
             fluorFlash=load([dataFolder filesep matName{iMat}]);
             fluorFlash=fluorFlash.imFlash;
             fluorFlash=fluorFlash-smooth(fluorFlash,200)';
-
+            
         case 3
             fluorYaml=load([dataFolder filesep matName{iMat}]);
             fluorYaml=fluorYaml.mcdf;
@@ -107,13 +107,13 @@ fluorFlashTime=fluorFrameTime(fluorFlashloc);
 bfFlashInterval=diff(bfFlashTime);
 fluorFlashInterval=diff(fluorFlashTime);
 if ~isempty(fluorFlashInterval) && ~isempty(bfFlashInterval)
-intervalDif=pdist2(bfFlashInterval,fluorFlashInterval);
-
-[min1,min2]=find(intervalDif==min(intervalDif(:)));
-timeDif=bfFlashTime(min1)-fluorFlashTime(min2);
-
+    intervalDif=pdist2(bfFlashInterval,fluorFlashInterval);
+    
+    [min1,min2]=find(intervalDif==min(intervalDif(:)));
+    timeDif=bfFlashTime(min1)-fluorFlashTime(min2);
+    
 else
-timeDif=bfFlashTime(1)-fluorFlashTime(1);
+    timeDif=bfFlashTime(1)-fluorFlashTime(1);
 end
 fluorFrameTime=fluorFrameTime+timeDif;
 
