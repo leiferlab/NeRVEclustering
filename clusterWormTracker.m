@@ -156,7 +156,7 @@ for iCounter=1:doGroups
             trackInput_t1=[...
                 T1temp T1temp  (1:length_P1)'  ones(length_P1,1)];
             trackInput_t2=[...
-                T2_trans(:,1:3) T2temp  (1:length_P2)' 2*ones(length_P1,1)];
+                T2_trans(:,1:3) T2temp  (1:length_P2)' 2*ones(length_P2,1)];
             
             trackInput=[trackInput_t1;trackInput_t2];
             %loop through each cluster and do tracking
