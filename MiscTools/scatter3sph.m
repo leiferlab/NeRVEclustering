@@ -1,4 +1,4 @@
-function scatter3sph(X,Y,Z,varargin)
+function h=scatter3sph(X,Y,Z,varargin)
 %SCATTER3SPH (X,Y,Z) Makes a 3d scatter plot with 3D spheres
 %	SCATTER3SPH is like scatter3 only drawing spheres instead
 %		of flat circles, at coordinates specified by vectors X, Y, Z. All three
@@ -38,6 +38,7 @@ C= ones(length(X),1)*[0 0 1];
 S= 0.1*max([X;Y;Z])*ones(length(X),1);
 nfacets= 15;
 transp= 0.5;
+hand=gca;
 
 
 %-- Extract optional arguments
@@ -51,8 +52,12 @@ for j= 1:2:length(varargin)
 			elseif length(S) < length(X)
 				error('The vector of sizes must be of the same length as coordinate vectors (or 1)');
 				return
-			end
-
+            end
+        case 'han'
+            hand=varargin{j+1};
+            if ~ishandle(hand);
+                hand=gca;
+            end
 		case 'col'
 			C= varargin{j+1};
 			if size(C,2) < 3	error('Colors matrix must have 3 columns'); return; end
@@ -92,7 +97,8 @@ end
 state=ishold(gca);
 %-- Plot spheres
 for j= 1:length(X)
-	surf(sx*S(j)+X(j), sy*S(j)+Y(j), sz*S(j)+Z(j),...
+	h(j)=surf(hand,...
+        sx*S(j)+X(j), sy*S(j)+Y(j), sz*S(j)+Z(j),...
 		'LineStyle','none',...
 		'FaceColor',C(j,:),...
 		'FaceAlpha',transp(j));

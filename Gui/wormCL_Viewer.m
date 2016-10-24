@@ -22,7 +22,7 @@ function varargout = wormCL_Viewer(varargin)
 
 % Edit the above text to modify the response to help wormCL_Viewer
 
-% Last Modified by GUIDE v2.5 03-Apr-2016 19:22:02
+% Last Modified by GUIDE v2.5 24-Oct-2016 13:19:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -207,10 +207,19 @@ switch get(handles.colorMap,'Value');
     otherwise
 end
 hold(handles.axes1,'on')
-if CLnumber<size(centerline,3)
-plot(handles.axes1,centerline(:,2,CLnumber), centerline(:,1,CLnumber),'r');
+
+if  get(handles.transpose,'Value')
+    X=centerline(:,2,CLnumber);
+    Y=centerline(:,1,CLnumber);
+else
+    X=centerline(:,1,CLnumber);
+    Y=centerline(:,2,CLnumber);
 end
-plot(handles.axes1,centerline([1 end],2,CLnumber), centerline([1 end],1,CLnumber),'og');
+if CLnumber<size(centerline,3)
+plot(handles.axes1,X, Y,'r');
+end
+plot(handles.axes1,X([1,end],:), Y([1 end],1),'og');
+
 hold(handles.axes1,'off')
 drawnow
 setappdata(handles.figure1,'currentImage',C);
@@ -487,3 +496,12 @@ end
 centerline=centerline.(CLfieldNames{CLfieldIdx});
 setappdata(handles.figure1,'CLoffset',CLoffset);
 setappdata(handles.figure1,'centerline',centerline);
+
+
+% --- Executes on button press in transpose.
+function transpose_Callback(hObject, eventdata, handles)
+% hObject    handle to transpose (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of transpose

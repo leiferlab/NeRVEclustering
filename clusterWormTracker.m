@@ -14,7 +14,7 @@ function clusterWormTracker(filePath,startIdx,nGroups,offset,doGroups)
 % nGroups : number of runs to each volume. A volume will be compared to
 % 150 * nGroups reference volumes
 
-% offset : no longer used
+% offset : added to start idx due to the limit on slurm jobs
 % do group : number of runs to do, will run startIdx: startIdx + doGroups
 
 %removed time limit, no longer needed on della
@@ -46,7 +46,7 @@ end
 %load pointStats file
 load(filePath);
 %% initial setup of which frames to select as reference and which to analyze
-
+startIdx=startIdx+offset;
 %each volume is analyzed ngroups times with each run having 150 matches
 
 
@@ -166,7 +166,7 @@ for iCounter=1:doGroups
                 %get different times of points, to make sure that both
                 %time points are represented
                 track_times=trackInputi(:,end);
-                if length(unique(track_times))>2
+                if length(unique(track_times))==2
                     %counter is the max distance between matched points. If
                     %the tracking fails, reduce this and try again.
                     counter=18;
