@@ -95,7 +95,7 @@ for iframe=1:length(framelist);
     try
         if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc_idx==itime) && itime>=1
             %% filter behavior images
-            bf_frame_raw = read(behavior_vidobj,itime,'native');
+            bf_frame_raw = read(behavior_vidobj,itime);
             bf_frame_raw=double(bf_frame_raw(:,:,1));
             background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
             %scale background for best match before subtraction.
@@ -125,7 +125,7 @@ for iframe=1:length(framelist);
             end
             
             %% load fluorescent images
-            fluor_frame_raw=read(fluor_vidobj,fluor_time,'native');
+            fluor_frame_raw=read(fluor_vidobj,fluor_time);
             fluor_frame_raw=double(fluor_frame_raw(:,:,1))-f_background;
             fluor_frame_raw(fluor_frame_raw<0)=0;
             fluor_frame=fluor_frame_raw;

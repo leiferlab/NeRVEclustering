@@ -125,50 +125,6 @@ behavior_vidobj = VideoReader(behaviormovie);
 fluor_vidobj= VideoReader(fluormovie);
 
 
-%% initialize centerline points
-
-%cut up the entire video into nCells chunks and then initialize nCells+1
-%centerlines for fitting each chunk forwards and backwards.
-
-nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
-bfCell_i=cell(nCells,1);
-clStartI=cell(nCells+1,1);
-display(['Click the points of the centerline starting at the head. When '...
-    'you are done, double click the last point.']);
-
-for ichunk=1:nCells+1
-    %get bounds for each chunk
-    lowframe=min((ichunk-1)*nSteps+1,nframes);
-    hiframe=min(nSteps*ichunk,nframes);
-    %read the lower frame
-    BFFrameRaw = read(behavior_vidobj,lowframe);
-    %select centerline points
-    display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1)]);
-    imagesc(BFFrameRaw);
-    [xpts,ypts]=getpts();
-    clStartI{ichunk}=[xpts,ypts];
-    pause(.3)
-    
-    if ichunk<=nCells
-        bfCell_i{ichunk}=lowframe:hiframe;
-    end
-    
-end
-close all
-
-%% preview centerlines
-close all
-for i=1:nCells+1
-    lowframe=min((i-1)*nSteps+1,nframes);
-    BFFrameRaw = read(behavior_vidobj,lowframe);
-    imagesc(BFFrameRaw)
-    hold on
-    plot(clStartI{i}(:,1),clStartI{i}(:,2));
-    pause(.3)
-    hold off
-end
-
-
 %% calculate backgrounds and projections
 bf_imsize=[behavior_vidobj.Height,behavior_vidobj.Width];
 refpoints_x=meshgrid(1:20:bf_imsize(1));
@@ -191,11 +147,17 @@ refintensityZ_frames=zscore(refintensity_mean);
 flash_loc=refintensityZ_frames>4;
 flash_loc_idx=find(flash_loc);
 
+%% find which pixels of the subset vary the most
+refi_std=nanstd(refintensity,[],2);
+important_pix=refi_std>quantile(refi_std,.9);
+
+
 %% do PCA on reference point intensities to classify background frames
 %get z scores
 refintensity_mean=nanmean(refintensity(:,~flash_loc),2);
 refintensityZ=bsxfun(@minus, double(refintensity),refintensity_mean);
 refintensityZ(:,flash_loc)=nan;
+refintensityZ=refintensityZ(important_pix,:);
 %do PCA
 [coeff,score,latent,tsquared] = pca(refintensityZ');
 
@@ -214,9 +176,11 @@ frame_zscore(abs(frame_zscore)>4)=nan;
 boundaryI=quantile(frame_zscore,10);
 frame_bg_lvl=sum(bsxfun(@le,frame_zscore,boundaryI),2);
 frame_bg_lvl=frame_bg_lvl+1;
+%testing new way to cluster backgrounds)
+frame_bg_lvl=kmeans(score(:,1:2),11);
+
 frame_bg_list=unique(frame_bg_lvl);
 frame_bg_list=frame_bg_list(~isnan(frame_bg_list));
-
 %% calculate multiple background lvls for BF
 %progressbar(0);
 mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_list));
@@ -244,7 +208,7 @@ display('finished!')
 %% calculate  background for fluor
 progressbar(0);
 fluor_stack=0;
-skip=10; %don't need to do every frame, only do 1 every skip.
+skip=round(nframes/1000); %don't need to do every frame, only do 1 every skip.
 counter=0;
 for itime=1:skip:nframes;
     progressbar(itime/nframes);
@@ -273,7 +237,7 @@ hold off
 %cut out the head and reinperpolate in to get a background without the
 %brain
 display('Select an ROI around the bright brain region')
-imagesc(mean(mean_bf_all,3));
+imagesc(max(mean_bf_all,[],3));
 head_rectangle=roipoly();
 
 for iZ=1:size(mean_bf_all,3);
@@ -291,6 +255,54 @@ for iZ=1:size(mean_bf_all_filtered,3);
     temp=mean_bf_all_filtered(:,:,iZ);
     temp=bpass(temp,1,40);
     mean_bf_all_filtered(:,:,iZ)=temp;
+end
+
+%% initialize centerline points
+
+%cut up the entire video into nCells chunks and then initialize nCells+1
+%centerlines for fitting each chunk forwards and backwards.
+
+nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
+bfCell_i=cell(nCells,1);
+clStartI=cell(nCells+1,1);
+display(['Click the points of the centerline starting at the head. When '...
+    'you are done, double click the last point.']);
+%%
+for ichunk=1%:nCells+1
+    %get bounds for each chunk
+    lowframe=min((ichunk-1)*nSteps+1,nframes);
+    hiframe=min(nSteps*ichunk,nframes);
+    %read the lower frame
+    BFFrameRaw = double(read(behavior_vidobj,lowframe));
+
+    background_raw=mean_bf_all(:,:,frame_bg_lvl(lowframe));
+    %scale background for best match before subtraction.
+    c=sum(sum(BFFrameRaw.*background_raw))/sum(background_raw(:).^2);
+    BFFrameRaw=BFFrameRaw-background_raw*c;    
+    %select centerline points
+    display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1)]);
+    imagesc(BFFrameRaw);
+    [xpts,ypts]=getpts();
+    clStartI{ichunk}=[xpts,ypts];
+    pause(.3)
+    
+    if ichunk<=nCells
+        bfCell_i{ichunk}=lowframe:hiframe;
+    end
+    
+end
+close all
+
+%% preview centerlines
+close all
+for i=1:nCells+1
+    lowframe=min((i-1)*nSteps+1,nframes);
+    BFFrameRaw = read(behavior_vidobj,lowframe);
+    imagesc(BFFrameRaw)
+    hold on
+    plot(clStartI{i}(:,1),clStartI{i}(:,2));
+    pause(.3)
+    hold off
 end
 
 %%
