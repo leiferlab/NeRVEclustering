@@ -65,10 +65,11 @@ end
 
 %% filter image to "normalize" intensity
 % make smoothed image
-gauss_kernel=fspecial('gaussian',50,20);
+gauss_kernel=fspecial('gaussian',25,5);
 imSmooth=normalizeRange(imfilter(im,gauss_kernel));
 
-initial_head_I=tip_image(round(refPt(2)),round(refPt(1)))/10;
+%testing better tip tracking
+initial_head_I=.6;%tip_image(round(refPt(2)),round(refPt(1)))/10;
 
 %gradient
 [fx, fy] = gradient(imSmooth*cline_para.gradient_force); %computing the gradient

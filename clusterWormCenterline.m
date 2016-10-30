@@ -101,7 +101,7 @@ for iframe=1:length(framelist);
             %scale background for best match before subtraction.
             c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
             bf_frame_raw=bf_frame_raw-background_raw*c;
-            
+            bf_frame_raw=abs(bf_frame_raw);
             % afew filter steps
             bf_frame=imtophat(bf_frame_raw,strel('disk',50));
             bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
@@ -109,7 +109,7 @@ for iframe=1:length(framelist);
             bfstdthresh=(bf_frame_std>graythresh(bf_frame_std));
             bf_frame(bfstdthresh)=abs(bf_frame(bfstdthresh));
             bf_frame_std=bpass((bf_frame_std),1,80);
-            bf_frame=normalizeRange(bpass(bf_frame,4,80));
+            bf_frame=bpass(bf_frame,4,80)/10;
             
             %% filter fluor images
             % this is empty for new setup, not empty for old
@@ -182,7 +182,7 @@ for iframe=1:length(framelist);
             %% plot some of the results if show2 is 1
             if ~mod(itime,show2)
                 subplot(1,2,1)
-                imagesc(bf_frame);
+                imagesc(bf_frame_raw);
                 hold on
                 plot(cl(:,1),cl(:,2),'r');
                 plot(cl([1 end],1),cl([1 end],2),'og');
@@ -190,7 +190,7 @@ for iframe=1:length(framelist);
                 plot([cl(refIdx,1) cm(1)],[cl(refIdx,2) cm(2)],'g');
                 hold off
                 subplot(1,2,2);
-                imagesc(tip_image);
+                imagesc(bf_frame);
                 hold on
                 plot(cl(:,1),cl(:,2),'r');
                 plot(cl([1 end],1),cl([1 end],2),'og');

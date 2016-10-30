@@ -29,6 +29,7 @@ nCells=16;
 smoothkernal=gausswin(1000, 4);
 smoothkernal=smoothkernal/sum(smoothkernal);
 
+fluor_smooth
 %% Select datafolder for analysis
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
@@ -230,7 +231,9 @@ hold on
 head_rectangle=roipoly();
 f_background=fluor_stack_proj;
 f_background(head_rectangle)=nan;
-f_background=inpaint_nans(f_background);
+f_back_smooth=smooth2a(f_background,15,15);
+f_back_smooth=inpaint_nans(f_back_smooth);
+f_background(head_rectangle)=mean(f_back_smooth(head_rectangle));
 imagesc(f_background);
 hold off
 %% pick a region around the head to cut out, now for behavior
