@@ -15,6 +15,11 @@ if nargin==1
 end
 display(filePath);
 display(fileOutput);
+
+
+%%
+dataFolder=fileparts(filePath);
+
 if isempty(dataFolder)
     dataFolder=pwd;
 end
@@ -22,9 +27,6 @@ end
 display(['Parent Folder is ' dataFolder]);
 display([ 'PS file is ' filePath]);
 
-
-%%
-dataFolder=fileparts(filePath);
 
 %load all pointStats with, which has all trackMatrix data
 [~,pointStats]=compileTrackMatrix(dataFolder);
