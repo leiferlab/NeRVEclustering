@@ -25,6 +25,16 @@ eigbasis=eigbasis(1:8,:);
 
 refL=cline_para.refL;
 tip_l=cline_para.tipRegion;
+% for manually clicked tips
+if isfield(cline_para,'head_pt')
+    head_pt=cline_para.head_pt;
+    tail_pt=cline_para.tail_pt;
+    tip_flag=1;
+else
+    head_pt=[];
+    tail_pt=[];
+    tip_flag=0;
+end
 
 dIgnore=true(m,tip_l);
 dIgnore=triu(dIgnore,-20) & tril(dIgnore,20);
@@ -299,6 +309,13 @@ for i=1:cline_para.iterations;
     % take average value at the end of the cline_para.iterations
     deltaxyzs=xyzsNew-xyzs;
     xyzs=xyzsNew;
+    
+    %enforce tip locations if manually clicked
+    if any(head_pt)
+        xyzs(1,:)=head_pt;
+        xyzs(end,:)=tail_pt;
+    end
+    
     distanceTravelled=sum(sqrt(sum(diff(deltaxyzs).^2,2)));
     if i > cline_para.iterations - 50
         %turn of ref spring to try to get the contour to relax smoothly

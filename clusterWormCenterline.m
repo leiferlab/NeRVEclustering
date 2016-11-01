@@ -56,6 +56,32 @@ cl_all=zeros(100,2,length(framelist)); %cl_all CLall
 cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll
 
 
+if isfield(CLworkspace,'tips')
+    if any(CLworkspace.tips.head_pts)
+    head_pts=CLworkspace.tips.head_pts;
+    tail_pts=CLworkspace.tips.tail_pts;
+    same_pt=all(head_pts==tail_pts,2);
+    
+
+    head_time=find(head_pts(:,1) & ~same_pt);
+    head_pts_sub=head_pts(head_time,:);
+    head_pt_list=interp1(head_time,head_pts_sub,framelist,'pchip');
+    
+    tail_time=find(tail_pts(:,1) & ~same_pt);
+    tail_pts_sub=tail_pts(tail_time,:); 
+    tail_pt_list=interp1(tail_time,tail_pts_sub,framelist,'pchip');
+    else
+    head_pt_list=[];
+    tail_pt_list=[];  
+    end
+else
+    head_pt_list=[];
+    tail_pt_list=[];
+    
+end
+
+
+
 %% select files video files and load avi files
 if isempty(bf2fluor_lookup)
     %for the newer setup, avi files are in seperate folder
@@ -91,6 +117,14 @@ for iframe=1:length(framelist);
     %%
     %get frame from framelist
     itime=framelist(iframe);
+    if any(head_pt_list)
+        cline_para.head_pt=head_pt_list(iframe,:);
+        cline_para.tail_pt=tail_pt_list(iframe,:);
+    else
+        cline_para.head_pt=[];
+        cline_para.tail_pt=[];
+    end
+    
     tic
     try
         if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc_idx==itime) && itime>=1

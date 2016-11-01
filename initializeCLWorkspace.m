@@ -29,7 +29,7 @@ nCells=16;
 smoothkernal=gausswin(1000, 4);
 smoothkernal=smoothkernal/sum(smoothkernal);
 
-fluor_smooth
+
 %% Select datafolder for analysis
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
@@ -81,6 +81,11 @@ else
     save([dataFolder filesep 'alignments'],'alignments');
     
 end
+
+%% load tip file if present
+tip_file=uipickfiles('filterspec', dataFolder);
+tip_file=tip_file{1};
+tips=load(tip_file);
 
 
 %% set up low magvideos, we've changed the way we save data, the older version
@@ -271,7 +276,7 @@ clStartI=cell(nCells+1,1);
 display(['Click the points of the centerline starting at the head. When '...
     'you are done, double click the last point.']);
 %%
-for ichunk=1%:nCells+1
+for ichunk=1:nCells+1
     %get bounds for each chunk
     lowframe=min((ichunk-1)*nSteps+1,nframes);
     hiframe=min(nSteps*ichunk,nframes);
@@ -314,7 +319,11 @@ end
 
 bfCellRev=cellfun(@(x) fliplr(x), bfCell_i, 'uniform',0);
 bf_list_cell=reshape([bfCell_i,bfCellRev]',1,[]);
-initial_cl=reshape([clStartI;circshift(clStartI,[0 -1])],1,[]);
+initial_cl=reshape([clStartI,circshift(clStartI,[0 -1])]',1,[]);
+initial_cl=initial_cl(2:end-1);
+
+
+
 %%
 CLcell=cell(1,2*nCells);
 CL_I=CLcell;
@@ -326,6 +335,7 @@ save([dataFolder filesep 'CLworkspace'],...
     'flash_loc_idx',...
     'frame_bg_lvl',...
     'cline_para',...
-    'bf2fluor_lookup');
+    'bf2fluor_lookup',...
+    'tips');
 
 
