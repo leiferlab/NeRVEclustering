@@ -70,6 +70,11 @@ if isfield(CLworkspace,'tips')
     tail_time=find(tail_pts(:,1) & ~same_pt);
     tail_pts_sub=tail_pts(tail_time,:); 
     tail_pt_list=interp1(tail_time,tail_pts_sub,framelist,'pchip');
+    
+    cline_para.stretch_ends_flag=0;
+    cline_para.endkappa=0;
+    cline_para.kappa=5;
+    
     else
     head_pt_list=[];
     tail_pt_list=[];  

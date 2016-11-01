@@ -11,9 +11,9 @@ cline_para.heat=3;
 cline_para.CLalpha=5;
 cline_para.CLbeta=100;
 cline_para.gamma=25;
-cline_para.kappa=30;
-cline_para.endkappa=20;
-cline_para.gradient_force=60;
+cline_para.kappa=5;
+cline_para.endkappa=2;
+cline_para.gradient_force=20;
 cline_para.showFlag=0;
 cline_para.iterations=400;
 
