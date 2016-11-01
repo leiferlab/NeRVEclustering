@@ -83,10 +83,13 @@ else
 end
 
 %% load tip file if present
+try
 tip_file=uipickfiles('filterspec', dataFolder);
 tip_file=tip_file{1};
 tips=load(tip_file);
-
+catch
+    tips=[];
+end
 
 %% set up low magvideos, we've changed the way we save data, the older version
 %includes a HUDS avi file and yaml files for metadata
