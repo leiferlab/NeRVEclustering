@@ -57,7 +57,7 @@ cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll
 
 
 if isfield(CLworkspace,'tips')
-    if ~isempty(CLworkspace.tips)
+    if isfield(CLworkspace.tips,'head_pts')
     head_pts=CLworkspace.tips.head_pts;
     tail_pts=CLworkspace.tips.tail_pts;
     same_pt=all(head_pts==tail_pts,2);

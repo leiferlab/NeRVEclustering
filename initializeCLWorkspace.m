@@ -34,6 +34,8 @@ smoothkernal=smoothkernal/sum(smoothkernal);
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
 
+[dataFolder,name,ext] = fileparts(dataFolder);
+display dataFolder;
 %% load alignment data
 alignmentLocation='Y:\CommunalCode\3dbrain\registration';
 backgroundLocation='Y:\CommunalCode\3dbrain\background';
@@ -84,6 +86,7 @@ end
 
 %% load tip file if present
 try
+    display('Load tip file if present, otherwise, cancel')
 tip_file=uipickfiles('filterspec', dataFolder);
 tip_file=tip_file{1};
 tips=load(tip_file);
