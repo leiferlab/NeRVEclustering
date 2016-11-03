@@ -22,7 +22,7 @@ function varargout = wormCL_Viewer(varargin)
 
 % Edit the above text to modify the response to help wormCL_Viewer
 
-% Last Modified by GUIDE v2.5 24-Oct-2016 13:19:54
+% Last Modified by GUIDE v2.5 03-Nov-2016 11:23:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -505,3 +505,12 @@ function transpose_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of transpose
+
+
+% --------------------------------------------------------------------
+function uipushtool1_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to uipushtool1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+imcontrast(handles.axes1)

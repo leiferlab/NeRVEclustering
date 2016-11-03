@@ -11,8 +11,8 @@ cline_para.heat=3;
 cline_para.CLalpha=5;
 cline_para.CLbeta=100;
 cline_para.gamma=25;
-cline_para.kappa=5;
-cline_para.endkappa=2;
+cline_para.kappa=20;
+cline_para.endkappa=5;
 cline_para.gradient_force=20;
 cline_para.showFlag=0;
 cline_para.iterations=400;
@@ -307,6 +307,7 @@ for ichunk=1:nCells+1
 end
 close all
 
+
 %% preview centerlines
 close all
 for i=1:nCells+1
@@ -330,9 +331,15 @@ initial_cl=initial_cl(2:end-1);
 
 
 
+
+
+
+%% also set reference length based on initializations
+worm_length_fun= @(x) sum(sqrt(sum(diff(x).^2,2)));
+w_lengths=cellfun(@(x) worm_length_fun(x), initial_cl);
+cline_para.refL=mean(w_lengths)/100;
+cline_para.kappa=20;
 %%
-CLcell=cell(1,2*nCells);
-CL_I=CLcell;
 save([dataFolder filesep 'CLworkspace'],...
     'bf_list_cell',...
     'mean_bf_all',...

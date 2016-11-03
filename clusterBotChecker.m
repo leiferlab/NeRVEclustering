@@ -99,7 +99,7 @@ for iPointIdx=startIdxReal;
                 %get other points and other point track IDs
                 pointsI=pointStats2(subSample(i_samp));
                 iTrackIdx=pointsI.trackIdx;
-                current_points=pointStatsI.straightPoints;
+                current_points=pointsI.straightPoints;
                 %find which points overlap between the current track and
                 %the reference track index
                 [~,overI,overRef]=intersect(iTrackIdx,refTrackIdx);
