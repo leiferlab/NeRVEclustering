@@ -51,9 +51,9 @@ data=load([submissionFolder filesep fileListAll(10).name]);
 
 %initialize
 oldXAll=nan(nPoint,n_times);
-oldYAll=newXAll;
-oldZAll=newXAll;
-zScoreAll=newXAll;
+oldYAll=oldXAll;
+oldZAll=oldXAll;
+zScoreAll=oldXAll;
 %initialize 3D matrix which will contain all the guesses for each point.
 %the matrix is organized as comparison frame, current frame being checked,
 %current point being checked.
