@@ -22,7 +22,7 @@ function varargout = wormCL_tip_clicker(varargin)
 
 % Edit the above text to modify the response to help wormCL_tip_clicker
 
-% Last Modified by GUIDE v2.5 03-Nov-2016 11:28:59
+% Last Modified by GUIDE v2.5 03-Nov-2016 12:06:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -187,8 +187,8 @@ C=pedistalSubtract(C);
 end
 maxC=getappdata(handles.figure1,'maxC');
 setappdata(handles.figure1,'maxC',max(max(C(:)),maxC));
-
 h=imagesc(C,'Parent',handles.axes1);
+
 set(handles.currentFrame,'String',num2str(frameNumber));
 switch get(handles.colorMap,'Value');
     case 1
@@ -644,4 +644,7 @@ function adjust_contrast_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %adjust contrast on handles.axes1
-imcontrast(handles.axes1);
+handles.axes1.Children.CDataMapping='scaled';
+h=imcontrast(handles.axes1);
+uiwait(h)
+%handles.axes1.Children.CDataMapping='direct';

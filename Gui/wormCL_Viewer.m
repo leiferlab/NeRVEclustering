@@ -155,7 +155,7 @@ handles=guidata(get(hObject,'Parent'));
 frameNumber=get(handles.slider1,'Value');
 frameNumber=max(1,round(frameNumber));
 Fid=getappdata(handles.figure1,'Fid');
-centerline=getappdata(handles.figure1,'centerline');
+CL_set=getappdata(handles.figure1,'centerline');
 CLoffset=getappdata(handles.figure1,'CLoffset');
 CLnumber=frameNumber+CLoffset;
 if getappdata(handles.figure1,'aviFlag')
@@ -207,7 +207,9 @@ switch get(handles.colorMap,'Value');
     otherwise
 end
 hold(handles.axes1,'on')
-
+colors='rbgcy';
+for iCL=1:length(CL_set)
+    centerline=CL_set{iCL};
 if  get(handles.transpose,'Value')
     X=centerline(:,2,CLnumber);
     Y=centerline(:,1,CLnumber);
@@ -216,10 +218,10 @@ else
     Y=centerline(:,2,CLnumber);
 end
 if CLnumber<size(centerline,3)
-plot(handles.axes1,X, Y,'r');
+plot(handles.axes1,X, Y,colors(iCL));
 end
 plot(handles.axes1,X([1,end],:), Y([1 end],1),'og');
-
+end
 hold(handles.axes1,'off')
 drawnow
 setappdata(handles.figure1,'currentImage',C);
@@ -483,7 +485,8 @@ function CLselect_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 mostRecent=getappdata(0,'mostRecent');
 CLfile=uipickfiles('filterspec',mostRecent);
-CLfile=CLfile{1};
+for i_file=1:length(CLfile)
+CLfile=CLfile{i_file};
 centerline=load(CLfile);
 CLfieldNames=fieldnames(centerline);
 CLfieldIdx=cellfun(@(x) ~isempty(strfind(x,'centerline')),CLfieldNames);
@@ -495,7 +498,10 @@ else
 end
 centerline=centerline.(CLfieldNames{CLfieldIdx});
 setappdata(handles.figure1,'CLoffset',CLoffset);
-setappdata(handles.figure1,'centerline',centerline);
+CL_set{i_file}=centerline;
+end
+
+setappdata(handles.figure1,'centerline',CL_set);
 
 
 % --- Executes on button press in transpose.
