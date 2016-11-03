@@ -81,7 +81,10 @@ CL_Isum=CL_Isum+CL_Csum/100;
 
 % see how curvy the worm is, better worms normally fit the first modes
 % beter(regularyly curved)
-wc=cellfun(@(x) sum(eigbasis(1:2,:)*FindWormCentered(x))^2, CLcell_2,'uniform',0);
+
+%reshape eigenbasis for matrix multiplication
+eigbasis=imresize(eigbasis,[size(eigbasis,1),size(CLcell_2{1},1)-1]);
+wc=cellfun(@(x) sum(eigbasis(1:2,:)*FindWormCentered(x)).^2, CLcell_2,'uniform',0);
 wc2=cell2mat(wc);
 
 CL_Isum=CL_Isum-wc2;
@@ -126,12 +129,8 @@ wormcentered=FindWormCentered(centerline);
 %project onto eigen basis
 
     
-if size(eigbasis,2)~=size(wormcentered,1)
-    eigbasis=imresize(eigbasis,[size(eigbasis,1),size(wormcentered,1)]);
-    
-end
-eigenProj=eigbasis*wormcentered;
 
+eigenProj=eigbasis*wormcentered;
 %save outputs into behaviorAnalysis folder
 behaviorFolder=[dataFolder filesep 'BehaviorAnalysis'];
 mkdir(behaviorFolder);
