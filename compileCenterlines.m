@@ -20,6 +20,11 @@ else
 end
 
 display(aviFolder)
+%% load eigenbasis
+eigenWormFile='eigenWorms.mat';
+load(eigenWormFile);
+
+
 %% load CL files
 outputFolder=[aviFolder filesep 'CL_files'];
 CLfiles=dir([outputFolder filesep  'CL*']);
@@ -74,6 +79,12 @@ CL_Isum=cell2mat(CL_Isum);
 CL_Csum=cell2mat(CL_length);
 CL_Isum=CL_Isum+CL_Csum/100;
 
+% see how curvy the worm is, better worms normally fit the first modes
+% beter(regularyly curved)
+wc=cellfun(@(x) sum(eigbasis(1:2,:)*FindWormCentered(x))^2, CLcell_2,'uniform',0);
+wc2=cell2mat(wc);
+
+CL_Isum=CL_Isum-wc2;
 %% pick out centerlines that look better
 
 %organise matrices
@@ -113,8 +124,6 @@ clIdx=cellfun(@(x) ~isempty(x), strfind(fieldNames,'line'));
 %create wormcentered coordinate system
 wormcentered=FindWormCentered(centerline);
 %project onto eigen basis
-eigenWormFile='eigenWorms.mat';
-load(eigenWormFile);
 
     
 if size(eigbasis,2)~=size(wormcentered,1)
