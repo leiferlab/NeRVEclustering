@@ -73,7 +73,6 @@ if isfield(CLworkspace,'tips')
     
     cline_para.stretch_ends_flag=0;
     cline_para.endkappa=0;
-    cline_para.kappa=5;
     
     else
     head_pt_list=[];

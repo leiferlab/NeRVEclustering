@@ -338,7 +338,7 @@ initial_cl=initial_cl(2:end-1);
 worm_length_fun= @(x) sum(sqrt(sum(diff(x).^2,2)));
 w_lengths=cellfun(@(x) worm_length_fun(x), initial_cl);
 cline_para.refL=mean(w_lengths)/100;
-cline_para.kappa=20;
+cline_para.kappa=30;
 %%
 save([dataFolder filesep 'CLworkspace'],...
     'bf_list_cell',...
