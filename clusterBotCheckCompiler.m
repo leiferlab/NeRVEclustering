@@ -182,10 +182,10 @@ searchZ=searchZ(:);
 %%
 pointStatsNew=pointStats2;
 ctrlPoints=[searchX,searchY,searchZ];
-newXAll2=nan(size(newXAll));
-newYAll2=nan(size(newXAll));
-newZAll2=nan(size(newXAll));
-detAll=nan(size(newXAll));
+newXAll2=nan(size(oldXAll));
+newYAll2=nan(size(oldXAll));
+newZAll2=nan(size(oldXAll));
+detAll=nan(size(oldXAll));
 %%
 empty_frames=cellfun(@(x) ~isempty(x), {pointStats2.straightPoints});
 empty_frames=find(empty_frames);
