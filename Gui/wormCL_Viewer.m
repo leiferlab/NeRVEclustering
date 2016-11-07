@@ -486,8 +486,8 @@ function CLselect_Callback(hObject, eventdata, handles)
 mostRecent=getappdata(0,'mostRecent');
 CLfile=uipickfiles('filterspec',mostRecent);
 for i_file=1:length(CLfile)
-CLfile=CLfile{i_file};
-centerline=load(CLfile);
+CLfiletemp=CLfile{i_file};
+centerline=load(CLfiletemp);
 CLfieldNames=fieldnames(centerline);
 CLfieldIdx=cellfun(@(x) ~isempty(strfind(x,'centerline')),CLfieldNames);
 CLoffsetIdx=cellfun(@(x) ~isempty(strfind(x,'off')),CLfieldNames);

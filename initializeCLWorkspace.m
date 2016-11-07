@@ -11,7 +11,7 @@ cline_para.heat=3;
 cline_para.CLalpha=5;
 cline_para.CLbeta=100;
 cline_para.gamma=25;
-cline_para.kappa=20;
+cline_para.kappa=60;
 cline_para.endkappa=5;
 cline_para.gradient_force=20;
 cline_para.showFlag=0;
@@ -160,8 +160,14 @@ flash_loc=refintensityZ_frames>4;
 flash_loc_idx=find(flash_loc);
 
 %% find which pixels of the subset vary the most
+display(['Crop out region where worm might explore (cut out bubbles)'])
 refi_std=nanstd(refintensity,[],2);
-important_pix=refi_std>quantile(refi_std,.9);
+std_im=reshape(refi_std,55,55);
+imagesc(std_im)
+std_mask=roipoly();
+std_pix=std_im(std_mask);
+
+important_pix=refi_std>quantile(std_pix,.8) & std_mask(:);
 
 
 %% do PCA on reference point intensities to classify background frames
@@ -250,7 +256,7 @@ hold off
 %% pick a region around the head to cut out, now for behavior
 %cut out the head and reinperpolate in to get a background without the
 %brain
-display('Select an ROI around the bright brain region')
+display('Select an ROI around where the worm is to try and get him out of the background')
 imagesc(max(mean_bf_all,[],3));
 head_rectangle=roipoly();
 
@@ -330,15 +336,10 @@ initial_cl=reshape([clStartI,circshift(clStartI,[0 -1])]',1,[]);
 initial_cl=initial_cl(2:end-1);
 
 
-
-
-
-
 %% also set reference length based on initializations
 worm_length_fun= @(x) sum(sqrt(sum(diff(x).^2,2)));
 w_lengths=cellfun(@(x) worm_length_fun(x), initial_cl);
 cline_para.refL=mean(w_lengths)/100;
-cline_para.kappa=30;
 %%
 save([dataFolder filesep 'CLworkspace'],...
     'bf_list_cell',...
