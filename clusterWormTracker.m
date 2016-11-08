@@ -81,12 +81,7 @@ for iCounter=1:doGroups
     %which iteration of that volume
     it_idx=iteration_list(iCounter);
     
-    %output path
-    outputName=[outputFolder filesep...
-        'trackMatrix' num2str(vol_idx,'%3.5d')...
-        'Run' num2str(it_idx,'%3.2d')];
-    display(outputName);
-    
+
     %the list of references to use
     runIdxList=(1:run_length/150:run_length);
     runIdxList=unique(floor(runIdxList))+run_length*it_idx;
@@ -95,6 +90,13 @@ for iCounter=1:doGroups
     %get sample points being matched
     i_ps=presentIdx(vol_idx);
     P1=pointStats(i_ps);
+    
+    %output path
+    outputName=[outputFolder filesep...
+        'trackMatrix' num2str(i_ps,'%3.5d')...
+        'Run' num2str(it_idx,'%3.2d')];
+    display(outputName);
+        
     length_P1=size(P1.straightPoints,1);
     %initialize trackMatrix, which will hold all the matches
     TrackMatrixi=zeros(size(P1.straightPoints,1),length(runIdxList));
