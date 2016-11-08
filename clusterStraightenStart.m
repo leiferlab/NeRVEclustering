@@ -62,7 +62,7 @@ zWave=smooth(zWave,100);
 image_std=hiResData.imSTD;
 image_std=image_std-mean(image_std);
 image_std(image_std>100)=0;
-[ZSTDcorrplot,lags]=(crosscorr(abs(zWave),image_std,40));
+[ZSTDcorrplot,lags]=crosscorr(abs(zWave),image_std,30);
 ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));
 

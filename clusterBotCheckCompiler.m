@@ -190,6 +190,7 @@ detAll=nan(size(oldXAll));
 empty_frames=cellfun(@(x) ~isempty(x), {pointStats2.straightPoints});
 empty_frames=find(empty_frames);
 for iTime=empty_frames
+    try
     %% loop over time points
     display(['Starting ' num2str(iTime)]);
     %    save([dataFolder filesep 'errorCatch'],'iTime');
@@ -199,7 +200,7 @@ for iTime=empty_frames
     imageFile=[imageFolder filesep 'image' stackIdx_str '.tif'];
     psFile=[imageFolder filesep 'pointStats' stackIdx_str '.mat'];
     % load image and lookup tables
-    % have to put in image stack size
+    % have to put in image stack size, will find way to not hardcode
     currentImageStack=stackLoad(imageFile,128);
     currentImageStack=normalizeRange(currentImageStack);
     imSize=size(currentImageStack);
@@ -335,6 +336,10 @@ for iTime=empty_frames
     newXAll2(:,iTime)=newVec(:,1);
     newYAll2(:,iTime)=newVec(:,2);
     newZAll2(:,iTime)=newVec(:,3);
+    catch me
+        me
+    end
+        
 end
 
 %% make comparison distance matrices, for all times, calculate the d matrix
