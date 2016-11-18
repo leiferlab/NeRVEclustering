@@ -200,7 +200,7 @@ for iTime=empty_frames
     imageFile=[imageFolder filesep 'image' stackIdx_str '.tif'];
     psFile=[imageFolder filesep 'pointStats' stackIdx_str '.mat'];
     % load image and lookup tables
-    % have to put in image stack size, will find way to not hardcode
+    %TODO: have to put in image stack size, will find way to not hardcode
     currentImageStack=stackLoad(imageFile,128);
     currentImageStack=normalizeRange(currentImageStack);
     imSize=size(currentImageStack);
