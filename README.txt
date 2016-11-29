@@ -45,6 +45,12 @@ STEP 4: ERROR CORRECTION
 	Matlab analysis code:
 		clusterBotChecker.m
 		clusterBotCheckCompiler.
+
+STEP 5: SIGNAL EXTRACTION
+	Python submission code:
+		submitWormAnalysisPipelineFull.py
+	Matlab analysis code:
+		fiducialCropper3.m
 	
 
 #########################################################################
@@ -53,7 +59,7 @@ USEFUL GUIS FOR VISUALIZATION
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
 VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
-
+VisualizeTrackedData.m - Same as previous, but works on the unstraightened .dat file. 
 
 #########################################################################
 FOLDER DATA REQUIREMENTS
