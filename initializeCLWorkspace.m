@@ -21,7 +21,7 @@ cline_para.stretching_force_factor=[.3 .3];
 cline_para.refSpring=.01;
 cline_para.stretch_ends_flag=1;
 cline_para.refL=6;
-cline_para.memForce=.005;
+cline_para.memForce=.05;
 
 
 nCells=16;
@@ -295,12 +295,12 @@ for ichunk=1:nCells+1
     %read the lower frame
     BFFrameRaw = double(read(behavior_vidobj,lowframe));
 
-    background_raw=mean_bf_all(:,:,frame_bg_lvl(lowframe));
+   % background_raw=mean_bf_all(:,:,frame_bg_lvl(lowframe));
     %scale background for best match before subtraction.
-    c=sum(sum(BFFrameRaw.*background_raw))/sum(background_raw(:).^2);
-    BFFrameRaw=BFFrameRaw-background_raw*c;    
+   % c=sum(sum(BFFrameRaw.*background_raw))/sum(background_raw(:).^2);
+   % BFFrameRaw=BFFrameRaw-background_raw*c;    
     %select centerline points
-    display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1)]);
+    display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1) ', showing frame ' num2str(lowframe)]);
     imagesc(BFFrameRaw);
     [xpts,ypts]=getpts();
     clStartI{ichunk}=[xpts,ypts];
@@ -321,7 +321,7 @@ for i=1:nCells+1
     BFFrameRaw = read(behavior_vidobj,lowframe);
     imagesc(BFFrameRaw)
     hold on
-    plot(clStartI{i}(:,1),clStartI{i}(:,2));
+    plot(clStartI{i}(:,1),clStartI{i}(:,2),'r');
     pause(.3)
     hold off
 end

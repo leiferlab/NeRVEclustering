@@ -3,23 +3,26 @@ function createAlignment(alignmentName)
 %worm segmentation and gcamp signal, only uses projective mapping
  
 display(['Normal convention is:'  char(10) ...
- 'Red channel 2 green channel,' char(10)...
+ 'Hi Res Red channel 2 green channel,' char(10)...
  'low mag behavior to low mag fluor,' char(10)...
  'and hiRes Red to low Res fluor'])
 
-choice = menu('Image Setup','Split','Multiple');
+choice = menu('Image Setup','Align 2 halves','Align different files');
 
 
 %pick files
 [fileName]=uipickfiles('FilterSpec','E:\');
 %name alignmentfiles
 if nargin==0;
-alignmentName = inputdlg('Name the alignment file:', 's');
+alignmentName = inputdlg(...
+    'Name the alignment file, specify the date and type of alignment :', 's');
 segmentPts=[];
 activityPts=[];
 else
     alignment=load(alignmentName);
-    alignmentName = inputdlg('Name the alignment file:', 's');
+    alignmentName = inputdlg(...
+    'Name the alignment file, specify the date and type of alignment :', 's');
+
 
     if choice==2
 
@@ -37,11 +40,11 @@ if choice==1
 
 %% Draw 2 rectangles for the shape and activity channels
 fig=imagesc(initialIm);
-display('Get segmenting ROI')
+display('Get segmenting ROI, normally zero to middle')
 rect1=getrect(gcf);
 rect1=round(rect1);
 
-display('Get Activity ROI');
+display('Get Activity ROI, normally middle to end');
 rect2=getrect(gcf);
 rect2=round(rect2);
     else

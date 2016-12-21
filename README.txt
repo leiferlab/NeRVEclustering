@@ -7,17 +7,25 @@ This repository hold the code used for the analyzing movies from the Leifer Lab'
 #########################################################################
 QUICK SUMMARY
 
-All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs.
+All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac). 
 
-STEP 0: TIMING SYNCHRONIZATION FOR VIDEOS
+STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 	Python submission code:
 		submitWormFlashFinder.py
 	Matlab analysis code:
 		highResTimeTraceAnalysisTriangle4.m
 		multipleAVIFlash.m
 
+STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
+(done locally for point matching)
+	Use ExtractAlignmentImagesFromVideo.m on the alignment movies on both the .dat and the .av files.
+	Use createAlignment.m to make 3 alignment, follow the instructions to get the alignments in the correct order. Alignment files are saved in registration folder in 3dBrain, label them by date and the types of images aligned. The program will ask you to click matching points between the two images. 
+
+
+
 STEP 1: WORM CENTERLINE DETECTION
-	initializeCLWorkspace.m (done locally for manual centerline initialization)
+(done locally for manual centerline initialization)
+	initializeCLWorkspace.m
 	Python submission code:
 		submitWormAnalysisCenterline.py
 	Matlab analysis code:
