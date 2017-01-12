@@ -32,11 +32,14 @@ end
             bfFlash=bfFlash-smooth(bfFlash,200)';
             fluorFlash=fluorFlash-smooth(fluorFlash,200)';
             
-
 bfFlash=bfFlash-min(bfFlash);
+%threshold to find peaks
 bfFlashloc=find(bfFlash>(mean(bfFlash)+std(bfFlash)*5));
+%try to get rid of doubles
+bfFlashloc(diff(bfFlashloc)<3)=[];
 fluorFlash=fluorFlash-min(fluorFlash);
 fluorFlashloc=find(fluorFlash>(mean(fluorFlash)+(std(fluorFlash)*5)));
+fluorFlashloc(diff(fluorFlashloc)<3)=[];
 
 camData=importdata([aviFolder filesep 'CamData.txt']);
 time=camData.data(:,2);
