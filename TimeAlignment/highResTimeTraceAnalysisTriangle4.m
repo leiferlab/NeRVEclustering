@@ -39,7 +39,8 @@ datFlashRaw=findDatFlash(datFile,row,col,10);
 %threshold to find flash.
 datFlash=datFlashRaw-nanmean(datFlashRaw);
 datFlash=datFlash>(nanstd(datFlash)*10);
-
+%try to fix fast doubles
+datFlash(diff(datFlash)<3)=[];
 %% process labJackData
 imageWave=normalizeRange(labJackData(:,4));
 imageWave=imageWave<.5;
