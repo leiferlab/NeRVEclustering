@@ -35,6 +35,18 @@ hiResFlashTime=(hiResData.frameTime(hiResData.flashLoc));
 bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
 fluorFlashTime=fluorAll.frameTime(fluorAll.flashLoc);
 
+%bandaid solution when there is only one flash in each of the recordings.
+%If there is one flash in some, and multiple in the other, you're screwed. 
+
+if length(hiResFlashTime)==1 && ...
+        length(bfFlashTime)==1 && ...
+        length(fluorFlashTime)==1
+hiResFlashTime=hiResFlashTime+[0;10];
+bfFlashTime=bfFlashTime+[0;10];
+fluorFlashTime=fluorFlashTime+[0;10];
+end
+
+
 [~,most]=max([length(hiResFlashTime),length(bfFlashTime),length(fluorFlashTime)]);
 
 %start with track with most flashes detected
