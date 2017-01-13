@@ -47,7 +47,8 @@ end
 load(filePath);
 %% initial setup of which frames to select as reference and which to analyze
 startIdx=startIdx+offset;
-%each volume is analyzed ngroups times with each run having 150 matches
+%each volume is analyzed ngroups times with each run having 150 references.
+%The total number of references is ngroups*150. 
 
 
 % group indices to analyze
@@ -63,7 +64,7 @@ runIdxListAll=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
 presentN=length(runIdxListAll);
 presentIdx=[pointStats.stackIdx];
 
-%how many volumes to analyze in a single groups
+%how many references to analyze in a single groups
 run_length=floor(presentN/nGroups);
 
 %% make output folders
@@ -74,6 +75,8 @@ if ~isdir(outputFolder)
     mkdir(outputFolder)
 end
 %%
+
+
 for iCounter=1:doGroups
     %%
     %which volume to analyze

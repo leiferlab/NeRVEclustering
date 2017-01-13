@@ -10,7 +10,7 @@ cline_para.repulsionD=20;
 cline_para.heat=3;
 cline_para.CLalpha=5;
 cline_para.CLbeta=100;
-cline_para.gamma=25;
+cline_para.gamma=25;  
 cline_para.kappa=60;
 cline_para.endkappa=5;
 cline_para.gradient_force=20;
@@ -105,7 +105,7 @@ oldFlag=length(HUDFiles);
 if ~oldFlag
     
     %import textdata
-    camdata=importdata([ dataFolder  filesep 'camData.txt']);
+    camdata=importdata([ dataFolder  filesep 'CamData.txt']);
     %get timing of each frames
     time=camdata.data(:,2);
     %setup paths to movies
@@ -143,13 +143,13 @@ refpoints_x=meshgrid(1:20:bf_imsize(1));
 refpoints_y=refpoints_x';
 refpoints=sub2ind(bf_imsize,refpoints_x(:),refpoints_y(:));
 refintensity=nan(length(refpoints),nframes);
-parfor_progress(nframes);
+%parfor_progress(nframes);
 parfor itime=1:nframes;
     % if ~any(fluorAll.flash_loc==itime)
     behavior_vidobj_par = VideoReader(behaviormovie);
     bf_frame =read(behavior_vidobj_par,itime);
     refintensity(:,itime)=bf_frame(refpoints);
-    parfor_progress;
+    %parfor_progress;
     %   end
 end
 

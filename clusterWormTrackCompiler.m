@@ -413,5 +413,5 @@ end
 %% SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save(fileOutput,'pointStats2');
-save(fileOutput_stats,'masterVec','matchProjectionsCell','cInitial'...
+save(fileOutput_stats,'masterVec','matchProjectionsCell'...
     ,'cluster_assign','caccum','subTcorr2')

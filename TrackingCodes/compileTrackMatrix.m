@@ -23,12 +23,17 @@ for i=1:length(pointStats);
     pointStats(i).TrackMatrixi=[];
 end
 
+presentIdx=find(cellfun(@(x) any(x),{pointStats.stackIdx}));
+if length(presentIdx)~=str2double(fileList(end).name(12:16));
+    presentIdx=1:length(pointStats);
+end
 %% loop over files to load
 for i=1:length(fileList)
     %naming structure hard coded
     currentFile=[fileName filesep fileList(i).name];
     display(['Loading file ' fileList(i).name]);
     currentFileIdx=str2double(fileList(i).name(12:16));
+    currentPSIdx=presentIdx(currentFileIdx);
     if strfind(fileList(i).name,'Run')
         runIdx=1+str2double(fileList(i).name(20:21));
     else
@@ -39,9 +44,9 @@ for i=1:length(fileList)
     for jname=fieldnames(currentData)'
         %    TrackMatrixAll{presentIdx(i)}=currentData.TrackMatrixi;
         if runIdx==1
-            pointStats(currentFileIdx).(jname{1})=currentData.(jname{1});
+            pointStats(currentPSIdx).(jname{1})=currentData.(jname{1});
         else
-            pointStats(currentFileIdx).(jname{1})=[pointStats(currentFileIdx).(jname{1}) ...
+            pointStats(currentPSIdx).(jname{1})=[pointStats(currentPSIdx).(jname{1}) ...
                 currentData.(jname{1})];
         end
         
