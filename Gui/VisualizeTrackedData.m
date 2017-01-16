@@ -445,8 +445,11 @@ colorOrder='rygb';
 %draw dot with colour based on behavior
 currentBehavior=heatData.behavior.ethogram(iImage);
 currentcolor=colorOrder(currentBehavior+2);
+oldPlotSate=getappdata(handles.figure1,'oldPlot');
+newPlotState=[regionSelect plotType);
 
- if any(getappdata(handles.figure1,'oldPlot')~=[regionSelect plotType])
+
+ if all(oldPlotState,[regionSelect plotType]))
  plot(handles.axes3,plotTrace);
  hold(handles.axes3,'on')
  tracePoint=scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
