@@ -114,7 +114,8 @@ imFolder=getappdata(0,'imFolder');
 %select Folder
 display('Select an image from the stack');
 
-rawImFolder=uipickfiles('filterspec',imFolder);
+rawImFolder=uipickfiles('filterspec',imFolder,...
+    'Prompt', 'Select an image from the CLstraight folder');
 rawImFolder=rawImFolder{1};
 
 if ~isdir(rawImFolder)
@@ -1208,7 +1209,8 @@ function selectPoints_Callback(hObject, eventdata, handles)
 imFolder=getappdata(0,'imFolder');
 
 display('Select mat file with points');
-matFile=uipickfiles('Filterspec',fileparts(imFolder));
+matFile=uipickfiles('Filterspec',fileparts(imFolder),...
+    'Prompt','Select the PointStatsNew file');
 dataMat=load(matFile{1});
 fieldName=fieldnames(dataMat);
 dataMat=getfield(dataMat,fieldName{1});
@@ -1331,7 +1333,8 @@ function loadHeat_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 mostRecent=getappdata(0,'imFolder');
-heatFile=uipickfiles('filterspec',mostRecent);
+heatFile=uipickfiles('filterspec',mostRecent,...
+    'Prompt','Select the heatData.mat file');
 heatData=load(heatFile{1});
 setappdata(handles.figure1,'heatData',heatData);
 
