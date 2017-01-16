@@ -262,7 +262,7 @@ Fid=getappdata(handles.figure1,'fileID');
 sCMOSfile=dir([imFiles filesep '*.dat']);
 sCMOSfile=sCMOSfile.name;
 if isempty(Fid)
-    Fid=fopen([imFiles fileseps CMOSfile ] );
+    Fid=fopen([imFiles filesep sCMOSfile ] );
     setappdata(handles.figure1,'fileID',Fid);
 elseif Fid<=0;
     Fid=fopen([imFiles filesep sCMOSfile] );
