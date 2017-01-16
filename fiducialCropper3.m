@@ -41,7 +41,7 @@ if nargin==0
 else
     pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
     psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imageFolder=[dataFolder filesep psFolder.name];
+    imageFolder=[dataFolder filesep psFolder(end).name];
 end
 %% load pointStats File
 
