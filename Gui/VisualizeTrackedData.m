@@ -128,7 +128,11 @@ else
 
 if exist([mostRecent filesep 'alignments.mat'])
 registration=load([mostRecent filesep 'alignments.mat']);
+if isfield(registration.alignments,'background')
 background=registration.alignments.background;
+else
+    background=0;
+end
 registration=registration.alignments.S2AHiRes;
 setappdata(0,'registration',registration)
 setappdata(0,'background',background);
@@ -215,9 +219,9 @@ imFiles=getappdata(handles.figure1,'imFiles');
 
 hiResData=getappdata(handles.figure1,'hiResData');
 R=getappdata(0,'registration');
-%[row,col]=size(R.initialIm);
-row=1024;
-col=512;
+[row,col]=size(R.initialIm);
+%row=1024;
+%col=512;
 imFiles=imFiles{1};
 FrameIdx=getappdata(handles.figure1,'FrameIdx');
 zVoltages=getappdata(handles.figure1,'zVoltages');
@@ -255,11 +259,13 @@ if getappdata(handles.figure1,'tifFlag')
 else
     
 Fid=getappdata(handles.figure1,'fileID');
+sCMOSfile=dir([imFiles filesep '*.dat']);
+sCMOSfile=sCMOSfile.name;
 if isempty(Fid)
-    Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x512.dat'] );
+    Fid=fopen([imFiles fileseps CMOSfile ] );
     setappdata(handles.figure1,'fileID',Fid);
 elseif Fid<=0;
-    Fid=fopen([imFiles filesep 'sCMOS_Frames_U16_1024x512.dat'] );
+    Fid=fopen([imFiles filesep sCMOSfile] );
     setappdata(handles.figure1,'fileID',Fid);
 end
 

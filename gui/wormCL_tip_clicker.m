@@ -161,6 +161,12 @@ handles=guidata(get(hObject,'Parent'));
 frameNumber=get(handles.slider1,'Value');
 frameNumber=max(1,round(frameNumber));
 Fid=getappdata(handles.figure1,'Fid');
+im_handle=getappdata(handles.figure1,'im_handle');
+head_handle=getappdata(handles.figure1,'head_handle');
+tail_handle=getappdata(handles.figure1,'tail_handle');
+if ~isempty(head_handle), delete(head_handle);end
+if ~isempty(tail_handle),delete(tail_handle);end
+
 centerline=getappdata(handles.figure1,'centerline');
 CLoffset=getappdata(handles.figure1,'CLoffset');
 CLnumber=frameNumber+CLoffset;
@@ -187,7 +193,13 @@ C=pedistalSubtract(C);
 end
 maxC=getappdata(handles.figure1,'maxC');
 setappdata(handles.figure1,'maxC',max(max(C(:)),maxC));
-h=imagesc(C,'Parent',handles.axes1);
+if isempty(im_handle)
+    h=imagesc(C,'Parent',handles.axes1);
+    setappdata(handles.figure1,'im_handle',h)
+else
+    im_handle.CData=C;
+    setappdata(handles.figure1,'im_handle',im_handle)
+end
 
 set(handles.currentFrame,'String',num2str(frameNumber));
 switch get(handles.colorMap,'Value');
@@ -236,14 +248,20 @@ end
 head_pts=getappdata(handles.figure1,'head_pts');
 head=head_pts(frameNumber,:);
 if any(head)
-    plot(handles.axes1,head(1),head(2),'ob');
+    h_head=plot(handles.axes1,head(1),head(2),'ob');
+else
+    h_head=[];
 end
 
 tail_pts=getappdata(handles.figure1,'tail_pts');
 tail=tail_pts(frameNumber,:);
 if any(tail)
-    plot(handles.axes1,tail(1),tail(2),'og');
+    h_tail=plot(handles.axes1,tail(1),tail(2),'og');
+else
+    h_tail=[];
 end
+setappdata(handles.figure1,'head_handle',h_head);
+setappdata(handles.figure1,'tail_handle',h_tail);
 hold(handles.axes1,'off')
 
 drawnow
@@ -644,7 +662,7 @@ function adjust_contrast_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %adjust contrast on handles.axes1
-handles.axes1.Children.CDataMapping='scaled';
+handles.axes1.Children(end).CDataMapping='scaled';
 h=imcontrast(handles.axes1);
 uiwait(h)
 %handles.axes1.Children.CDataMapping='direct';
