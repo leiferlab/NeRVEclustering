@@ -36,9 +36,10 @@ end
 
 
 
-end
+
 
 fclose(Fid);
+end
 
     %% do the same if avi is present
     h=dir([imFolder filesep '*.avi']);

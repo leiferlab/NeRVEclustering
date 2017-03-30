@@ -105,20 +105,20 @@ oldFlag=length(HUDFiles);
 if ~oldFlag
     
     %import textdata
-    camdata=importdata([ dataFolder  filesep 'CamData.txt']);
+    camdata=importdata([ dataFolder  filesep name filesep 'CamData.txt']);
     %get timing of each frames
     time=camdata.data(:,2);
     %setup paths to movies
-    fluormovie=[dataFolder filesep 'cam0.avi'];
-    behaviormovie=[dataFolder filesep 'cam1.avi'];
+    fluormovie=[dataFolder filesep name filesep 'cam0.avi'];
+    behaviormovie=[dataFolder filesep name filesep 'cam1.avi'];
     %get movie length
     nframes=length(camdata.data);
     bf2fluor_lookup=[];
 else
     aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
-    behaviormovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
-    fluormovie=[dataFolder filesep aviFiles{aviFluorIdx}];
+    behaviormovie=[dataFolder filesep name filesep aviFiles{~aviFluorIdx}];
+    fluormovie=[dataFolder filesep name filesep aviFiles{aviFluorIdx}];
      %% set up timing alignments and lookups
 
     %get timing sync for old data movies, folders were hard saved at
