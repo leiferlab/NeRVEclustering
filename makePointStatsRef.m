@@ -13,7 +13,7 @@ function makePointStatsRef(dataFolder,nRef)
 %       a file pointStatsRef.mat is saved inside the dataFolder. 
 
 
-PS_file=[dataFolder filesep 'pointStats.mat'];
+PS_file=[dataFolder filesep 'PointsStats.mat'];
 load(PS_file)
 
 %list of stacks presents
@@ -21,9 +21,9 @@ volList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
 nVol=length(pointStats);
 
 %the list of references to use
-refList=unique(round(1:nRef/nVol:nVol));
+refList=unique(round(1:nVol/nRef:nVol));
 refList=volList(refList);
 PS_ref=pointStats(refList);
-save([dataFolder filesep 'pointStatsRef.mat'],PS_ref)
+save([dataFolder filesep 'pointStatsRef.mat'],'PS_ref')
 
 
