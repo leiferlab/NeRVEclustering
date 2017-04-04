@@ -11,7 +11,7 @@ export PATH=/usr/local/MATLAB/R2015a/bin/:$PATH
 export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
 
 # parse matlab paths, adding all paths from .path files. 
-FILES=$CODE_HOME/pythonSubmissionScripts/*.path
+FILES=$CODE_HOME/PythonSubmissionScripts/*.path
 #echo $FILES
 # build path
 for input in $FILES

@@ -6,7 +6,7 @@ import os
 import numpy as np
 import datetime
 
-CODE_PATH='/tigress/LEIFER/communalCode/3dbrain/'
+CODE_PATH='/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts'
 qString_min = "--time=180"
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
@@ -31,9 +31,9 @@ def straighten_input(commandList,fullPath,totalRuns):
     folderName=os.path.basename(fullPath)
     outputFilePath= make_output_path(fullPath)
     
-    code_runinput = CODE_PATH+ 'runMatlabInput.sh'
-    code_straighten = CODE_PATH + 'runWormStraighten.sh'
-    code_pscompiler = CODE_PATH + 'runWormCompilePointStats.sh'
+    code_runinput = CODE_PATH+ '/pythonSubmissionScripts/runMatlabInput.sh'
+    code_straighten = CODE_PATH + '/pythonSubmissionScripts/runWormStraighten.sh'
+    code_pscompiler = CODE_PATH + '/pythonSubmissionScripts/runWormCompilePointStats.sh'
     
     nRuns=np.ceil(totalRuns/1000)
     stepSize=totalRuns//300
@@ -98,9 +98,9 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     currentDate=str(currentDate)
     outputFilePath= outputFilePath + currentDate
 
-    code_runinput = CODE_PATH+ 'runMatlabInput.sh'
-    code_track = CODE_PATH + 'runWormCellTracking.sh'
-    code_trackcompiler = CODE_PATH+'runWormTrackCompiler.sh'
+    code_runinput = CODE_PATH+ '/pythonSubmissionScripts/runMatlabInput.sh'
+    code_track = CODE_PATH + '/pythonSubmissionScripts/runWormCellTracking.sh'
+    code_trackcompiler = CODE_PATH+'/pythonSubmissionScripts/runWormTrackCompiler.sh'
     
     
     qString_track = "--time=" + str(np.max((nRef*2,180)))     
@@ -168,8 +168,8 @@ def check_input(commandList,fullPath,nCheck,nNeurons):
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
     
-    code_checkcompiler = CODE_PATH + 'runWormBotCheckCompiler.sh'
-    code_check = CODE_PATH+'runWormBotChecker.sh'
+    code_checkcompiler = CODE_PATH + '/pythonSubmissionScripts/runWormBotCheckCompiler.sh'
+    code_check = CODE_PATH+'/pythonSubmissionScripts/runWormBotChecker.sh'
     qString_check = "--time="+ str(np.max((nCheck,180)))   
 
     matlabDirName2 = fullPath + "/" + PS_NAME2
@@ -202,7 +202,7 @@ def crop_input(commandList,fullPath):
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
     
-    code_runinput = CODE_PATH+ 'runMatlabInput.sh'
+    code_runinput = CODE_PATH+ '/pythonSubmissionScripts/runMatlabInput.sh'
     
     input1= "fiducialCropper3('"+ fullPath +"')"
     
@@ -224,7 +224,7 @@ def flash_input(commandList,fullPath):
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
     
-    code_runinput = CODE_PATH + 'runMatlabInput.sh'
+    code_runinput = CODE_PATH + '/pythonSubmissionScripts/runMatlabInput.sh'
     
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
