@@ -1,4 +1,4 @@
-function clusterWormTracker(filePath,startIdx)
+function clusterWormTracker(dataFolder,startIdx)
 % clusterWormTracker compares a set of pointsets from WormStraighten code
 % and uses non rigid pointset registration to create match matrices. The
 % code has been now modified to just run with on one sample with nRef for a
@@ -17,22 +17,21 @@ function clusterWormTracker(filePath,startIdx)
 %% default inputs
 if nargin==0
     %if no input, manually select pointstats file
-    filePath=uipickfiles;
-    filePath=filePath{1};
+    dataFolder=uipickfiles;
+    dataFolder=dataFolder{1};
     startIdx=1;
 end
 
-PS_file=[filePath filesep 'pointStats.mat'];
-ref_file=[filePath filesep 'pointStatsRef.mat'];
+PS_file=[dataFolder filesep 'PointsStats.mat'];
+ref_file=[dataFolder filesep 'pointStatsRef.mat'];
 %load pointStats file
-load(filePath);
+load(PS_file);
 %load reference file
-load(refFile)
+load(ref_file)
 
 
 %% make output folders
-outputFolder=fileparts(filePath);
-outputFolder=[outputFolder filesep 'TrackMatrix'];
+outputFolder=[dataFolder filesep 'TrackMatrix'];
 
 if ~isdir(outputFolder)
     mkdir(outputFolder)

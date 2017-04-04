@@ -11,7 +11,7 @@ param.quiet=1;
 param.timeLimit=10;
 param.difficult=1.5e4;
 show=0;
-
+nRef=length(PS_ref)
 %%
 TrackMatrixi=zeros(size(P1.straightPoints,1),nRef);
 length_P1=size(P1.straightPoints,1);
