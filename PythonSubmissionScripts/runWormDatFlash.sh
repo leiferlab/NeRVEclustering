@@ -10,16 +10,17 @@ export PATH=/usr/local/MATLAB/R2015a/bin/:$PATH
 export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
 
 # parse matlab paths
-FILES=$CODE_HOME/PythonSubmissionScripts/*.path
+FILES=$CODE_HOME/3dbrain/PythonSubmissionScripts/*.path
 #echo $FILES
 for input in $FILES
 do
   #echo "Processing $input file..."  
   while read file
   do
-    export MATLABPATH="$MATLABPATH:$HOME/scripts/$file"
+    export MATLABPATH="$MATLABPATH:$CODE_HOME/$file"
   done  < "$input"
 done
+
 
 export MATLABPATH="$MATLABPATH;"
 

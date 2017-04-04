@@ -10,18 +10,18 @@ export PATH=/usr/local/MATLAB/R2015a/bin/:$PATH
 # This path is for Della
 export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
 
-# parse matlab paths, adding all paths from .path files. 
-FILES=$CODE_HOME/PythonSubmissionScripts/*.path
+# parse matlab paths
+FILES=$CODE_HOME/3dbrain/PythonSubmissionScripts/*.path
 #echo $FILES
-# build path
 for input in $FILES
 do
   #echo "Processing $input file..."  
   while read file
   do
-    export MATLABPATH="$MATLABPATH:$HOME/scripts/$file"
+    export MATLABPATH="$MATLABPATH:$CODE_HOME/$file"
   done  < "$input"
 done
+
 # export path
 export MATLABPATH="$MATLABPATH;"
 
