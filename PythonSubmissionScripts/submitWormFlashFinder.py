@@ -1,11 +1,7 @@
 #!/usr/bin/python
 import pickle
 import os
-import sys
-import subprocess
-import tarfile
 import time
-import glob
 try:
     from Tkinter import *
     import tkFileDialog
@@ -14,10 +10,7 @@ except ImportError:
     import tkinter.filedialog as tkFileDialog
 
 import paramiko
-import re
-import math
-import datetime
-
+import slurmInput as slurm
 # need to make the master Tk window at the very beginning
 master = Tk()
 
@@ -63,63 +56,44 @@ master.columnconfigure(2, pad=3)
 master.columnconfigure(3, pad=3)
 master.columnconfigure(4, pad=3)
 master.columnconfigure(5, pad=3)
-master.columnconfigure(6, pad=3)
-master.columnconfigure(7, pad=3)
-master.columnconfigure(8, pad=3)
-master.columnconfigure(9, pad=3)
-master.columnconfigure(10, pad=3)
 
 master.rowconfigure(0, pad=3)
 master.rowconfigure(1, pad=3)
 
+master.e=dict()
+
 # user name
-master.L1 = Label(master, text="User Name")
-master.L1.grid(row=0, column=0, sticky=W+E)
+L_username = Label(master, text="User Name")
+L_username.grid(row=0, column=0, sticky=W+E)
 
-master.e1 = Entry(master)
-master.e1.insert(0, defaultName)
-master.e1.grid(row=0, column=1, sticky=W+E)
+master.e['user_name'] = Entry(master)
+master.e['user_name'].insert(0, defaultName)
+master.e['user_name'].grid(row=0, column=1, sticky=W+E)
 
-# memory per job
-master.L2 = Label(master, text="Memory per cell (mb)")
-master.L2.grid(row=1, column=0, sticky=W+E)
-
-master.e2 = Entry(master)
-master.e2.insert(0,'8000')
-master.e2.grid(row=1, column=1, sticky=W+E)
-
-# time per cell
-master.L3 = Label(master, text="time requested (min)")
-master.L3.grid(row=2, column=0, sticky=W+E)
-
-master.e3 = Entry(master)
-master.e3.insert(0,'600')
-master.e3.grid(row=2, column=1, sticky=W+E)
 
 # path parent, normally tigress/LEIFER
-master.L4 = Label(master, text="Parent Path")
-master.L4.grid(row=3, column=0, sticky=W+E)
+L_path = Label(master, text="Parent Path")
+L_path.grid(row=3, column=0, sticky=W+E)
 
-master.e4 = Entry(master)
-master.e4.insert(0,'/tigress/LEIFER/PanNeuronal/')
-master.e4.grid(row=3, column=1, sticky=W+E)
+master.e['parent_path'] = Entry(master)
+master.e['parent_path'].insert(0,'/tigress/LEIFER/PanNeuronal')
+master.e['parent_path'].grid(row=3, column=1, sticky=W+E)
 
 # data date
-master.L5 = Label(master, text="Date of data")
-master.L5.grid(row=4, column=0, sticky=W+E)
+L_date = Label(master, text="Date of data")
+L_date.grid(row=4, column=0, sticky=W+E)
 
-master.e5 = Entry(master)
-master.e5.insert(0,defaultDate)
-master.e5.grid(row=4, column=1, sticky=W+E)
+master.e['date'] = Entry(master)
+master.e['date'].insert(0,defaultDate)
+master.e['date'].grid(row=4, column=1, sticky=W+E)
 
 # data folder
-master.L6 = Label(master, text="DataFolderName")
-master.L6.grid(row=5, column=0, sticky=W+E)
+L_foldername = Label(master, text="DataFolderName")
+L_foldername.grid(row=5, column=0, sticky=W+E)
 
-master.e6 = Entry(master)
-master.e6.insert(0,defaultFolder)
-master.e6.grid(row=5, column=1, sticky=W+E)
-
+master.e['folder_name'] = Entry(master)
+master.e['folder_name'].insert(0,defaultFolder)
+master.e['folder_name'].grid(row=5, column=1, sticky=W+E)
 
 
 if os.name == 'posix':
@@ -127,29 +101,21 @@ if os.name == 'posix':
         
 def submitScript(master=None):
     # username
-    username = master.e1.get()
+    username = master.e['user_name'].get()
     print("Username: " + username)
     
-    # memory requested
-    memReq = master.e2.get()
-    print("Memory requested: " + memReq + " mb per cell.")
-
-    #time requested
-    time = master.e3.get()
     
     server ='della.princeton.edu'
     print("Request: Use della")
-    beginOfPath=master.e4.get()
-    date=master.e5.get()
-    brainFolder=master.e6.get()
-    folderName=brainFolder
-    isUpdateCode = 0 # no updating code or uploading data for nowfullPath
+    beginOfPath=master.e['parent_path'].get()
+    date=master.e['date'].get()
+    folderName=master.e['folder_name'].get()
     print("dateFolder is " + date)
     print("beginOfPath is "+ beginOfPath)
-    print(brainFolder)
+    print(folderName)
     # which folder to process, must add paths linux style
     fullPath = beginOfPath + "/" + date
-    fullPath = fullPath + "/" + brainFolder
+    fullPath = fullPath + "/" + folderName
     
     #picle dump
     prevUser['username']=username
@@ -159,57 +125,9 @@ def submitScript(master=None):
     
 
     print("full path is: " + fullPath)
-    if isUpdateCode == 1:
-        # see stackoverflow http://stackoverflow.com/questions/13851846/paramiko-sftpclient-setting-missing-host-key-policy
-        client = paramiko.SSHClient()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            client.connect('della.princeton.edu', 22, username)
-        except paramiko.AuthenticationException:
-            password = master.e7.get()
-            client.connect('della.princeton.edu', 22, username, password)
-        except SSHException:
-            password = master.e7.get()
-            client.connect('della.princeton.edu', 22, username, password)
-            
-        # untar code once it is on the server
-        client = paramiko.SSHClient()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.WarningPolicy())
-        try:
-            client.connect('della.princeton.edu', 22, username)
-        except paramiko.AuthenticationException:
-            password = master.e7.get()
-            client.connect('della.princeton.edu', 22, username, password)
-        except SSHException:
-            password = master.e7.get()
-            client.connect('della.princeton.edu', 22, username, password)
-      
-        commandList = ["pwd","pwd"] # pwd at both ends, give the list something to add to the middle of
-        commandList.insert(len(commandList)-1, "export GRID_HOME=$HOME")
-        commandList.insert(len(commandList)-1, "cd scripts/shae-pythonSubmissionScripts")
-        commandList.insert(len(commandList)-1, "echo environment variables")
-        commandList.insert(len(commandList)-1, "echo $GRID_HOME")
-        commandList.insert(len(commandList)-1, "python updateCodeFromGit.py")
-        commands = "\n".join(commandList)
-        #print(commands)
-        stdin, stdout, stderr = client.exec_command(commands)
-        print('Updating code from Git')
-        returnedOutput = stdout.readlines()
-        print(' '.join(returnedOutput))
-        print('stdError: updating from Git')
-        print(stderr.readlines())
-        client.close()
-        print('Done updating code.\n\n')
         
-    # deal with folder names that have spaces
-    matlabDirName =fullPath
-    jobName = "a" + date
-    # matlabDirName = "\\ ".join(matlabDirName)
-    print(matlabDirName)
     
-    # connect and submit job via qsub
+    # connect and submit job via sbatch
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -224,71 +142,20 @@ def submitScript(master=None):
     
     commandList = ["pwd","pwd"] # pwd at both ends, give the list something to add to the middle of
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
-    commandList.insert(len(commandList)-1, "export SGE_ROOT=/sge")
     commandList.insert(len(commandList)-1, "export PATH=$PATH:/usr/local/emboss/bin:/sge/bin/lx-amd64:/usr/kerberos/bin")
-    commandList.insert(len(commandList)-1, "export GRID_HOME=$HOME")
-    commandList.insert(len(commandList)-1, "cd data")
-    
-    # make sure permissions on shell scripts are correct, they keep getting off for some reason
-    commandList.insert(len(commandList)-1, "chmod 777 ../scripts/shae-pythonSubmissionScripts/runWormCellTracking.sh")
-    commandList.insert(len(commandList)-1, "chmod 777 ../scripts/shae-pythonSubmissionScripts/runWormTrackCompiler.sh")
-    commandList.insert(len(commandList)-1, "chmod 777 ../scripts/shae-pythonSubmissionScripts/runWormBotChecker.sh")
-    commandList.insert(len(commandList)-1, "chmod 777 ../scripts/shae-pythonSubmissionScripts/runWormCenterlineFitting.sh")
-    commandList.insert(len(commandList)-1, "chmod 777 ../scripts/shae-pythonSubmissionScripts/runWormCenterlineCompile.sh")
-    commandList.insert(len(commandList)-1, "chmod 777 " + matlabDirName)
-
-    # add somewhere for err and out files to go
-    outputFilePath= fullPath + "/outputFiles"
-    currentDate=datetime.date.today()
-    currentDate=str(currentDate)
-    outputFilePath= outputFilePath + currentDate
-    commandList.insert(len(commandList)-1, "mkdir " + outputFilePath)
-    
-    #deal with folders with spaces in names
-
-    matlabDirName = folderName
-    jobName = folderName
 
    # matlabDirName = "\\ ".join(matlabDirName);
-    print(folderName)
-
     print('Writing inputs line to text file')
-    fileOutputName= fullPath + "/cmdOutput" +str(currentDate) +".txt"
-    qString = " --time=" + time
-    memString= " --mem=" + memReq
     userEmail=username+"@princeton.edu"
     
-    input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
-    print(input1)
-    input2= "multipleAVIFlash('"+ fullPath +"')"
-    print(input2)
-    qsubCommand1 = ("sbatch" + memString + qString + " -D " + folderName
-        + " -J "+ folderName
-        + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
-        + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
-        + " --mail-type=end" + " --mail-user=" + userEmail
-        + " ../scripts/shae-pythonSubmissionScripts/runMatlabInput.sh \"" 
-        + input1 +"\" ")
-    commandList.insert(len(commandList)-1, qsubCommand1)
-    print(qsubCommand1)
-    
-    qsubCommand2 = ("sbatch" + memString + qString + " -D " + folderName
-        + " -J "+ folderName
-        + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
-        + " --error=\"" + outputFilePath + "/avFlash-%J.err" + "\""
-        + " --mail-type=end" + " --mail-user=" + userEmail
-        + " ../scripts/shae-pythonSubmissionScripts/runMatlabInput.sh \"" 
-        + input2 +"\" ")
-    commandList.insert(len(commandList)-1, qsubCommand2)
-    
-    
-    print(qsubCommand2)
-    
-    #f.write(qsubCommand1)
-    #f.write('\n')
+    commandList=slurm.flash_input(commandList,fullPath)
+        
+    slurm.make_ouputfolder(client,fullPath)
+    #write commands to text file via paramiko
+    slurm.write_input(commandList,client,fullPath)
 
     commands = "\n".join(commandList)
-    stdin, stdout, stderr = client.exec_command(commands)
+   # stdin, stdout, stderr = client.exec_command(commands)
     print('stdOutput: submitting job')
     returnedOutput = stdout.readlines()
     print(' '.join(returnedOutput))
@@ -296,34 +163,34 @@ def submitScript(master=None):
     print(stderr.readlines())
     client.close()
     print('Done submitting job.\n\n')
-    print(matlabDirName)
 
     # close window at the end
     master.destroy()
         
-                
+
+def enterPass1(event=None, master=None):
+    "Request password to continue"
+    if event == None:
+        pass
+    else:
+        master = event.widget.master
+    
+    username = master.e['user_name'].get()
+    print(username)
+    # password, just the number of characters
+    password = master.e7.get()
+    
+    passList = ["*"] * len(password)
+    print("Entered password: " +   "".join(passList))
+    
+    submitScript(master)
+
 def callback1(event=None,master=None):
     "Check for password and continue"
-    print(master.e1.get())
+    print(master.e['user_name'].get())
     
-    def enterPass1(event=None, master=None):
-        "Request password to continue"
-        if event == None:
-            pass
-        else:
-            master = event.widget.master
-        
-        username = master.e1.get()
-        print(username)
-        # password, just the number of characters
-        password = master.e7.get()
-        
-        passList = ["*"] * len(password)
-        print("Entered password: " +   "".join(passList))
-        
-        submitScript(master)
     
-    username = master.e1.get()
+    username = master.e['user_name'].get()
     if username == "noPass":
         isNeedsPassword = True
     else:
@@ -331,7 +198,7 @@ def callback1(event=None,master=None):
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        username = master.e1.get()
+        username = master.e['user_name'].get()
         try:
             client.connect('della.princeton.edu', 22, username)
             isNeedsPassword = False
@@ -344,9 +211,9 @@ def callback1(event=None,master=None):
         master.L6 = Label(master, text="Password")
         master.L6.grid(row=6, column=0, sticky=W+E)
         
-        master.e7 = Entry(master,show="*")
-        master.e7.insert(0, "Password")
-        master.e7.grid(row=7, column=1, sticky=W+E)
+        master.e['password'] = Entry(master,show="*")
+        master.e['password'].insert(0, "Password")
+        master.e['password'].grid(row=7, column=1, sticky=W+E)
         
         master.b = Button(master, text="Enter", width=10, command=lambda:enterPass1(master=master))
         master.b.grid(row=6,columnspan=2, sticky=W+E)
@@ -367,6 +234,6 @@ master.b = Button(master, text="Enter", width=10, command=lambda:callback1(maste
 master.b.grid(row=10,columnspan=2, sticky=W+E)
 master.bind("<Return>", callback1b)
 
-master.e1.focus_set()
+master.e['user_name'].focus_set()
 
 mainloop()

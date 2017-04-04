@@ -10,7 +10,7 @@ export PATH=/usr/local/matlab-R2013a/bin/:$PATH
 export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
 
 # parse matlab paths
-FILES=$HOME/scripts/shae-pythonSubmissionScripts/*.path
+FILES=$CODE_HOME/pythonSubmissionScripts/*.path
 #echo $FILES
 for input in $FILES
 do
@@ -26,6 +26,4 @@ export MATLABPATH="$MATLABPATH;"
 # make sure that the matlab path is full/correct
 echo $MATLABPATH
 # run the job
-# if 3rd input is 1, run on with slurm task array ID
-# REMOVED SGE capabilities
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormCenterline('$1',$SLURM_ARRAY_TASK_ID);exit;"

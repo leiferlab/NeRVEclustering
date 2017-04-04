@@ -10,7 +10,7 @@ export PATH=/usr/local/matlab-R2013a/bin/:$PATH
 export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
 
 # parse matlab paths
-FILES=$HOME/scripts/shae-pythonSubmissionScripts/*.path
+FILES=$CODE_HOME/pythonSubmissionScripts/*.path
 #echo $FILES
 for input in $FILES
 do

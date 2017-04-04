@@ -10,7 +10,7 @@ export PATH=/usr/local/matlab-R2013a/bin/:$PATH
 export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
 
 # parse matlab paths
-FILES=$HOME/scripts/shae-pythonSubmissionScripts/*.path
+FILES=$CODE_HOME/pythonSubmissionScripts/*.path
 #echo $FILES
 for input in $FILES
 do
@@ -30,5 +30,4 @@ echo $SGE_TASK_ID
 echo $2
 
 # run the job
-# if 3rd input is 1, run on with slurm task array ID
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormTrackCompiler('$1','$2');exit;"

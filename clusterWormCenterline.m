@@ -153,8 +153,8 @@ for iframe=1:length(framelist);
             % this is empty for new setup, not empty for old
             if ~isempty(bf2fluor_lookup)
                 fluor_time=round(bf2fluor_lookup(itime));
-                %band aid solution for if time's dont align well (behavior starts
-                %after fluor), this doesnt happen for new setup
+                %band aid solution for if time's dont align well (behavior 
+                %starts after fluor), this doesnt happen for new setup
                 if isnan(fluor_time) || fluor_time<1;
                     fluor_time=1;
                 end

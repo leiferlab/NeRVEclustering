@@ -1,4 +1,4 @@
- 
+﻿ 
 Worm analysis protocol:
 
 
@@ -12,36 +12,60 @@ All of the analysis is done in matlab, but many of them are called on DELLA, whi
 Inside you’re home directory on della, you need to make directories “scripts” and “data”. Inside data, you can clone the git repo found at https://github.com/leiferlab/3dbrain.git. For now, you also need shae_pythonSubmissionScripts. This is on sheavitzdata. Some of the paths are hard coded into the python scripts. 
 
 
+
+
+
 STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
+
 	Python submission code:
+
 		submitWormFlashFinder.py
+
 	Matlab analysis code:
+
 		highResTimeTraceAnalysisTriangle4.m
+
 		multipleAVIFlash.m
+
 
 	File Outputs: 	*YAML.mat files
 			*flashTrack.mat files
 			hiResData.mat file
 
 
+
+
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done locally for point matching)
-	Use ExtractAlignmentImagesFromVideo.m on the alignment movies on both the .dat and the .avi files.
+	
+Use ExtractAlignmentImagesFromVideo.m on the alignment movies on both the .dat and the .avi files.
+
 	Use createAlignment.m to make 3 alignment, follow the instructions to get the alignments in the correct order. Alignment files are saved in registration folder in 3dBrain, label them by date and the types of images aligned. The program will ask you to click matching points between the two images. 
+
+
 
 
 
 STEP 1: WORM CENTERLINE DETECTION
 (done locally for manual centerline initialization)
-	initializeCLWorkspace.m - this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm. 
-				 - when this is done, move the alignment and the initialCLWorkspace.mat into the corresponding folder on tigress. 
+
+	initializeCLWorkspace.m - this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm.
+ 
+				 - when this is done, move the alignment and the initialCLWorkspace.mat into the corresponding folder on tigress.
+ 
 	Python submission code:
+
 		submitWormAnalysisCenterline.py
 	Matlab analysis code:
+
 		clusterWormCenterline.m
-	File Outputs:	CLstartworkspace.mat, initialized points and background images for darkfield images
-			CL_files folder, containing partial CL.mat files
-			BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
+	File Outputs:
+	CLstartworkspace.mat, initialized points and background images for darkfield images
+	CL_files folder, containing partial CL.mat files
+	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
+
+
+
 
 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by AL to manually adjust centerlines
 
@@ -64,20 +88,33 @@ STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
 			pointStats.mat, struccture containing all coordinates from all straightened volumes along with a trackIdx, the result of initial tracking of points. 
 
 STEP 4: ERROR CORRECTION
+
 	Python submission code:
+
 		submitWormAnalysisPipelineFull.py
+
 	Matlab analysis code:
+
 		clusterBotChecker.m
-		clusterBotCheckCompiler.
-	File Outputs: 	botCheckFolder, folder containing all coordinate guesses for all times, one mat file for each neuron.
-			pointStatsNew.mat, matfile containing the refined trackIdx after error correction. 
+
+		clusterBotCheckCompiler.m
+
+	File Outputs:
+ 	botCheckFolder- folder containing all coordinate guesses for all times, one mat file for each neuron.
+	pointStatsNew.mat- matfile containing the refined trackIdx after error correction. 
 
 STEP 5: SIGNAL EXTRACTION
+
 	Python submission code:
+
 		submitWormAnalysisPipelineFull.py
+
 	Matlab analysis code:
+
 		fiducialCropper3.m
-	File Output:	heatData.mat, all signal results from extracting signal from the coordinates. 
+
+	File Output:
+	heatData.mat, all signal results from extracting signal from the coordinates. 
 	
 
 #########################################################################
