@@ -13,7 +13,7 @@ PS_NAME2 =  'PointsStats2.mat'
 
 
 def path_setup(commandList):
-    code_home=os.path.split(CODE_PATH)
+    code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     return commandList
 

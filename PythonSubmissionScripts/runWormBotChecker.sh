@@ -30,8 +30,4 @@ echo $2
 
 # run the job
 # if 3rd input is 1, run on with slurm task array ID, otherwise, use SGE (old cetus)
-if [ "$3" == "1" ]; then
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterBotChecker('$1',$SLURM_ARRAY_TASK_ID, $2);exit;"
-else
-   matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterBotChecker('$1',$SGE_TASK_ID, $2);exit;"
-fi
