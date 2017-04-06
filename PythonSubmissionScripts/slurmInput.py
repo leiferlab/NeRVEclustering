@@ -109,7 +109,7 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     matlabDirName = fullPath + "/" +  PS_NAME1
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
-    
+    stepSize=np.ceil(50.0/nRef)
     
     input1= "makePointStatsRef('"+ fullPath +"',"+ str(nRef) + ")"
     qsubCommand0 = ("sbatch --mem=2000 " 
@@ -155,7 +155,7 @@ def track_input(commandList,fullPath,totalRuns,nRef):
         + " --output=\"" + outputFilePath + "/trackCompiler-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/trackCompiler-%J.err" + "\""
         + " " + code_trackcompiler 
-        +" '" + matlabDirName +"' '" + matlabDirName2 + " '")
+        +" '" + matlabDirName +"' '" + matlabDirName2 + "'")
     commandList.insert(len(commandList)-1, qsubCommand2)
     commandList.insert(len(commandList)-1, '\r')
     return commandList
