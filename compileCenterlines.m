@@ -134,9 +134,8 @@ eigenProj=eigbasis*wormcentered;
 %save outputs into behaviorAnalysis folder
 behaviorFolder=[dataFolder filesep 'BehaviorAnalysis'];
 mkdir(behaviorFolder);
-offset=0;
 save([behaviorFolder filesep 'centerline'] ,'centerline','eigenProj'...
-    ,'wormcentered','offset');
+    ,'wormcentered');
 
 
 

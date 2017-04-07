@@ -1,4 +1,4 @@
-function dataAll=highResTimeTraceAnalysisTriangle4(imFolder,row,col)
+function dataAll=highResTimeTraceAnalysisTriangle4(imFolder)
 %highResTimeTraceAnalysis takes folder with cameraframedata.txt,
 %labjackdata.txt, and sCMOS_Frames_U16_<rows>x<cols.dat and finds alignments
 %for timing.
@@ -30,9 +30,7 @@ datFile=dir([imFolder filesep 'sCMOS_Frames_U16_*.dat']);
 datFile=[imFolder filesep datFile.name];
 
 %get size of dat file if image dimensions are not in input.
-if nargin<2
-    [row,col]=getdatdimensions(datFile);
-end
+[row,col]=getdatdimensions(datFile);
 %%
 %make time trace of intensity to find flash
 datFlashRaw=findDatFlash(datFile,row,col,10);

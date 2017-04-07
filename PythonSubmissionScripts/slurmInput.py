@@ -5,6 +5,7 @@
 import os
 import numpy as np
 import datetime
+import pickle
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
 qString_min = "--time=180"
@@ -16,6 +17,21 @@ def path_setup(commandList):
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     return commandList
+
+def pickle_load():
+    # get ready for pickled variables 
+    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
+    pickle_file = pickle_path + "pickles2.p"
+    if not os.path.exists(pickle_path):
+            os.makedirs(pickle_path)
+        
+    if not os.path.exists(pickle_file):
+            storedUsername = { "username": "USER" }
+            pickle.dump( storedUsername, open(pickle_file, "wb" ) )
+    
+    # check to see if there is a username in the pickle file
+    prevUser = pickle.load( open( pickle_file, "rb" ) )
+    return prevUser
 
 def make_output_path(fullPath):
     outputFilePath= fullPath + "/outputFiles"

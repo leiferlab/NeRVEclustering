@@ -20,17 +20,8 @@ startingDir = os.getcwd()
 print((time.asctime()+'\n'))
 
 # get ready for pickled variables 
-pickle_path = (os.environ['HOME'] + "/platypusTemp/")
-pickle_file = pickle_path + "pickles2.p"
-if not os.path.exists(pickle_path):
-	os.makedirs(pickle_path)
-    
-if not os.path.exists(pickle_file):
-	storedUsername = { "username": "USER" }
-	pickle.dump( storedUsername, open(pickle_file, "wb" ) )
+prevUser=slurm.pickle_load()
 
-# check to see if there is a username in the pickle file
-prevUser = pickle.load( open( pickle_file, "rb" ) )
 if 'username' in prevUser:
 	defaultName = prevUser['username']
 else:

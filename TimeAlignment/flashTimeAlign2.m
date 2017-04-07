@@ -1,17 +1,21 @@
-function [idxOut,outputOffset]=flashTimeAlign2(flashA,flashB);
-%function takes 2 series of flash times and attempts to match flash
-%identities, flash A should be the more complete set, output will be the
-%indicies of the first flashes that are determined to be aligned. 
-AdistLin=pdist(flashA);
-Adist=(squareform(AdistLin));
-BdistLin=pdist(flashB);
-Bdist=(squareform(BdistLin));
+function [idxOut,outputOffset]=flashTimeAlign2(flashA,flashB)
+%function takes 2 sets of flash times and attempts to match flash
+%identities, flash A should be equal to or larger than flashB, output will be the
+%indicies of the first flashes that are determined to be the same, along
+%with the indices of flashA
+
+%Inputs: flashA - a 1xN set of times corresponding to flashes on one camera
+%        flashB - a 1xM set of times corresponding to flashes on another
+%        camera. M should be <=N
+
+%Outputs: indxOut - a 1x2 vector with indxOut(1) being the index of the
+%flash in B that matches with indxOut(2) from flashB
+%         outputOffset - the indices of flashA that are matched with an
+%         index in flashB.
+
+
 best=Inf;
-ABdist=pdist2(AdistLin',BdistLin');
-[minABdist,minABdistIdx]=min(ABdist);
-[minABdist,ib]=sort(minABdist,'ascend');
-Asize=length(AdistLin);
-Bsize=length(BdistLin);
+
 for i=1:length(flashB)
     for j=1:length(flashA)
     offset=flashA(j)-flashB(i);

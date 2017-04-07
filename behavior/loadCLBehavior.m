@@ -1,4 +1,4 @@
-function [centerline, offset,eigenProj, CLV,wormcentered]=loadCLBehavior(dataFolder)
+function [centerline,eigenProj, CLV,wormcentered]=loadCLBehavior(dataFolder)
 % input is a folder dataFolder with: 
 % "./BehaviorAnalysis/centerline.mat
 % made to be a little bit flexible with file names
@@ -24,11 +24,6 @@ elseif strfind(currentStr,'line')
 end
 end
 
-if isfield(centerlineFile,'offset');
-offset=centerlineFile.offset;
-else
-    offset=0;
-end
 % create other variables if they are called for in outputs
 
 if nargout>2

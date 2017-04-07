@@ -34,18 +34,7 @@ def make_gui():
     startingDir = os.getcwd()
     print((time.asctime()+'\n'))
     
-    # get ready for pickled variables 
-    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
-    pickle_file = pickle_path + "pickles2.p"
-    if not os.path.exists(pickle_path):
-            os.makedirs(pickle_path)
-        
-    if not os.path.exists(pickle_file):
-            storedUsername = { "username": "USER" }
-            pickle.dump( storedUsername, open(pickle_file, "wb" ) )
-    
-    # check to see if there is a username in the pickle file
-    prevUser = pickle.load( open( pickle_file, "rb" ) )
+    prevUser=slurm.pickle_load()
     if 'username' in prevUser:
             defaultName = prevUser['username']
     else:
@@ -265,7 +254,7 @@ def submitScript(master=None):
     #save defaults using pickle dump
     pickle_path = (os.environ['HOME'] + "/platypusTemp/")
     pickle_file = pickle_path + "pickles2.p"
-    prevUser=dict()
+    prevUser=slurm.pickle_load()
     prevUser['username']=username
     prevUser['frameNumber']=NFrames
     prevUser['date'] = date

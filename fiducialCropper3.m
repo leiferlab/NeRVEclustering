@@ -11,87 +11,124 @@ function fiducialCropper3( dataFolder)
 %% create some Gaussian Kernals
 
 
-filterKernal=gausswin(50);
-filterKernal=filterKernal-min(filterKernal(:));
-filterKernal=filterKernal/sum(filterKernal);
+filterKernal2=makeGaussKernel(500);
 
-filterKernal2=gausswin(500);
-filterKernal2=filterKernal2-min(filterKernal2(:));
-filterKernal2=filterKernal2/sum(filterKernal2);
 
-%some conversion factors
-pos2mm=1/10000;
-CL2mm=1/557; % 1mm per 557 pixels
-%angle between stage positions and behavior camera
-stageCamAngle=90;
-stageCamAngle=stageCamAngle*pi/180;
+[RvalAll,GvalAll]=extractSignal(dataFolder);
 
+%% makes photobleaching corrected, spatially corrected heatmaps, saves result
+heatMapGeneration(dataFolder,RvalAll,GvalAll)
+load([dataFolder filesep 'heatData'])
+
+%% make timing tracks
+
+[bfAll,~,hiResData]=tripleFlashAlign(dataFolder);
+
+hasPoints=1:length(pointStats);
+hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
+hasPointsTime=hasPointsTime(hasPoints);
+
+
+[centerline,eigenProj, CLV,wormCentered]=loadCLBehavior(dataFolder);
+n_CL=size(centerline,3);
+clTime=bfAll.frameTime(1:n_CL);
+
+
+
+%% load centerline data, pad with zeros if needed to making size the same as
+%behavior video size
+
+CLbehavior=sign(smooth(-CLV',50));
+hiResCLbehavior=interp1(clTime,CLbehavior,hiResData.frameTime,'nearest',0);
+
+%% add centerline center of mass to stage position
+[xPos,yPos]=calculate_cm_position(centerline,hiResData,clTime);
+%get worm cm positions for each volume measured
+
+
+%% Calculate worm velocities
+
+filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
+xV=imfilter((xPos),filterKernal2)./filterFactor2;
+yV=imfilter((yPos),filterKernal2)./filterFactor2;
+hiResVel=[gradient(xV) gradient(yV)];
+hiResVel=sqrt(sum(hiResVel.^2,2));
+
+hiResVel=hiResVel.*hiResCLbehavior;
+hiResVel=smooth(hiResVel,500);
 %%
-%get files from dataFolder, including the imageFolder and the pointStats
-%file.
-if nargin==0
-    display('Select PointStatsFile');
-    pointStatsFile=uipickfiles();
-    pointStatsFile=pointStatsFile{1};
-    dataFolder=fileparts(pointStatsFile);
-    display('Select Image Folder');
-    imageFolder=uipickfiles('filterspec',dataFolder);
-    imageFolder=imageFolder{1};
-    
-else
-    pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
-    psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imageFolder=[dataFolder filesep psFolder(end).name];
-end
-%% load pointStats File
+xPosTrack=xPos((find(diff(hiResData.stackIdx)>0)));
+yPosTrack=yPos((find(diff(hiResData.stackIdx)>0)));
+xPosTrack=xPosTrack(hasPoints);
+yPosTrack=yPosTrack(hasPoints);
 
-pointStats=load(pointStatsFile);
-pointStats=pointStats.pointStatsNew;
+vTrack=hiResVel((find(diff(hiResData.stackIdx)>0)));
+vTrack=vTrack(hasPoints);
+%% load eigen behavior and do cylindrical rotation for more independent Z
 
-% read in sCMOS dat file
-datFileDir=dir([dataFolder filesep 'sCMOS_Frames_U16_*']);
-datFile=[dataFolder filesep datFileDir.name];
-%get image dimensions
-[rows,cols]=getdatdimensions(datFile);
-nPix=rows*cols;
+eigenBehavior=eigenProj;
+temp=eigenBehavior;
+behaviorProjection=temp(1:3,:)';
+[~,maxIdx]=max(sum(behaviorProjection.^2,2));
+maxPoint=behaviorProjection(maxIdx,:);
+[phi,theta,R] = cart2sph(maxPoint(1),maxPoint(2),maxPoint(3));
+[x,E]=fminsearch(@(x) circlePlane(behaviorProjection,x(1),x(2)),[phi theta]);
+phi=x(2);
+theta=x(1);
+[~,projections]=circlePlane(behaviorProjection,theta,phi);
+n=[cos(phi)*sin(theta) sin(phi)*sin(theta) cos(theta)];
+behaviorZ=behaviorProjection*n';
+Rmat=normc(projections'*behaviorZ);
+Rmat=[Rmat(1) Rmat(2); Rmat(2) -Rmat(1)];
+projections=(Rmat*projections')';
 
-%read in timing data
-try
-    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
-catch
-    if exist([dataFolder filesep 'hiResData.mat'],'file')
-        hiResData=load([dataFolder filesep 'hiResData']);
-        hiResData=hiResData.dataAll;
-    else
-        hiResData=highResTimeTraceAnalysisTriangle4(...
-            dataFolder,imSize(1),imSize(2));
-    end
-end
 
-%also need phase delay used between z position and image number
-timeOffset=load([dataFolder filesep 'startWorkspace.mat'],'zOffset');
-timeOffset=timeOffset.zOffset;
+behaviorZTrack=interp1(clTime,behaviorZ,hasPointsTime);
+projectionsTrack=interp1(clTime,projections,hasPointsTime);
+hiResBehaviorZ=interp1(clTime,behaviorZ,hiResData.frameTime);
 
-% load alignments
-try
-    alignments=load([dataFolder filesep 'alignments.mat']);
-    alignments=alignments.alignments;
-    S2AHiRes=alignments.S2AHiRes;
-    rect1=S2AHiRes.rect1;
-    rect2=S2AHiRes.rect2;
-    background=alignments.background;
-catch
-    display('Select Hi Res Alignment')
-    S2AHiResFile=uipickfiles('FilterSpec',...
-        'Y:\CommunalCode\3dbrain\registration');
-    S2AHiRes=load(S2AHiResFile{1});
-    rect1=S2AHiRes.rect1;
-    rect2=S2AHiRes.rect2;
-    background=0;
-end
 
+%% calculate angles in PC1 and PC2 space
+behaviorTheta=atan2(projections(:,1),projections(:,2));
+behaviorTheta=unwrap(behaviorTheta);
+behaviorTheta=imfilter(behaviorTheta,filterKernal);
+
+
+
+%% make some sort of ethogram;
+%still in progress for more types of worm
+% -1 for reverse
+% 0 for pause
+% 1 for forward
+% 2 for turn
+
+ethogram=makeEthogram(hiResVel,hiResBehaviorZ);
+ethoTrack=interp1(hiResData.frameTime,ethogram,hasPointsTime,'nearest');
+
+%combine behaviors into structure
+behavior.ethogram=ethoTrack;
+behavior.x_pos=xPosTrack;
+behavior.y_pos=yPosTrack;
+behavior.v=vTrack;
+behavior.pc1_2=projectionTrack;
+behavior.pc_3=behaviorZTrack;
+
+%% save files
+save([dataFolder filesep 'positionData'],...
+    'xPos','yPos','hiResVel','behaviorZTrack','projectionsTrack')
+
+save([dataFolder filesep 'heatData'],...
+    'behavior',...
+    'hasPointsTime',...
+    'trackWeightAll',...
+    'bfTime',...
+    '-append');
+
+
+
+function boxPix=boxCoord(L)
 %% initialize box. This will be added to gather pixel values from around the centroid
-boxR=[5 5 5];
+boxR=[L L L];
 [boxX,boxY,boxZ]=meshgrid(-boxR(1):boxR(1),-boxR(2):boxR(2),-boxR(3):boxR(3));
 boxMask=(boxX.^2+boxY.^2+boxZ.^2)<25;
 boxX=boxX(boxMask);
@@ -99,6 +136,8 @@ boxY=boxY(boxMask);
 boxZ=boxZ(boxMask);
 boxPix=[boxX,boxY,boxZ];
 
+
+function all_corr=illuminationCorrection()
 %% create illumination profile correction, if files are present
 
 try
@@ -125,6 +164,47 @@ catch me
     display(' No illumination profile found, no correction applied')
     all_corr=1;
 end
+
+
+function [RvalAll,GvalAll]=extractSignal(dataFolder)
+%%
+%get files from dataFolder, including the imageFolder and the pointStats
+%file.
+
+boxPix=boxCoord(5);
+all_corr=illuminationCorrection();
+
+pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
+psFolder=dir([dataFolder filesep 'CLstraight*']);
+imageFolder=[dataFolder filesep psFolder(end).name];
+%% load pointStats File
+
+pointStats=load(pointStatsFile);
+pointStats=pointStats.pointStatsNew;
+
+% read in sCMOS dat file
+datFileDir=dir([dataFolder filesep 'sCMOS_Frames_U16_*']);
+datFile=[dataFolder filesep datFileDir.name];
+%get image dimensions
+[rows,cols]=getdatdimensions(datFile);
+nPix=rows*cols;
+
+%read in timing data
+[~,~,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
+
+
+%also need phase delay used between z position and image number
+timeOffset=load([dataFolder filesep 'startWorkspace.mat'],'zOffset');
+timeOffset=timeOffset.zOffset;
+
+% load alignments
+alignments=load([dataFolder filesep 'alignments.mat']);
+alignments=alignments.alignments;
+S2AHiRes=alignments.S2AHiRes;
+rect1=S2AHiRes.rect1;
+rect2=S2AHiRes.rect2;
+background=alignments.background;
+
 
 
 %%
@@ -164,7 +244,6 @@ for i=1:length(pointStats)
         X=double(pointStatsTemp.transformx);
         Y=double(pointStatsTemp.transformy);
         Z=double(pointStatsTemp.transformz);
-        
         
         if any(size(X)==1);
             [X, Y, Z]=meshgrid(X,Y,Z);
@@ -214,7 +293,8 @@ for i=1:length(pointStats)
         [newX2,newY2]=transformPointsInverse(S2AHiRes.t_concord,newX,newY);
         newY2=newY2+rect2(2)-1;
         newX2=newX2+rect2(1)-1;
-        
+        newX2=round(newX2);
+        newY2=round(newY2);
         %make raw points for saving, need to check
         rawPoints=coordinateTransform3d(straightPoints,X,Y,Z);
         hiResRange=find(hiResData.stackIdx==pointStats(i).stackIdx);
@@ -223,64 +303,10 @@ for i=1:length(pointStats)
         fiducialPointsi=cell(200,4);
         %% loop over points and get average pixel intensities
         %intialize intensity vector for a given volume
-        R_i=nan(length(trackIdx),1);
-        G_i=nan(length(trackIdx),1);
         
+        R_i=interpSignal(hiResImage,newX1,newY1,newZ);
+        G_i=interpSignal(hiResImage,newX2,newY2,newZ);
         
-        for iPoint=1:size(newX,2)
-            %%
-            %get all pixels of interest for a point iPoint, red version
-            xball1=newX1(:,iPoint);
-            yball1=newY1(:,iPoint);
-            zball=newZ(:,iPoint);
-            
-            %remove bad pixels
-            xball1(xball1==0)=nan;
-            yball1(yball1==0)=nan;
-            zball(zball==0)=nan;
-            reject1=isnan(xball1) |isnan(yball1)|isnan(zball);
-            keep1=~reject1;
-            
-            %do the same for the green image
-            xball2=round(newX2(:,iPoint));
-            yball2=round(newY2(:,iPoint));
-            xball2(xball2==0)=nan;
-            yball2(yball2==0)=nan;
-            reject2=isnan(xball2)|isnan(yball2)|isnan(zball);
-            keep2=~reject2;
-            
-            keep=keep1 & keep2;
-            % get index for each pixel of interest for R and G
-            linBall1=sub2ind_nocheck(...
-                size(hiResImage),...
-                yball1(keep),...
-                xball1(keep),...
-                zball(keep));
-            linBall2=sub2ind_nocheck(...
-                size(hiResImage),...
-                yball2(keep),...
-                xball2(keep),...
-                zball(keep));
-            % get pixel values
-            Rset=hiResImage(linBall1);
-            Gset=hiResImage(linBall2);
-            %some pixels are prone to producing large values, try to remove
-            %these
-            bad_pix=abs(zscore(Rset))>5 & abs(zscore(Gset))>5;
-            Rset(bad_pix)=[];
-            Gset(bad_pix)=[];
-            Rnorm=normalizeRange(Rset);
-            Rthresh=Rnorm<graythresh(Rnorm);
-            Rset(Rthresh)=[];
-            Gset(Rthresh)=[];
-            %take trim mean to try to clean signal a bit
-            R_point=trimmean(Rset,20);
-            G_point=trimmean(Gset,20);
-            
-            R_i(iPoint)=R_point;
-            G_i(iPoint)=G_point;
-            
-        end
         
         %on first pass, initialize outputs for green and red and weights as
         %nans
@@ -312,51 +338,75 @@ for i=1:length(pointStats)
     
 end
 
-
 %% save cropped regions and a new set of unstraighted centroids
 newFiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
 mkdir(newFiducialFolder);
-clickPoints=0;
 %save time offset and unstraightened fiducial cell structure, not as
 %important any more, but good for visualization
-
+clickPoints=0;
 save([newFiducialFolder filesep 'timeOffset'],'timeOffset');
 save([newFiducialFolder filesep 'botFiducials'],...
     'fiducialPoints',...
     'clickPoints');
 
-%% makes photobleaching corrected, spatially corrected heatmaps, saves result
-heatMapGeneration(dataFolder,RvalAll,GvalAll)
-load([dataFolder filesep 'heatData'])
 
-%% make timing tracks
-[bfTime,hiResFrameTime,hasPoints,bfRange,hiResRange,hasPointsTime,lookup]=...
-    dataTimeAlignment(dataFolder,fiducialPoints);
+% interpSignal takes coordinates given by XYZ and interpolates the signal
+% from hiResImage. The signal is averaged over the columns, with a few
+% checks for ensuring the pixels are in the image and do not have wild
+% variations.
+function signal=interpSignal(hiResImage,X,Y,Z)
 
-[centerline, offset,eigenProj, CLV,wormCentered]=loadCLBehavior(dataFolder);
-
-frameTimeTrack=hiResData.frameTime((find(diff(hiResData.stackIdx)>0)));
-frameTimeTrack=frameTimeTrack(hasPoints);
-firstTime=nanmin(frameTimeTrack);
-frameTimeTrack=frameTimeTrack-firstTime;
+signal=nan(size(X,2),1);
 
 
-%% load centerline data, pad with zeros if needed to making size the same as
-%behavior video size
-if offset>0
-    CLV= [zeros(1,offset)  CLV]';
-else
-    CLV=CLV';
+for iPoint=1:size(X,2)
+    %%
+    %get all pixels of interest for a point iPoint, red version
+    xball1=X(:,iPoint);
+    yball1=Y(:,iPoint);
+    zball=Z(:,iPoint);
+    
+    %remove bad pixels
+    xball1(xball1==0)=nan;
+    yball1(yball1==0)=nan;
+    zball(zball==0)=nan;
+    reject1=isnan(xball1) |isnan(yball1)|isnan(zball);
+    keep=~reject1;
+    
+    % get index for each pixel of interest for R and G
+    linBall1=sub2ind_nocheck(...
+        size(hiResImage),...
+        yball1(keep),...
+        xball1(keep),...
+        zball(keep));
+    
+    % get pixel values
+    Fset=hiResImage(linBall1);
+    %some pixels are prone to producing large values, try to remove
+    %these
+    bad_pix=abs(zscore(Fset))>5;
+    Fset(bad_pix)=[];
+    Fnorm=normalizeRange(Fset);
+    Fthresh=Fnorm<graythresh(Fnorm);
+    Fset(Fthresh)=[];
+    %take trim mean to try to clean signal a bit
+    F_point=trimmean(Fset,20);
+    
+    signal(iPoint)=F_point;
+    
 end
 
-zeroPad=zeros(size(bfAll.frameTime,1)-length(CLV),1);
-CLV=[CLV;zeroPad];
-CLV(1)=0;
-CLbehavior=sign(smooth(-CLV,50));
-hiResCLbehavior=interp1(bfAll.frameTime,CLbehavior,hiResData.frameTime,'nearest','extrap');
-hiResCLV=interp1(bfAll.frameTime,CLV,hiResData.frameTime,'nearest','extrap');
 
-%% add centerline center of mass to stage position
+function [xPos,yPos]=calculate_cm_position(centerline,hiResData,bf_frameTime)
+
+
+%some conversion factors
+pos2mm=1/10000;
+CL2mm=1/557; % 1mm per 557 pixels
+%angle between stage positions and behavior camera
+stageCamAngle=90;
+stageCamAngle=stageCamAngle*pi/180;
+
 
 %get mean of CL coordinates for center of mass
 centerLinePosition=squeeze(mean(centerline,1));
@@ -364,19 +414,12 @@ centerLinePosition(centerLinePosition==0)=nan;
 centerLinePosition=inpaint_nans(centerLinePosition);
 centerLinePosition=bsxfun(@minus,centerLinePosition,mean(centerLinePosition,2));
 
-%pad with zeros for size matching with video
-temp=zeros(2,length(CLV));
-temp(:,offset+1:offset+length(centerLinePosition))=centerLinePosition;
-zeroPad=zeros(size(bfAll.frameTime,1)-length(temp),1);
-temp=[temp;zeroPad];
-centerLinePosition=temp';
-
-%interpolate into imaging rate of hires
+%interpolate into imaging rate of hiRes
 hiResCLposition=...
-    [interp1(1:length(centerLinePosition),centerLinePosition(:,1),...
-    lookup.BF2hiRes,'nearest','extrap'),...
-    interp1(1:length(centerLinePosition),centerLinePosition(:,2),...
-    lookup.BF2hiRes,'nearest','extrap')];
+    [interp1(bf_frameTime,centerLinePosition(:,1),...
+    hiResData.frameTime,'nearest',0),...
+    interp1(bf_frameTime,centerLinePosition(:,2),...
+    hiResData.frameTime,'nearest',0)];
 
 hiResCLposition(isnan(hiResCLposition(:,1)),1)=nanmean(hiResCLposition(:,1));
 hiResCLposition(isnan(hiResCLposition(:,2)),2)=nanmean(hiResCLposition(:,2));
@@ -397,106 +440,60 @@ xPosStage=inpaint_nans(xPosStage);
 yPosStage=hiResData.yPos*pos2mm;
 yPosStage([0; diff(yPosStage)]==0)=nan;
 yPosStage=inpaint_nans(yPosStage);
+
 % switched some signs 1 and 2 for jeff cls, may need switching for some
 % camera rotations
 xPos=xPosStage-1*hiResCLposition(:,1);
 yPos=yPosStage+1*hiResCLposition(:,2);
 
-%get stage coordinates for each volume measured
-yPosStageTrack=yPosStage(hiResRange);
-xPosStageTrack=xPosStage(hiResRange);
-yPosStageTrack=yPosStageTrack(hasPoints);
-xPosStageTrack=xPosStageTrack(hasPoints);
-
 %filter positions
+filterKernal=makeGaussKernel(50);
 filterFactor=imfilter(ones(size(xPos)),filterKernal);
-xV=imfilter(xPos,diff(filterKernal));
+
 xPos=imfilter(xPos,filterKernal)./filterFactor;
 yPos=imfilter(yPos,filterKernal)./filterFactor;
 
-%get worm cm positions for each volume measured
-xPosTrack=xPos((find(diff(hiResData.stackIdx)>0)));
-xPosTrack=xPosTrack(hasPoints);
-yPosTrack=yPos((find(diff(hiResData.stackIdx)>0)));
-yPosTrack=yPosTrack(hasPoints);
-
-%% Calculate worm velocities
-
-filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
-xV=imfilter((xPos),filterKernal2)./filterFactor2;
-yV=imfilter((yPos),filterKernal2)./filterFactor2;
-hiResVel=[gradient(xV) gradient(yV)];
-hiResVel=sqrt(sum(hiResVel.^2,2));
-D=[cumsum(hiResVel)];
-
-hiResVel=hiResVel.*hiResCLbehavior;
-hiResVel=smooth(hiResVel,500);
-vTrack=hiResVel((find(diff(hiResData.stackIdx)>0)));
-vTrack=vTrack(hasPoints);
-%% load eigen behavior and do cylindrical rotation for more independent Z
-
-eigenBehavior=zeros(size(eigenProj,1),length(CLV));
-eigenBehavior(:,offset+1:offset+length(eigenProj))=eigenProj;
-temp=eigenBehavior;
-behaviorProjection=temp(1:3,:)';
-[~,maxIdx]=max(sum(behaviorProjection.^2,2));
-maxPoint=behaviorProjection(maxIdx,:);
-[phi,theta,R] = cart2sph(maxPoint(1),maxPoint(2),maxPoint(3));
-[x,E]=fminsearch(@(x) circlePlane(behaviorProjection,x(1),x(2)),[phi theta]);
-phi=x(2);
-theta=x(1);
-[~,projections]=circlePlane(behaviorProjection,theta,phi);
-n=[cos(phi)*sin(theta) sin(phi)*sin(theta) cos(theta)];
-behaviorZ=behaviorProjection*n';
-Rmat=normc(projections'*behaviorZ);
-Rmat=[Rmat(1) Rmat(2); Rmat(2) -Rmat(1)];
-projections=(Rmat*projections')';
-hiResBehaviorZ=interp1(bfAll.frameTime,behaviorZ,hiResData.frameTime);
 
 
-%% calculate angles in PC1 and PC2 space
-v=zeros(1,length(bfAll.frameTime));
-v(:,offset+1:offset+length(behaviorZ))=behaviorZ;
-behaviorZ=v;
-%hiResBehaviorZ=behaviorZ(diff(BF2stackIdx)>0);
-v=zeros(length(CLV),2);
-v(offset+1:offset+length(projections),:)=projections;
-projections=v;
-behaviorTheta=atan2(projections(:,1),projections(:,2));
-behaviorTheta=unwrap(behaviorTheta);
-behaviorTheta=imfilter(behaviorTheta,filterKernal);
-behaviorZTrack=behaviorZ(bfRange);
-projectionsTrack=projections(bfRange,:);
-behaviorThetaTrack=behaviorTheta(bfRange);
+%simple function to make normalized gaussian kernel with sdev
+function filterKernel=makeGaussKernel(sdev)
+filterKernel=gausswin(sdev);
+filterKernel=filterKernel-min(filterKernel(:));
+filterKernel=filterKernel/sum(filterKernel);
 
 
 
-%% make some sort of ethogram;
-%still in progress for more types of worm
+
 % -1 for reverse
 % 0 for pause
 % 1 for forward
 % 2 for turn
 
 %colors for plotting
+function c_out=ethocolormap()
 fcolor=[0 1 0];%[27 158 119]/256;
 bcolor=[1 0 0];%[217 95 2]/256;
 turncolor=[0 0 1];%[117 112 179]/256;
 pausecolor=[255 217 50]/256;
-ethocolormap=[bcolor;pausecolor;fcolor;turncolor];
+c_out=[bcolor;pausecolor;fcolor;turncolor];
+
+
+function ethogram=makeEthogram(hiResVel,hiResBehaviorZ)
+%attempt to make an ethogram of behavior using the velocity of the animal
+%(which will have a sign to take into account forward and reversal) and the
+%projection onto the "3rd" eigenworm, where peaks correspond to high
+%curvature and likely turns. 
 
 %use 3rd eigenmode for finding turns
-ethoZ=hiResBehaviorZ(hiResRange);
+ethoZ=hiResBehaviorZ;
 ethoZ=ethoZ-nanmean(ethoZ);
 ethoZ(isnan(ethoZ))=0;
 
 %cluster velocities to find forward and back
-Vcluster=smooth(hiResVel(hiResRange),100);
+Vcluster=smooth(hiResVel,100);
 idx=sign(Vcluster);
 idx(abs(Vcluster)<.00005)=0;
 ethogram=idx;
-pausing=find(ethogram==0);
-idxgmm=kmeans(ethoZ,2,'start',[ 0 5]');
 ethogram((((abs(ethoZ)>2*std(ethoZ))& (ethogram>=0)))|abs(ethoZ)>10)=2;
 
 % Kill off short behaviors unless they are reversals
@@ -509,25 +506,7 @@ for iBehavior=[0 1 2];
     ethogram(shortPause)=nan;
     ethogram=colNanFill(ethogram,'nearest');
 end
-ethogram(hiResVel(hiResRange)==0)=nan;
-ethoTrack=ethogram;
-ethoTrack=interp1(hiResFrameTime,ethoTrack,frameTimeTrack,'nearest');
 
-%combine behaviors into structure
-behavior.ethogram=ethoTrack;
-behavior.x_pos=xPosTrack;
-behavior.y_pos=yPosTrack;
-behavior.v=vTrack;
-behavior.pc1_2=projectionsTrack;
-behavior.pc_3=behaviorZTrack';
-%% save files
-save([dataFolder filesep 'positionData'],...
-    'xPos','yPos','hiResVel','behaviorZTrack','projectionsTrack')
+ethogram(hiResVel==0)=nan;
 
-save([dataFolder filesep 'heatData'],...
-    'behavior',...
-    'hasPointsTime',...
-    'trackWeightAll',...
-    'bfTime',...
-    '-append');
 
