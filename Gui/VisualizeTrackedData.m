@@ -103,9 +103,10 @@ function SelectFolder_Callback(hObject, eventdata, handles)
 display('Select image folder, or image tif');
 mostRecent=getappdata(0,'mostRecent');
 if isempty(mostRecent)
-    imFiles=uipickfiles();
+    imFiles=uipickfiles('Prompt', 'Select the data Folder' );
 else
-    imFiles=uipickfiles('filterspec', mostRecent);
+    imFiles=uipickfiles('filterspec', mostRecent,...
+        'Prompt', 'Select the data Folder');
 end
 mostRecent=imFiles{1};
 if ~isdir(mostRecent)
@@ -445,17 +446,17 @@ colorOrder='rygb';
 %draw dot with colour based on behavior
 currentBehavior=heatData.behavior.ethogram(iImage);
 currentcolor=colorOrder(currentBehavior+2);
-oldPlotSate=getappdata(handles.figure1,'oldPlot');
-newPlotState=[regionSelect plotType);
+oldPlotState=getappdata(handles.figure1,'oldPlot');
+newPlotState=[regionSelect plotType];
 
 
- if all(oldPlotState,[regionSelect plotType]))
+ if ~all(ismember(oldPlotState,newPlotState)) || isempty(oldPlotState)
  plot(handles.axes3,plotTrace);
  hold(handles.axes3,'on')
  tracePoint=scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
  setappdata(handles.figure1,'tracePoint',tracePoint);
  hold(handles.axes3,'off');
- setappdata(handles.figure1,'oldPlot',[regionSelect plotType])
+ setappdata(handles.figure1,'oldPlot',newPlotState)
  else
      tracePoint=getappdata(handles.figure1,'tracePoint');
      tracePoint.YData=plotTrace(iImage);
@@ -862,7 +863,8 @@ if ~isdir(imFiles)
 else
     parent=imFiles;
 end
-fiducialFile=uipickfiles('filterspec',parent);
+fiducialFile=uipickfiles('filterspec',parent,...
+   'Prompt', 'Select botFiducials Folder' );
 
 fiducialFile=fiducialFile{1};
 %fiducialData=load(fiducialFile);
@@ -1014,7 +1016,8 @@ function loadHeatData_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 mostRecent=getappdata(0,'mostRecent');
-heatDataFile=uipickfiles('FilterSpec',mostRecent);
+heatDataFile=uipickfiles('FilterSpec',mostRecent,...
+   'Prompt', 'Select the heatData.mat file' );
 heatDataFile=heatDataFile{1};
 heatData=load(heatDataFile);
 setappdata(handles.figure1,'heatData',heatData);

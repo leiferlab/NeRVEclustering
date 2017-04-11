@@ -23,6 +23,12 @@ load([dataFolder filesep 'heatData'])
 %% make timing tracks
 
 [bfAll,~,hiResData]=tripleFlashAlign(dataFolder);
+% load pointStats File
+
+pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
+pointStats=load(pointStatsFile);
+pointStats=pointStats.pointStatsNew;
+
 
 hasPoints=1:length(pointStats);
 hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
@@ -87,14 +93,6 @@ behaviorZTrack=interp1(clTime,behaviorZ,hasPointsTime);
 projectionsTrack=interp1(clTime,projections,hasPointsTime);
 hiResBehaviorZ=interp1(clTime,behaviorZ,hiResData.frameTime);
 
-
-%% calculate angles in PC1 and PC2 space
-behaviorTheta=atan2(projections(:,1),projections(:,2));
-behaviorTheta=unwrap(behaviorTheta);
-behaviorTheta=imfilter(behaviorTheta,filterKernal);
-
-
-
 %% make some sort of ethogram;
 %still in progress for more types of worm
 % -1 for reverse
@@ -110,7 +108,7 @@ behavior.ethogram=ethoTrack;
 behavior.x_pos=xPosTrack;
 behavior.y_pos=yPosTrack;
 behavior.v=vTrack;
-behavior.pc1_2=projectionTrack;
+behavior.pc1_2=projectionsTrack;
 behavior.pc_3=behaviorZTrack;
 
 %% save files
@@ -190,7 +188,7 @@ datFile=[dataFolder filesep datFileDir.name];
 nPix=rows*cols;
 
 %read in timing data
-[~,~,hiResData]=tripleFlashAlign(dataFolder,[rows cols]);
+[~,~,hiResData]=tripleFlashAlign(dataFolder);
 
 
 %also need phase delay used between z position and image number
@@ -413,7 +411,7 @@ centerLinePosition=squeeze(mean(centerline,1));
 centerLinePosition(centerLinePosition==0)=nan;
 centerLinePosition=inpaint_nans(centerLinePosition);
 centerLinePosition=bsxfun(@minus,centerLinePosition,mean(centerLinePosition,2));
-
+centerLinePosition=centerLinePosition';
 %interpolate into imaging rate of hiRes
 hiResCLposition=...
     [interp1(bf_frameTime,centerLinePosition(:,1),...

@@ -18,7 +18,7 @@ load(PS_file)
 
 %list of stacks presents
 volList=find(cellfun(@(x) ~isempty(x),{pointStats.stackIdx}));
-nVol=length(pointStats);
+nVol=length(volList);
 
 %the list of references to use
 refList=unique(round(1:nVol/nRef:nVol));
