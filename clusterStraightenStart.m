@@ -37,10 +37,8 @@ BF2stackIdx=interp1(stack2BFidx,1:topLimit,bfIdxList,'nearest');
 fluor2stackIdx=interp1(stack2fluoridx,1:topLimit,fluorIdxList,'nearest');
 
 
-%% load find the first frame with every video in it
-[~, CLoffset]=loadCLBehavior(dataFolder);
-first_frame=max([min(BF2stackIdx(CLoffset+1)) min(fluor2stackIdx)])+1;
-test_frame=first_frame+counter;
+%% just using 300th volume for now
+test_frame=counter;
 
 %% load alignment data
 
