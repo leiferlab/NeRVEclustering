@@ -11,9 +11,10 @@ CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
 qString_min = "--time=180"
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
-
+NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
 
 def path_setup(commandList):
+    commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     return commandList
@@ -42,7 +43,7 @@ def make_output_path(fullPath):
 
 
 def straighten_input(commandList,fullPath,totalRuns):
-    commandList.insert(len(commandList)-1, '####STRAIGHTENING####')
+    commandList.insert(len(commandList)-1, '####STRAIGHTENING####'+NOW)
 
     totalRuns = int(totalRuns)
     folderName=os.path.basename(fullPath)
@@ -56,7 +57,7 @@ def straighten_input(commandList,fullPath,totalRuns):
     stepSize=totalRuns//300
     
     input0 = "clusterStraightenStart('"+ fullPath + "')"
-    qsubCommand0 = ("sbatch --mem=2000 " 
+    qsubCommand0 = ("sbatch --mem=12000 " 
         + qString_min + " -D " + folderName
         + " -J "+ folderName
         + " --output=\"" + outputFilePath + "/straight_s-%J.out" + "\""
@@ -78,7 +79,7 @@ def straighten_input(commandList,fullPath,totalRuns):
         else:
             currentLimit="1000"
 
-        qsubCommand1 = ("sbatch --mem=2000 " 
+        qsubCommand1 = ("sbatch --mem=12000 " 
             + qString_min + " -D " + folderName
             + " -J "+ folderName 
             + dependencyString
@@ -91,7 +92,7 @@ def straighten_input(commandList,fullPath,totalRuns):
     commandList.insert(len(commandList)-1, '\r')
 
         
-    qsubCommand2 = ("sbatch --mem=2000 " 
+    qsubCommand2 = ("sbatch --mem=12000 " 
         + qString_min + " -D " + folderName
         + " -J "+ folderName + " -d singleton"
         + " --output=\"" + outputFilePath + "/pscompile-%J.out" + "\" "
@@ -105,7 +106,7 @@ def straighten_input(commandList,fullPath,totalRuns):
 
 
 def track_input(commandList,fullPath,totalRuns,nRef):
-    commandList.insert(len(commandList)-1, '####TRACKING####')
+    commandList.insert(len(commandList)-1, '####TRACKING####'+NOW)
     totalRuns=int(totalRuns)
     nRef=int(nRef)
     
@@ -158,9 +159,9 @@ def track_input(commandList,fullPath,totalRuns,nRef):
             + " -J "+ folderName
             + " --output=\"" + outputFilePath + "/track-%J.out" + "\"" 
             + " --error=\"" + outputFilePath + "/track-%J.err" + "\""
-            + " --array=1-" + currentLimit
+            + " --array=1-" + currentLimit + ":" + str(stepSize)
             + " " + code_track + " '" 
-            + fullPath +"' " + offset)
+            + fullPath +"' " + offset + " " + str(stepSize))
         
         commandList.insert(len(commandList)-1, qsubCommand1)
     commandList.insert(len(commandList)-1, '\r')
@@ -178,7 +179,7 @@ def track_input(commandList,fullPath,totalRuns,nRef):
 
 
 def check_input(commandList,fullPath,nCheck,nNeurons):
-    commandList.insert(len(commandList)-1, '####CHECKING####')
+    commandList.insert(len(commandList)-1, '####CHECKING####'+NOW)
     nCheck=int(nCheck)
     nNeurons=int(nNeurons)
     
@@ -215,7 +216,7 @@ def check_input(commandList,fullPath,nCheck,nNeurons):
 
 
 def crop_input(commandList,fullPath):
-    commandList.insert(len(commandList)-1, '####CROPPING####')
+    commandList.insert(len(commandList)-1, '####CROPPING####'+NOW)
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
     
@@ -237,7 +238,7 @@ def crop_input(commandList,fullPath):
 
 
 def flash_input(commandList,fullPath):
-    commandList.insert(len(commandList)-1, '####TIME SYNC####')
+    commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
     

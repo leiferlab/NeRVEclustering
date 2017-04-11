@@ -304,6 +304,8 @@ def submitScript(master=None):
    # matlabDirName = "\\ ".join(matlabDirName);
     print('Writing inputs line to text file')
     userEmail=username+"@princeton.edu"
+    
+    #submit path setup bash commands
     commandList=slurm.path_setup(commandList)
     #make job name from foldername
     if straightFlag:

@@ -1,4 +1,4 @@
-function clusterWormTracker(dataFolder,startIdx)
+function clusterWormTracker(dataFolder,startIdx,stepSize)
 % clusterWormTracker compares a set of pointsets from WormStraighten code
 % and uses non rigid pointset registration to create match matrices. The
 % code has been now modified to just run with on one sample with nRef for a
@@ -22,6 +22,11 @@ if nargin==0
     startIdx=1;
 end
 
+if nargin==2
+    stepSize=1;
+end
+
+
 PS_file=[dataFolder filesep 'PointsStats.mat'];
 ref_file=[dataFolder filesep 'pointStatsRef.mat'];
 %load pointStats file
@@ -42,24 +47,28 @@ end
 
 
 presentIdx=[pointStats.stackIdx];
-%get sample points being matched
-i_ps=presentIdx(startIdx);
-P1=pointStats(i_ps);
 
-%output path
-outputName=[outputFolder filesep...
-    'trackMatrix' num2str(i_ps,'%3.5d')...
-    'Run' num2str(0,'%3.2d')];
-display(outputName);
-
-
-%%
-% do matching with references
-TrackMatrixi=compareWithRef(P1,PS_ref);
-if isempty(TrackMatrixi)
-    TrackMatrixi=[];
+for iRun=1:stepSize
+    %get sample points being matched
+    currentIdx=startIdx+iRun-1;
+    i_ps=presentIdx(currentIdx);
+    P1=pointStats(i_ps);
+    
+    %output path
+    outputName=[outputFolder filesep...
+        'trackMatrix' num2str(i_ps,'%3.5d')...
+        'Run' num2str(0,'%3.2d')];
+    display(outputName);
+    
+    
+    %%
+    % do matching with references
+    TrackMatrixi=compareWithRef(P1,PS_ref);
+    if isempty(TrackMatrixi)
+        TrackMatrixi=[];
+    end
+    %save TrackMatrixi
+    save(outputName,'TrackMatrixi');
 end
-%save TrackMatrixi
-save(outputName,'TrackMatrixi');
 
 

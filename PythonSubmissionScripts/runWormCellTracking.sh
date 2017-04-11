@@ -28,6 +28,7 @@ export MATLABPATH="$MATLABPATH;"
 echo $MATLABPATH
 echo $1
 echo $2
+echo $3
 # run the job
 # if 3rd input is 1, run on with slurm task array ID
-   matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormTracker('$1',$SLURM_ARRAY_TASK_ID+$2);exit;"
+   matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormTracker('$1',$SLURM_ARRAY_TASK_ID+$2, $3);exit;"
