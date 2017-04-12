@@ -1,4 +1,4 @@
-function clusterBotChecker(filePath,startIdx,groupSize)
+function clusterBotChecker(filePath,startIdx,nSubSample)
 %cluster bot checker uses a path to pointstats and a track index and stepsize as
 %inputs. The code goes through all frames and compares them to nSubSample
 %number of other randomly selected frames. In each frame, it asks where
@@ -25,7 +25,7 @@ if nargin==0
 end
 
 if nargin<3
-    groupSize=1;
+    nSubSample=100;
 end
 %% setup output paths
 outputName=fileparts(filePath);
@@ -46,17 +46,16 @@ pointStats2=fileData.(fileField{1});
 %select number of points,
 nTime=length(pointStats2);
 %potentially only take subset of times for TPS guessing, for now take all times
-nSubSample=nTime; 
+subSample=1:nTime/nSubSample:nTime;
 
 %which indexes of pointstats to run
-startIdxReal=ceil(startIdx/groupSize);
+startIdxReal=ceil(startIdx);
 %which iteration of that pointstats, number between 0 and groupSize-1
-runIdx=mod(startIdx-1,groupSize);
+runIdx=0;
 
 %list of times
 timeVector=1:nTime;
-timeIdx=floor(timeVector/max(timeVector+1)*groupSize);
-timeVector=timeVector(timeIdx==runIdx);
+
 
 %% loop through selected neurons in list
 for iPointIdx=startIdxReal;
@@ -73,13 +72,7 @@ for iPointIdx=startIdxReal;
     %loop through all time points
     for iFrame=timeVector
         %%
-        %take random subsample of other time points to compare (not being
-        %used now)
-        if nTime==nSubSample
-            subSample=randperm(nTime,nSubSample);
-        else
-            subSample=1:nTime;
-        end
+
         %get pointStats being analyzed
         pointsRef=pointStats2(iFrame);
         %get track IDs for each neuron

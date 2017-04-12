@@ -35,7 +35,7 @@ function varargout = alignment_gui(varargin)
 
 % Edit the above text to modify the response to help alignment_gui
 
-% Last Modified by GUIDE v2.5 10-Apr-2017 11:23:34
+% Last Modified by GUIDE v2.5 11-Apr-2017 15:13:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -90,7 +90,8 @@ function varargout = alignment_gui_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 mostRecent=getappdata(0,'mostRecent');
-imFolder=uipickfiles('filterspec',mostRecent);
+imFolder=uipickfiles('filterspec',mostRecent,...
+    'Prompt','Select folder containing alignment .avi and .dat files');
 imFolder=imFolder{1};
 setappdata(0,'mostRecent',imFolder);
 setappdata(handles.figure1,'imFolder',imFolder);
@@ -153,6 +154,13 @@ images=all_images(currentFrame);
 axis_list=getappdata(handles.figure1,'axisList');
 
 image_names=fieldnames(images);
+
+demoState=[...
+    get(handles.redView,'Value'),...
+    get(handles.greenView,'Value'),...
+    get(handles.fluorView,'Value'),...
+    get(handles.darkView,'Value')];
+label_list={handles.nRed,handles.nGreen,handles.nFluor,handles.nDark};
 for iAxes=1:4
     
     current_axis=axis_list{iAxes};
@@ -175,10 +183,25 @@ for iAxes=1:4
             points(:,2),...
             cellstr(num2str([1:size(points,1)]')),...
             'parent',current_axis,...
-            'color','white');
-        
+            'color','white',...
+            'HorizontalAlignment','right');
     end
+
+    
+    if any(demoState) && find(demoState)~=iAxes
+        demoPoints=getappdata(current_axis,'demoPoints');
+        scatter(current_axis,demoPoints(:,1),demoPoints(:,2),'og')
+        text(demoPoints(:,1),...
+            demoPoints(:,2),...
+            cellstr(num2str([1:size(demoPoints,1)]')),...
+            'parent',current_axis,...
+            'color','magenta',...
+            'HorizontalAlignment','left');
+    end
+    
     hold(current_axis,'off')
+    set(label_list{iAxes},'String',num2str((size(points,1))));
+    
 end
 
 
@@ -201,83 +224,121 @@ HiResS2LoResF_name=[fileName 'HiResS2LoResF'];
 alignmentFolder='Y:\CommunalCode\3dbrain\registration\';
 backgroundLocation='Y:\CommunalCode\3dbrain\background';
 
-axis_list=getappdata(handles.figure1,'axisList');
-
-%get all the coordinates
-for iAxes=1:4
-    current_axis=axis_list{iAxes};
-    points=getappdata(current_axis,'points');
-    points_cell{iAxes}=points;
-end
-
-
-%get images for size purposes
-all_images=getappdata(handles.figure1,'all_images');
-images=all_images(1);
-% save in a consistent way, will change eventually to clean this up
-rect1=[1,1,512,512];
-rect2=[1,513,512,512];
-
-Aall=points_cell{2};
-Sall=points_cell{1};
-t_concord = fitgeotrans(Aall,Sall,'projective');
-Rsegment = imref2d(size(images.red));
-
-% save 
-save([alignmentFolder HiResS2A_name],'rect1','rect2','t_concord'...
-    ,'Rsegment','Sall','Aall','fileName')
-
-
-Aall=points_cell{3};
-Sall=points_cell{1};
-t_concord = fitgeotrans(Aall,Sall,'projective');
-Rsegment = imref2d(size(images.red));
-
-save([alignmentFolder HiResS2LoResF_name],'t_concord'...
-    ,'Rsegment','Sall','Aall','fileName')
-    
-
-Aall=points_cell{3};
-Sall=points_cell{4};
-t_concord = fitgeotrans(Aall,Sall,'projective');
-Rsegment = imref2d(size(images.dark10));
-
-save([alignmentFolder LowResB2F_name],'t_concord'...
-    ,'Rsegment','Sall','Aall','fileName')
-
-
-lowResFluor2BF=load([alignmentFolder LowResB2F_name]);
-Hi2LowResF=load([alignmentFolder HiResS2LoResF_name]);
-S2AHiRes=load([alignmentFolder HiResS2A_name]);
-
+alignments=makeTransformation(handles);
+setappdata(handles.figure1,'alignments',alignments)
 % if there's a background image, load it as well into alignments.
 display('select a background image for this size himag video');
 
-backgroundImage=uipickfiles('FilterSpec',backgroundLocation);
+backgroundImage=uipickfiles('FilterSpec',backgroundLocation,...
+    'Prompt','Select Background File');
+
 if iscell(backgroundImage)
     backgroundImage=load(backgroundImage{1});
     backgroundImage=backgroundImage.backgroundImage;
 else
     backgroundImage=0;
 end
+alignments.background=backgroundImage;
 
+% save 
+S2AHiRes=alignments.S2AHiRes;
+Hi2LowResF=alignments.Hi2LowResF;
+lowResFluor2BF=alignments.lowResFluor2BF;
+
+save([alignmentFolder HiResS2A_name],'-struct'...
+    ,'S2AHiRes')
+save([alignmentFolder HiResS2LoResF_name],'-struct'...
+    ,'Hi2LowResF')
+save([alignmentFolder LowResB2F_name],'-struct'...
+    ,'lowResFluor2BF')
+save([imFolder filesep 'alignments'],'alignments');
+print('Saved!')
+
+
+function alignments=makeTransformation(handles)
+
+axis_list=getappdata(handles.figure1,'axisList');
+
+%get all the coordinates
+points_cell=cell(1,4);
+for iAxes=1:4
+    current_axis=axis_list{iAxes};
+    points=getappdata(current_axis,'points');
+    points_cell{iAxes}=points;
+end
+
+%get images for size purposes
+all_images=getappdata(handles.figure1,'all_images');
+images=all_images(1);
+
+% save in a consistent way, will change eventually to clean this up
+S2AHiRes.rect1=[1,1,512,512];
+S2AHiRes.rect2=[1,513,512,512];
+S2AHiRes.Aall=points_cell{2};
+S2AHiRes.Sall=points_cell{1};
+S2AHiRes.t_concord = ...
+    fitgeotrans(S2AHiRes.Aall,S2AHiRes.Sall,'projective');
+S2AHiRes.Rsegment = imref2d(size(images.red));
+
+Hi2LowResF.Aall=points_cell{3};
+Hi2LowResF.Sall=points_cell{1};
+Hi2LowResF.t_concord = ...
+    fitgeotrans(Hi2LowResF.Aall,Hi2LowResF.Sall,'projective');
+Hi2LowResF.Rsegment = imref2d(size(images.red));
+
+lowResFluor2BF.Aall=points_cell{3};
+lowResFluor2BF.Sall=points_cell{4};
+lowResFluor2BF.t_concord = ...
+    fitgeotrans(lowResFluor2BF.Aall,lowResFluor2BF.Sall,'projective');
+lowResFluor2BF.Rsegment = imref2d(size(images.dark10));
 
 % if you select them individually, bundle them and save it for later use
 alignments.lowResFluor2BF=lowResFluor2BF;
 alignments.S2AHiRes=S2AHiRes;
 alignments.Hi2LowResF=Hi2LowResF;
-alignments.background=backgroundImage;
-save([imFolder filesep 'alignments'],'alignments');
 
 
 
 
 
-% --- Executes on button press in pushbutton5.
-function pushbutton5_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton5 (see GCBO)
+
+% --- Executes on button press in loadAlignment.
+function loadAlignment_Callback(hObject, eventdata, handles)
+% hObject    handle to loadAlignment (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+imFolder=getappdata(handles.figure1,'imFolder');
+alignment_file=uipickfiles('filterspec',imFolder,...
+    'prompt', 'Select Alignment File');
+
+alignment_file=alignment_file{1};
+alignments=load(alignment_file);
+alignments=alignments.alignments;
+setappdata(handles.figure1,'alignment',alignments);
+
+axis_list=getappdata(handles.figure1,'axisList');
+
+%get all the coordinates, adding points from old alignments top whats there
+%already. 
+points_cell=cell(1,4);
+for iAxes=1:4
+    current_axis=axis_list{iAxes};
+    points=getappdata(current_axis,'points');
+    switch iAxes
+        case 1
+            newPoints=alignments.S2AHiRes.Sall;
+        case 2
+            newPoints=alignments.S2AHiRes.Aall;
+        case 3
+            newPoints=alignments.Hi2LowResF.Aall;
+        case 4
+            newPoints=alignments.lowResFluor2BF.Sall;
+    end
+    points=[newPoints;points];
+    setappdata(current_axis,'points',points);
+
+end
+
 
 % --- Executes on mouse press over axes background.
 function red_image_ButtonDownFcn(hObject, eventdata, handles)
@@ -442,3 +503,109 @@ cax_new(4)=min(cax_new(4),imsize(2));
 
 xlim(ax,cax_new([1,2]));
 ylim(ax,cax_new([3,4]));
+
+
+% --- Executes on button press in redView.
+function redView_Callback(hObject, eventdata, handles)
+% hObject    handle to redView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of redView
+if get(hObject,'Value')
+    setDemoView(hObject,handles,1);
+    hObject.BackgroundColor=[1 .4 .4];
+    handles.greenView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.fluorView.BackgroundColor=[0.9400 0.9400 0.9400];
+else
+    hObject.BackgroundColor=[0.9400 0.9400 0.9400];
+end
+showplots(handles)
+
+
+% --- Executes on button press in fluorView.
+function fluorView_Callback(hObject, eventdata, handles)
+% hObject    handle to fluorView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of fluorView
+if get(hObject,'Value')
+    setDemoView(hObject,handles,2);
+    hObject.BackgroundColor=[1 .4 .4];
+    handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.greenView.BackgroundColor=[0.9400 0.9400 0.9400];
+else
+    hObject.BackgroundColor=[0.9400 0.9400 0.9400];
+end
+showplots(handles)
+
+
+% --- Executes on button press in greenView.
+function greenView_Callback(hObject, eventdata, handles)
+% hObject    handle to greenView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of greenView
+if get(hObject,'Value')
+    setDemoView(hObject,handles,3);
+    hObject.BackgroundColor=[1 .4 .4];
+    handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.fluorView.BackgroundColor=[0.9400 0.9400 0.9400];
+else
+    hObject.BackgroundColor=[0.9400 0.9400 0.9400];
+end
+showplots(handles)
+
+
+
+% --- Executes on button press in darkView.
+function darkView_Callback(hObject, eventdata, handles)
+% hObject    handle to darkView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of darkView
+if get(hObject,'Value')
+    setDemoView(hObject,handles,4);
+    hObject.BackgroundColor=[1 .4 .4];
+    handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.greenView.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.fluorView.BackgroundColor=[0.9400 0.9400 0.9400];
+    
+else
+    hObject.BackgroundColor=[0.9400 0.9400 0.9400];
+end
+showplots(handles)
+
+
+
+function setDemoView(hObject,handles,axisID)
+
+%reset all other switches
+set(handles.redView,'Value',0);
+set(handles.greenView,'Value',0);
+set(handles.fluorView,'Value',0);
+set(handles.darkView,'Value',0);
+set(hObject,'Value',~get(hObject,'Value'));
+
+axis_list=getappdata(handles.figure1,'axisList');
+
+%get all the coordinates
+points_cell=cell(1,4);
+for iAxes=1:4
+    current_axis=axis_list{iAxes};
+    points=getappdata(current_axis,'points');
+    points_cell{iAxes}=points;
+end
+
+for iAxes=1:4
+    current_axis=axis_list{iAxes};
+    t=fitgeotrans( points_cell{axisID}, points_cell{iAxes},'projective');
+    demoPoints=transformPointsForward(t, points_cell{axisID});
+    setappdata(current_axis,'demoPoints',demoPoints)
+end

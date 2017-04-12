@@ -126,23 +126,24 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     matlabDirName = fullPath + "/" +  PS_NAME1
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
-    stepSize=np.ceil(50.0/nRef)
+    stepSize=int(np.ceil(50.0/nRef))
     
     input1= "makePointStatsRef('"+ fullPath +"',"+ str(nRef) + ")"
     qsubCommand0 = ("sbatch --mem=2000 " 
-        + qString_min + " -D " + folderName
+        + qString_min 
+        + " -D " + folderName
         + " -J "+ folderName
-        + " --output=\"" + outputFilePath + "/straight_s-%J.out" + "\""
-        + " --error=\"" + outputFilePath + "/straight_s-%J.err" + "\""
+        
+        + " --output=\"" + outputFilePath + "/track_s-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/track_s-%J.err" + "\""
         + " " + code_runinput
         +" \"" + input1 +"\"")
-    qsubCommand0 = "q0=$("+ qsubCommand0 + ")"
+    qsubCommand0 = "q1=$("+ qsubCommand0 + ")"
     commandList.insert(len(commandList)-1, qsubCommand0)
     commandList.insert(len(commandList)-1, "echo $q0")
     commandList.insert(len(commandList)-1, '\r')
-    dependencyString=" --dependency=afterok:${q0##* }"
+    dependencyString=" --dependency=afterok:${q1##* }"
     
-
     nRuns=totalRuns//1000+1
 
     for i in range(nRuns):
