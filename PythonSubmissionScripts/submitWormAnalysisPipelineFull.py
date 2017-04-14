@@ -315,7 +315,7 @@ def submitScript(master=None):
         commandList=slurm.track_input(commandList,fullPath,totalRuns,nRef)
         
     if checkFlag:
-        commandList=slurm.check_input(commandList,fullPath,nCheck,nNeurons)
+        commandList=slurm.check_input(commandList,fullPath,totalRuns,nCheck,nNeurons)
         
     if cropFlag:
         commandList=slurm.crop_input(commandList,fullPath)

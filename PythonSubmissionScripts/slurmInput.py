@@ -179,7 +179,7 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     return commandList
 
 
-def check_input(commandList,fullPath,nCheck,nNeurons):
+def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons):
     commandList.insert(len(commandList)-1, '####CHECKING####'+NOW)
     nCheck=int(nCheck)
     nNeurons=int(nNeurons)
@@ -189,7 +189,8 @@ def check_input(commandList,fullPath,nCheck,nNeurons):
     
     code_checkcompiler = CODE_PATH + '/PythonSubmissionScripts/runWormBotCheckCompiler.sh'
     code_check = CODE_PATH+'/PythonSubmissionScripts/runWormBotChecker.sh'
-    qString_check = "--time="+ str(np.max((nCheck,180)))   
+    time_estimate=np.round(nCheck*totalRuns*.15/60)
+    qString_check = "--time="+ str(np.max((time_estimate,180)))   
 
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
@@ -199,8 +200,9 @@ def check_input(commandList,fullPath,nCheck,nNeurons):
         + " --output=\"" + outputFilePath + "/check-%J.out" + "\" "
         + " --error=\"" + outputFilePath + "/check-%J.err" + "\" "
         + " --array=1-"+ str(nNeurons) + ":" + "1"
-        + " " + code_check + " '" 
-        + matlabDirName2 +"' 1  1")
+        + " " + code_check 
+        + " '"+ matlabDirName2 +"' "
+        + str(nCheck))
     commandList.insert(len(commandList)-1, qsubCommand5)
         
     qsubCommand6 = ("sbatch --mem=100000 " 

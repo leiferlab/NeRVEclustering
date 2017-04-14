@@ -13,7 +13,7 @@ end
 
 %get data from low yamls(old) or avi metadata text file (new)
 if isempty(dir([dataFolder filesep '*.yaml']))
-[~,fluorAll,bfAll]=AviFlashAlign(dataFolder);
+    [~,fluorAll,bfAll]=AviFlashAlign(dataFolder);
 else
     [~,fluorAll,bfAll]=YamlFlashAlign(dataFolder);
 end

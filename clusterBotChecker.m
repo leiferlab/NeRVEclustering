@@ -17,7 +17,7 @@ function clusterBotChecker(filePath,startIdx,nSubSample)
 
 % changed to run under the 1 hr, but no longer needed with della
 
-
+warning('off');
 if nargin==0
     filePath=uipickfiles;
     startIdx=1;
