@@ -55,6 +55,11 @@ switch most
         bestFlashTime=fluorFlashTime;
 end
 
+if isempty(hiResFlashTime) || isempty(bfFlashTime) || isempty(fluorFlashTime)
+    error('tripleFlashAlign:noFlash','Flashes not detected in all of the videos')
+end
+
+
 %compare all to the best video with the most flashes
 %start with BrightField movie
 [~,bf2fluor]=flashTimeAlign2(bestFlashTime,bfFlashTime);

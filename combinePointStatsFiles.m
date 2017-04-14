@@ -26,7 +26,7 @@ pointStats=repmat(struct(),1,psLength);
 %progressbar(0);
 for iFile=1:length(pList);
     %   progressbar(iFile/length(pList));
-    if ~mod(iFile,10)
+    if ~mod(iFile,100)
         display([ 'Completed frame ' num2str(iFile) ' of ' num2str(psLength)])
     end
     

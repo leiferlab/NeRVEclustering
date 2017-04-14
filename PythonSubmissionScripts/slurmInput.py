@@ -97,7 +97,7 @@ def straighten_input(commandList,fullPath,totalRuns):
         + " -J "+ folderName + " -d singleton"
         + " --output=\"" + outputFilePath + "/pscompile-%J.out" + "\" "
         + "--error=\"" + outputFilePath + "/pscompile-%J.err" + "\""
-        + code_pscompiler 
+        + " " + code_pscompiler 
         +" '" + fullPath +"'")
     commandList.insert(len(commandList)-1, qsubCommand2)
     commandList.insert(len(commandList)-1, '\r')
@@ -189,7 +189,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons):
     
     code_checkcompiler = CODE_PATH + '/PythonSubmissionScripts/runWormBotCheckCompiler.sh'
     code_check = CODE_PATH+'/PythonSubmissionScripts/runWormBotChecker.sh'
-    time_estimate=np.round(nCheck*totalRuns*.15/60)
+    time_estimate=np.round(nCheck*totalRuns*.2/60)
     qString_check = "--time="+ str(np.max((time_estimate,180)))   
 
     matlabDirName2 = fullPath + "/" + PS_NAME2
