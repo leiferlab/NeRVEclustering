@@ -46,7 +46,7 @@ pointStats2=fileData.(fileField{1});
 %select number of points,
 nTime=length(pointStats2);
 %potentially only take subset of times for TPS guessing, for now take all times
-subSample=1:nTime/nSubSample:nTime;
+subSample=round(1:nTime/nSubSample:nTime);
 
 %which indexes of pointstats to run
 startIdxReal=ceil(startIdx);
@@ -120,7 +120,7 @@ for iPointIdx=startIdxReal;
                     comparePointEstimate_y(i_samp,iFrame)=point_estimate(2);
                     comparePointEstimate_z(i_samp,iFrame)=point_estimate(3);
                     %also fill in confidence of that point
-                    comparePointConf(i_samp,iFrame)=xyzI_conf;                    
+                    comparePointConf(i_samp,iFrame)=xyzI_conf;
                 end
                 %display sstatus
                 if ~mod(i_samp, 100)

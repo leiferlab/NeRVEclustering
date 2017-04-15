@@ -39,8 +39,6 @@ pointStatsNew=pointStats2;
 
 
 %%
-%get subsample of points for position guessing
-nsubCompare=500;
 %get number of neurons, as the string at the end of the last botcheck file
 nPoint=str2double(fileListAll(end).name(11:15));
 %load one of the datasets for initialization purposes
@@ -62,8 +60,6 @@ compareAllY=compareAllX;
 compareAllZ=compareAllX;
 weightAll=compareAllX;
 
-subCompare=round(1:nCompare/nsubCompare:nCompare);
-subCompare=unique(subCompare);
 %% loop over all points and load all of the bot checker data
 for i=1:nPoint
     %%
@@ -99,12 +95,7 @@ for i=1:nPoint
             comparePointsW(:,:,j)=data.comparePointConf;
             xyzRefAll(:,:,j)=data.xyzRefAll;
         end
-        %take subset for each of these the comparison of each point to
-        %every other point,
-        comparePointEstimate_x=comparePointEstimate_x(subCompare,:,:);
-        comparePointEstimate_y=comparePointEstimate_y(subCompare,:,:);
-        comparePointEstimate_z=comparePointEstimate_z(subCompare,:,:);
-        comparePointsW=comparePointsW(subCompare,:,:);
+
         
         %% set nans for each of these to zero and project to get single
         %matrix for
