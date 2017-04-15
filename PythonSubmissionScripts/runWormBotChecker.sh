@@ -17,7 +17,7 @@ do
   #echo "Processing $input file..."  
   while read file
   do
-    export MATLABPATH="$MATLABPATH:$HOME/scripts/$file"
+      export MATLABPATH="$MATLABPATH:$CODE_HOME/$file"
   done  < "$input"
 done
 

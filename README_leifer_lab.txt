@@ -4,14 +4,12 @@ Worm analysis protocol:
 
 This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2016. 
 
+
+
 #########################################################################
 QUICK SUMMARY
 
-All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della, /tigress/LEIFER (ask Andy to email John Wiggins), save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac), have python installed with paramiko.  
-
-Inside you’re home directory on della, you need to make directories “scripts” and “data”. Inside data, you can clone the git repo found at https://github.com/leiferlab/3dbrain.git. For now, you also need shae_pythonSubmissionScripts. This is on sheavitzdata. Some of the paths are hard coded into the python scripts. 
-
-
+All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della, /tigress/LEIFER (ask Andy to email John Wiggins), save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac), have python installed with paramiko.  Some of the paths are hard coded into the python scripts to locations in the /tigress/LEIFER/communalCode/3dBrain folder. 
 
 
 
@@ -37,10 +35,9 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done locally for point matching)
-	
-Use ExtractAlignmentImagesFromVideo.m on the alignment movies on both the .dat and the .avi files.
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder, most likely on the computer "Bardeen".
+Use alignment_gui.m on the BrainScanner folder. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
-	Use createAlignment.m to make 3 alignment, follow the instructions to get the alignments in the correct order. Alignment files are saved in registration folder in 3dBrain, label them by date and the types of images aligned. The program will ask you to click matching points between the two images. 
 
 
 
@@ -69,23 +66,40 @@ STEP 1: WORM CENTERLINE DETECTION
 
 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by AL to manually adjust centerlines
 
+
+
 STEP 2: STRAIGHTEN AND SEGMENTATION
-	Python submission code:
-		submitWormStraightening.py
+	
+Python submission code:
+
+		submitWormAnalysisPipelineFull.py
+
 	Matlab analysis code:
+
 		clusterStraightenStart.m
+
 		clusterWormStraightening.m
-	File Outputs:	startWorkspace.mat, initial workspace used for during straightening for all volumes
-			CLStraight* folder, folder containing all saved straightened tif files and results of segmentation.
+	
+File Outputs:
+	startWorkspace.mat, initial workspace used for during straightening for all volumes
+	CLStraight* folder, folder containing all saved straightened tif files and results of segmentation.
+
 
 STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
+
 	Python submission code:
+
 		submitWormAnalysisPipelineFull.py
+
 	Matlab analysis code:
+
 		clusterWormTracker.m
+
 		clusterWormTrackCompiler.m
-	File Outputs:	TrackMatrixFolder, containing all registrations of sample volumes with reference volumes.
-			pointStats.mat, struccture containing all coordinates from all straightened volumes along with a trackIdx, the result of initial tracking of points. 
+
+	File Outputs:
+		TrackMatrixFolder, containing all registrations of sample volumes with reference volumes.
+		pointStats.mat, structure containing all coordinates from all straightened volumes along with a trackIdx, the result of initial tracking of points. 
 
 STEP 4: ERROR CORRECTION
 
@@ -120,21 +134,41 @@ STEP 5: SIGNAL EXTRACTION
 #########################################################################
 USEFUL GUIS FOR VISUALIZATION
 
+
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
+
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
+
+WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. Good for use prior to straightening.
+
 VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
+
 VisualizeTrackedData.m - Same as previous, but works on the unstraightened .dat file. 
+
+
+
+
 
 #########################################################################
 FOLDER DATA REQUIREMENTS
 
+
 ======Worm Videos======
+
 sCMOS_Frames_U16_1024x1024.dat  -	binary image file from the Leifer Lab's WholeBrainImaging labview program. The images do not need to be 1024 by 1024.The image is produced by a dual view setup so that the left and right images represent the RFP and the GCaMP6s images in some order. 
 
+
 LowMagBrain* folder containing all low magnification data including
+
 cam0.avi	-	low magnification fluorescent images of the worm’s brain
+
 cam1.avi	-	low magnification dark field images of the worm’s posture
+
 CamData.txt	-	text file with relative timing for every frame
+
+
+
+
 
 *****NOTE: FOR OLDER DATA
 We used to use avi’s that were not time synced and used a YAML file containing the meta data. Using this data requires the code from the repo https://github.com/leiferlab/MindControlAccessUtils.git. 

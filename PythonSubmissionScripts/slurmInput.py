@@ -189,7 +189,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons):
     
     code_checkcompiler = CODE_PATH + '/PythonSubmissionScripts/runWormBotCheckCompiler.sh'
     code_check = CODE_PATH+'/PythonSubmissionScripts/runWormBotChecker.sh'
-    time_estimate=np.round(nCheck*totalRuns*.2/60)
+    time_estimate=int(np.round(nCheck*totalRuns*.2/60))
     qString_check = "--time="+ str(np.max((time_estimate,180)))   
 
     matlabDirName2 = fullPath + "/" + PS_NAME2

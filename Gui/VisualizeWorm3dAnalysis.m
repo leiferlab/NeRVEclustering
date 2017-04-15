@@ -107,31 +107,67 @@ function SelectFolder_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    
-imFolder=getappdata(0,'imFolder');
-
 
 %select Folder
 display('Select an image from the stack');
 
-rawImFolder=uipickfiles('filterspec',imFolder,...
-    'Prompt', 'Select an image from the CLstraight folder');
-rawImFolder=rawImFolder{1};
+dataFolder=uipickfiles('filterspec',imFolder,...
+    'Prompt', 'Select Data Folder');
+dataFolder=dataFolder{1};
 
-if ~isdir(rawImFolder)
-    [rawImFolder, fileNameRoot]=fileparts(rawImFolder);
-    isDigits=isstrprop(fileNameRoot,'digit');
+    pointStatsFile=[dataFolder filesep 'PointsStatsNew.mat'];
+    
+    psFolder=dir([dataFolder filesep 'CLstraight*']);
+    imageFolder=[dataFolder filesep psFolder(end).name];
+    imFiles=dir([imageFolder filesep  '*.tif']);
+
+if ~isdir(imageFolder)
+    isDigits=isstrprop(imFiles(1).name,'digit');
     nDigits=sum(isDigits);
-    fileNameRoot=fileNameRoot(~isDigits);  
+    fileNameRoot=imFiles(1).name(~isDigits);  
 end
 
 
-imFiles=dir([rawImFolder filesep fileNameRoot '0*.tif']);
+display('Select mat file with points');
+dataMat=load(pointStatsFile);
+
+fieldName=fieldnames(dataMat);
+dataMat=getfield(dataMat,fieldName{1});
+setappdata(handles.figure1,'TrackData',dataMat);
+[centerline, offset]=loadCLBehavior(dataFolder);
+CLdata.centerline=centerline;
+CLdata.offset=offset;
+setappdata(handles.figure1,'CLdata',CLdata);
+
+
+heatFile=[dataFolder filesep 'heatData.mat'];
+heatData=load(heatFile);
+setappdata(handles.figure1,'heatData',heatData);
+
+% ethogramColormap
+fcolor=[0 1 0];%[27 158 119]/256;
+bcolor=[1 0 0];%[217 95 2]/256;
+turncolor=[0 0 1];%[117 112 179]/256;
+pausecolor=[255 217 50]/256;
+ethocolormap=[bcolor;pausecolor;fcolor;turncolor];
+
+
+imagesc(heatData.ethoTrack','parent',handles.axes5)
+caxis(handles.axes5,[-1 2]);
+colormap(handles.axes5,ethocolormap);
+axis(handles.axes5,'off');
+hold(handles.axes5,'on');
+
+ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
+setappdata(handles.figure1,'ethoPlot',ethoPlot);
+hold(handles.axes5,'off');
+
+
+
 
 imageInfo=imfinfo([rawImFolder filesep imFiles(1).name]);
 setappdata(0,'imFiles',imFiles);
-setappdata(0,'rawImFolder',rawImFolder);
-setappdata(0,'imFolder',rawImFolder);
+setappdata(0,'imFolder',imageFolder);
 setappdata(0,'ndigits',nDigits);
 setappdata(0,'fileNameRoot',fileNameRoot);
 %setting slider parameters
@@ -147,9 +183,6 @@ set(handles.slider2,'max',length(imageInfo));
 set(handles.slider2,'value',1);
 
 plotter(handles.slider1,eventdata);
-
-
-
 
 
 
@@ -221,7 +254,6 @@ fileNameRoot=getappdata(0,'fileNameRoot');
 imFolder=getappdata(0,'imFolder');
 iImage=round(get(handles.slider1,'Value'));
 iSlice=round(get(handles.slider2,'Value'));
-rawImFolder=getappdata(0,'rawImFolder');
 imFiles=getappdata(0,'imFiles');
 
 ethoPlot=getappdata(handles.figure1,'ethoPlot');
@@ -263,7 +295,7 @@ else
     currentcolor='b';
 end
 
-if exist([rawImFolder filesep imageName '.tif'],'file') && any(iTrack)
+if exist([imFolder filesep imageName '.tif'],'file') && any(iTrack)
 shapeVector='xso^d<>';
 %show only points that have been assigned an ID
 pointsi=TrackData(iTrack).straightPoints;
@@ -340,7 +372,7 @@ else
     imSlice=iSlice;
 end
  
-baseImg=double(imread([rawImFolder filesep imageName],'tif',...
+baseImg=double(imread([imFolder filesep imageName],'tif',...
     'Index',imSlice));
 
 
@@ -383,7 +415,7 @@ if get(handles.channelSelect,'Value')==3 || get(handles.channelSelect,'Value')==
 if dataFrame==currentFrame || isempty(dataFrame);
     ps=getappdata(handles.figure1,'ps');
 else
-    ps=load([rawImFolder filesep 'pointStats' imageName(6:end) '.mat']);
+    ps=load([imFolder filesep 'pointStats' imageName(6:end) '.mat']);
     ps=ps.pointStats;
     setappdata(handles.figure1,'ps',ps);
 end
@@ -451,6 +483,8 @@ end
 
 CLdata=getappdata(handles.figure1,'CLdata');
 if ~isempty(CLdata)
+    %%%%FIX, lookup no longer used ####
+    
 lookup=getappdata(handles.figure1,'lookup');
 CLidx=lookup.stack2BFidx(currentFrame)-CLdata.offset;
 currentCL=CLdata.centerline(:,:,round(CLidx));
