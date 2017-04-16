@@ -55,7 +55,7 @@ zScoreAll=oldXAll;
 %initialize 3D matrix which will contain all the guesses for each point.
 %the matrix is organized as comparison frame, current frame being checked,
 %current point being checked.
-compareAllX=zeros(nsubCompare,n_times,nPoint);
+compareAllX=zeros(nCompare,n_times,nPoint);
 compareAllY=compareAllX;
 compareAllZ=compareAllX;
 weightAll=compareAllX;
@@ -73,7 +73,7 @@ for i=1:nPoint
     % get number of runs for each nuron
     nChecks=length(fileList);
     %initialize entire matrix to house all guesses
-    comparePointEstimate_x=nan(nCompare,nCompare,nChecks);
+    comparePointEstimate_x=nan(nCompare,nTime,nChecks);
     comparePointEstimate_y=comparePointEstimate_x;
     comparePointEstimate_z=comparePointEstimate_x;
     comparePointsW=comparePointEstimate_x;

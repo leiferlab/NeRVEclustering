@@ -110,22 +110,20 @@ function SelectFolder_Callback(hObject, eventdata, handles)
 
 %select Folder
 display('Select an image from the stack');
-
-dataFolder=uipickfiles('filterspec',imFolder,...
+mostRecent=getappdata(0,'mostRecent');
+dataFolder=uipickfiles('filterspec',mostRecent,...
     'Prompt', 'Select Data Folder');
 dataFolder=dataFolder{1};
 
-    pointStatsFile=[dataFolder filesep 'PointsStatsNew.mat'];
+    pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
     
     psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imageFolder=[dataFolder filesep psFolder(end).name];
-    imFiles=dir([imageFolder filesep  '*.tif']);
+    imFolder=[dataFolder filesep psFolder(end).name];
+    imFiles=dir([imFolder filesep  '*.tif']);
 
-if ~isdir(imageFolder)
     isDigits=isstrprop(imFiles(1).name,'digit');
     nDigits=sum(isDigits);
-    fileNameRoot=imFiles(1).name(~isDigits);  
-end
+    fileNameRoot=imFiles(1).name(1:find(isDigits,1,'first')-1);  
 
 
 display('Select mat file with points');
@@ -139,7 +137,6 @@ CLdata.centerline=centerline;
 CLdata.offset=offset;
 setappdata(handles.figure1,'CLdata',CLdata);
 
-
 heatFile=[dataFolder filesep 'heatData.mat'];
 heatData=load(heatFile);
 setappdata(handles.figure1,'heatData',heatData);
@@ -151,8 +148,14 @@ turncolor=[0 0 1];%[117 112 179]/256;
 pausecolor=[255 217 50]/256;
 ethocolormap=[bcolor;pausecolor;fcolor;turncolor];
 
-
+try
+    %this is for old version, will remove 
 imagesc(heatData.ethoTrack','parent',handles.axes5)
+catch me
+    imagesc(heatData.behavior.ethogram','parent',handles.axes5)
+end
+
+
 caxis(handles.axes5,[-1 2]);
 colormap(handles.axes5,ethocolormap);
 axis(handles.axes5,'off');
@@ -165,9 +168,9 @@ hold(handles.axes5,'off');
 
 
 
-imageInfo=imfinfo([rawImFolder filesep imFiles(1).name]);
+imageInfo=imfinfo([imFolder filesep imFiles(1).name]);
 setappdata(0,'imFiles',imFiles);
-setappdata(0,'imFolder',imageFolder);
+setappdata(0,'imFolder',imFolder);
 setappdata(0,'ndigits',nDigits);
 setappdata(0,'fileNameRoot',fileNameRoot);
 %setting slider parameters
@@ -182,6 +185,9 @@ set(handles.slider2,'min',1);
 set(handles.slider2,'max',length(imageInfo));
 set(handles.slider2,'value',1);
 
+[bfAll,~,hiResData]=tripleFlashAlign(dataFolder);
+lookup=interp1(bfAll.frameTime,1:length(bfAll.frameTime),hiResData.frameTime,'nearest',01);
+setappdata(handles.figure1,'lookup',lookup);
 plotter(handles.slider1,eventdata);
 
 
@@ -486,7 +492,7 @@ if ~isempty(CLdata)
     %%%%FIX, lookup no longer used ####
     
 lookup=getappdata(handles.figure1,'lookup');
-CLidx=lookup.stack2BFidx(currentFrame)-CLdata.offset;
+CLidx=lookup(currentFrame);
 currentCL=CLdata.centerline(:,:,round(CLidx));
 currentCL=bsxfun(@minus,currentCL,mean(currentCL));
 plot(handles.axes4,currentCL(:,1),currentCL(:,2),'linewidth',4);
