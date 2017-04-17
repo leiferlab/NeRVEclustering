@@ -401,6 +401,25 @@ def callback1b(event=None):
     
 if __name__ == '__main__':
 # bind enter key and button
+    print('''
+        This is the submission script for running analysis on whole brain imaging.
+        This code runs straightening, tracking, and cross validation of points. It also 
+        extracts signals and produces heatmaps. This can be run after the wormAnalysisPreview
+        gui gives all green lights. Check the readme for instructions for della access. 
+        
+        
+        For a quick test, run this code as follows:
+        User Name: <your username>
+        Parent Path:/tigress/LEIFER/PanNeuronal
+        Date of Data: testing_sets
+        Data Folder Name: BrainScanner20161031_111303
+        Number of Frames : 1000
+        Number of References: 10
+        Number of Neurons: 150
+        Number of Checks: 100
+        <click all check boxes>
+        
+        ''')
     master=make_gui()
     master.b = Button(master, text="Enter", width=10, command=lambda:callback1(master=master))
     master.b.grid(row=16,columnspan=2, sticky=W+E)

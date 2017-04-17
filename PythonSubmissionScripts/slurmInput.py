@@ -268,6 +268,7 @@ def flash_input(commandList,fullPath):
         + " " + code_runinput + " " 
         + " \"" + input2 +"\" ")
     commandList.insert(len(commandList)-1, qsubCommand2)
+    print(qsubCommand2)
     return commandList
     
     

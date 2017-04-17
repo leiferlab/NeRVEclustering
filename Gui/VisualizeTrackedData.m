@@ -97,64 +97,49 @@ function SelectFolder_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %select folers with data,
-
-
-%select image folder
-display('Select image folder, or image tif');
 mostRecent=getappdata(0,'mostRecent');
+display([...
+    'For example, use this on VNC into tigress data and select the folder: '...
+    '/tigress/LEIFER/PanNeuronal/testing_sets/BrainScanner20161031_111303/'...
+    ])
 if isempty(mostRecent)
-    imFiles=uipickfiles('Prompt', 'Select the data Folder' );
+    dataFolder=uipickfiles('Prompt', 'Select the data Folder' );
 else
-    imFiles=uipickfiles('filterspec', mostRecent,...
+    dataFolder=uipickfiles('filterspec', mostRecent,...
         'Prompt', 'Select the data Folder');
 end
-mostRecent=imFiles{1};
-if ~isdir(mostRecent)
-    mostRecent=fileparts(mostRecent);
-end
-setappdata(0,'mostRecent',mostRecent);
-set(handles.currentFolder,'String',mostRecent);
-%load registration file if needed for split
-if strfind(imFiles{1}, '.tif');
-    imageStack=stackLoad(imFiles{1});
-    nImages=size(imageStack,3);
-    hiResData.Z=1:nImages;
-    hiResData.stackIdx=ones(1,nImages);
-    hiResData.frametime=1:nImages;
-    hiResData.imSTD=std(reshape(imageStack,[],nImages),1);
-    setappdata(handles.figure1,'imageStack',imageStack);
-    setappdata(handles.figure1,'tifFlag',1);
-else
-        setappdata(handles.figure1,'tifFlag',0);
+dataFolder=dataFolder{1};
+mostRecent=dataFolder;
+mostRecent=fileparts(mostRecent);
 
-if exist([mostRecent filesep 'alignments.mat'])
-registration=load([mostRecent filesep 'alignments.mat']);
+setappdata(0,'mostRecent',mostRecent);
+set(handles.currentFolder,'String',dataFolder);
+%load registration file if needed for split
+
+setappdata(handles.figure1,'tifFlag',0);
+
+registration=load([dataFolder filesep 'alignments.mat']);
 if isfield(registration.alignments,'background')
-background=registration.alignments.background;
+    background=registration.alignments.background;
 else
     background=0;
 end
 registration=registration.alignments.S2AHiRes;
 setappdata(0,'registration',registration)
 setappdata(0,'background',background);
-else
-[rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\registration','Select Registration File');
-registration=load([parent filesep rpath]);
-end
 
-setappdata(0,'registration',registration);
 
-if exist([imFiles{1} filesep 'hiResData.mat'],'file')
-    hiResData=load([imFiles{1} filesep 'hiResData']);
+
+if exist([dataFolder filesep 'hiResData.mat'],'file')
+    hiResData=load([dataFolder filesep 'hiResData']);
     hiResData=hiResData.dataAll;
 else
     %only for 1200 by 600 image for now
-    hiResData=highResTimeTraceAnalysisTriangle4(imFiles{1},1200,600);
+    hiResData=highResTimeTraceAnalysisTriangle4(dataFolder);
 end
 
-end
 setappdata(handles.figure1,'hiResData',hiResData');
-setappdata(handles.figure1,'imFiles',imFiles);
+setappdata(handles.figure1,'imFiles',dataFolder);
 
 %setting slider parameters
 set(handles.slider1,'Min',1)
@@ -173,6 +158,36 @@ set(handles.slider1,'value',1);
 set(handles.zSlider,'min',minZ);
 set(handles.zSlider,'max', maxZ);
 set(handles.zSlider,'value',(maxZ+minZ)/2);
+
+%%% load fiducial points
+
+fiducialFile=[dataFolder filesep 'BotfFiducialPoints'];
+%fiducialData=load(fiducialFile);
+timeOffset=load([fiducialFile filesep 'timeOffset']);
+timeOffset=timeOffset.timeOffset;
+
+setappdata(handles.figure1,'timeOffset',timeOffset)
+
+%setappdata(handles.figure1,'fiducialsData', fiducialData2)
+userList=dir([fiducialFile filesep '*.mat']); %get all user files
+userList={userList.name};
+userList=userList(~strcmp(userList,'timeOffset.mat'));
+userList=cellfun(@(x) x(1:end-4),userList,'uniform',0);
+fiducialPoints=load([fiducialFile filesep userList{1}]);
+fiducialPoints=fiducialPoints.fiducialPoints;
+setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
+stop(handles.timer)
+
+start(handles.timer);
+
+
+%%% load heatmap data
+heatDataFile=[dataFolder filesep 'heatData'];
+heatData=load(heatDataFile);
+setappdata(handles.figure1,'heatData',heatData);
+
+
+
 
 
 % --- Executes on slider movement.
@@ -223,7 +238,6 @@ R=getappdata(0,'registration');
 [row,col]=size(R.initialIm);
 %row=1024;
 %col=512;
-imFiles=imFiles{1};
 FrameIdx=getappdata(handles.figure1,'FrameIdx');
 zVoltages=getappdata(handles.figure1,'zVoltages');
 
@@ -329,7 +343,6 @@ hold(handles.axes1,'on')
 axis(handles.axes1,'equal');
 
 
-fiducialFileName=get(handles.currentFiducialFile,'String');
 colorOrder=get(gca,'colorOrder');
 colorOrder=[colorOrder;colorOrder;colorOrder];
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
@@ -857,7 +870,6 @@ function loadFiducials_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 imFiles=getappdata(handles.figure1,'imFiles');
-imFiles=imFiles{1};
 if ~isdir(imFiles)
     parent=fileparts(imFiles);
 else

@@ -11,81 +11,83 @@ except ImportError:
 
 import paramiko
 import slurmInput as slurm
-# need to make the master Tk window at the very beginning
-master = Tk()
 
-
-# store where we start from
-startingDir = os.getcwd()
-print((time.asctime()+'\n'))
-
-# get ready for pickled variables 
-prevUser=slurm.pickle_load()
-
-if 'username' in prevUser:
-	defaultName = prevUser['username']
-else:
-	defaultName = "USER"
+def make_gui():
+    # need to make the master Tk window at the very beginning
+    master = Tk()
     
-if 'date' in prevUser:
-	defaultDate = prevUser['date']
-else:
-	defaultDate = "20160101"
+    # store where we start from
+    startingDir = os.getcwd()
+    print((time.asctime()+'\n'))
+    
+    # get ready for pickled variables 
+    prevUser=slurm.pickle_load()
+    
+    if 'username' in prevUser:
+    	defaultName = prevUser['username']
+    else:
+    	defaultName = "USER"
         
-if 'folderName' in prevUser:
-	defaultFolder = prevUser['folderName']
-else:
-	defaultFolder = "Brain_Scanner2016"
-
-         
-# use the example of the calculator from http://zetcode.com/gui/tkinter/layout/ to help layout
-master.title("Options")
-
-master.columnconfigure(0, pad=3)
-master.columnconfigure(1, pad=3)
-master.columnconfigure(2, pad=3)
-master.columnconfigure(3, pad=3)
-master.columnconfigure(4, pad=3)
-master.columnconfigure(5, pad=3)
-
-master.rowconfigure(0, pad=3)
-master.rowconfigure(1, pad=3)
-
-master.e=dict()
-
-# user name
-L_username = Label(master, text="User Name")
-L_username.grid(row=0, column=0, sticky=W+E)
-
-master.e['user_name'] = Entry(master)
-master.e['user_name'].insert(0, defaultName)
-master.e['user_name'].grid(row=0, column=1, sticky=W+E)
-
-
-# path parent, normally tigress/LEIFER
-L_path = Label(master, text="Parent Path")
-L_path.grid(row=3, column=0, sticky=W+E)
-
-master.e['parent_path'] = Entry(master)
-master.e['parent_path'].insert(0,'/tigress/LEIFER/PanNeuronal')
-master.e['parent_path'].grid(row=3, column=1, sticky=W+E)
-
-# data date
-L_date = Label(master, text="Date of data")
-L_date.grid(row=4, column=0, sticky=W+E)
-
-master.e['date'] = Entry(master)
-master.e['date'].insert(0,defaultDate)
-master.e['date'].grid(row=4, column=1, sticky=W+E)
-
-# data folder
-L_foldername = Label(master, text="DataFolderName")
-L_foldername.grid(row=5, column=0, sticky=W+E)
-
-master.e['folder_name'] = Entry(master)
-master.e['folder_name'].insert(0,defaultFolder)
-master.e['folder_name'].grid(row=5, column=1, sticky=W+E)
-
+    if 'date' in prevUser:
+    	defaultDate = prevUser['date']
+    else:
+    	defaultDate = "20160101"
+            
+    if 'folderName' in prevUser:
+    	defaultFolder = prevUser['folderName']
+    else:
+    	defaultFolder = "Brain_Scanner2016"
+    
+             
+    # use the example of the calculator from http://zetcode.com/gui/tkinter/layout/ to help layout
+    master.title("Options")
+    
+    master.columnconfigure(0, pad=3)
+    master.columnconfigure(1, pad=3)
+    master.columnconfigure(2, pad=3)
+    master.columnconfigure(3, pad=3)
+    master.columnconfigure(4, pad=3)
+    master.columnconfigure(5, pad=3)
+    
+    master.rowconfigure(0, pad=3)
+    master.rowconfigure(1, pad=3)
+    
+    master.e=dict()
+    
+    # user name
+    L_username = Label(master, text="User Name")
+    L_username.grid(row=0, column=0, sticky=W+E)
+    
+    master.e['user_name'] = Entry(master)
+    master.e['user_name'].insert(0, defaultName)
+    master.e['user_name'].grid(row=0, column=1, sticky=W+E)
+    
+    
+    # path parent, normally tigress/LEIFER
+    L_path = Label(master, text="Parent Path")
+    L_path.grid(row=3, column=0, sticky=W+E)
+    
+    master.e['parent_path'] = Entry(master)
+    master.e['parent_path'].insert(0,'/tigress/LEIFER/PanNeuronal')
+    master.e['parent_path'].grid(row=3, column=1, sticky=W+E)
+    
+    # data date
+    L_date = Label(master, text="Date of data")
+    L_date.grid(row=4, column=0, sticky=W+E)
+    
+    master.e['date'] = Entry(master)
+    master.e['date'].insert(0,defaultDate)
+    master.e['date'].grid(row=4, column=1, sticky=W+E)
+    
+    # data folder
+    L_foldername = Label(master, text="DataFolderName")
+    L_foldername.grid(row=5, column=0, sticky=W+E)
+    
+    master.e['folder_name'] = Entry(master)
+    master.e['folder_name'].insert(0,defaultFolder)
+    master.e['folder_name'].grid(row=5, column=1, sticky=W+E)
+    
+    return master
 
 if os.name == 'posix':
     os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Python" to true' ''')
@@ -109,12 +111,15 @@ def submitScript(master=None):
     fullPath = fullPath + "/" + folderName
     
     #picle dump
+    #save defaults using pickle dump
+    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
+    pickle_file = pickle_path + "pickles2.p"
+    prevUser=slurm.pickle_load()
     prevUser['username']=username
     prevUser['date'] = date
     prevUser['folderName']=folderName
     pickle.dump(prevUser, open(pickle_file, "wb" ) )
     
-
     print("full path is: " + fullPath)
         
     
@@ -140,13 +145,12 @@ def submitScript(master=None):
     userEmail=username+"@princeton.edu"
     
     commandList=slurm.flash_input(commandList,fullPath)
-        
     slurm.make_ouputfolder(client,fullPath)
     #write commands to text file via paramiko
     slurm.write_input(commandList,client,fullPath)
 
     commands = "\n".join(commandList)
-   # stdin, stdout, stderr = client.exec_command(commands)
+    stdin, stdout, stderr = client.exec_command(commands)
     print('stdOutput: submitting job')
     returnedOutput = stdout.readlines()
     print(' '.join(returnedOutput))
@@ -219,12 +223,29 @@ def callback1b(event=None):
     master = event.widget.master
     #master.withdraw()
     callback1(master=master)
-    
+
+if __name__ == '__main__':
 # bind enter key and button
-master.b = Button(master, text="Enter", width=10, command=lambda:callback1(master=master))
-master.b.grid(row=10,columnspan=2, sticky=W+E)
-master.bind("<Return>", callback1b)
-
-master.e['user_name'].focus_set()
-
-mainloop()
+    print('''
+        This is the submission script for running time alignment and detcting flashes in videos. 
+        The lowMag folders must be inside the corresponding BrainScanner folder on della. 
+        The videos must each contain at least 2 flashes.
+        
+        
+        For a quick test, run this code as follows:
+        User Name: <your username>
+        Parent Path:/tigress/LEIFER/PanNeuronal
+        Date of Data: testing_sets
+        Data Folder Name: BrainScanner20161031_111303
+        
+        ''')
+    master=make_gui()
+    
+    # bind enter key and button
+    master.b = Button(master, text="Enter", width=10, command=lambda:callback1(master=master))
+    master.b.grid(row=10,columnspan=2, sticky=W+E)
+    master.bind("<Return>", callback1b)
+    
+    master.e['user_name'].focus_set()
+    
+    mainloop()
