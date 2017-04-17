@@ -88,7 +88,9 @@ function varargout = alignment_gui_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
+display([
+    'For testing purposes, use della VNC and select one of the folders in'...
+    '/tigress/LEIFER/PanNeuronal/testing_sets/alignments_test'])
 mostRecent=getappdata(0,'mostRecent');
 imFolder=uipickfiles('filterspec',mostRecent,...
     'Prompt','Select folder containing alignment .avi and .dat files');

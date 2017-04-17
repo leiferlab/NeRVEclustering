@@ -12,7 +12,7 @@ if ~isempty(h)
     datFile=[imFolder filesep h(1).name];
     [rows, cols]=getdatdimensions(datFile);
     
-    camData=importdata([imFolder filesep 'cameraFrameData.txt']);
+    camData=importdata([imFolder filesep 'CameraFrameData.txt']);
     frameno=camData.data(:,1);
     savedFrames=camData.data(:,2);
     time=frameno(diff(savedFrames)>0);
@@ -53,7 +53,7 @@ end
 %% do the same if avi is present
 h=dir([imFolder filesep '*.avi']);
 if ~isempty(h)
-    camData=importdata([imFolder filesep 'camData.txt']);
+    camData=importdata([imFolder filesep 'CamData.txt']);
     time=camData.data(:,2);
     timestep=median(diff(time));
     frame_breaks=diff(time)>(timestep*10);
@@ -86,12 +86,13 @@ if ~isempty(h)
             
             meanImage0=squeeze(mean(temp0,4));
             meanImage1=squeeze(mean(temp1,4));
+            tiffwrite(fileName0,single(meanImage0),'tif');
+            tiffwrite(fileName1,single(meanImage1),'tif');
         end
         avi0_images(:,:,idx)=meanImage0;
         avi1_images(:,:,idx)=meanImage1;
         
-        tiffwrite(fileName0,single(meanImage0),'tif');
-        tiffwrite(fileName1,single(meanImage1),'tif');
+
         
     end
     
