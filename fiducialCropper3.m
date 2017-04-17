@@ -520,7 +520,7 @@ coord=coord(trackIdx,:);
 
 
 if ~any(isnan(coord(:))) && size(coord,1)==foundNeurons
-    break
+    return
 end
 end
 error('No frame has all the neurons! Tracking failed');
