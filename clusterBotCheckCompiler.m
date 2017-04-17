@@ -24,7 +24,7 @@ else
     pointStatsFile=[dataFolder filesep 'PointsStats2'];
     
     psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imageFolder=[dataFolder filesep psFolder.name];
+    imageFolder=[dataFolder filesep psFolder(end).name];
     display(imageFolder);
 end
 
@@ -73,11 +73,11 @@ for i=1:nPoint
     % get number of runs for each nuron
     nChecks=length(fileList);
     %initialize entire matrix to house all guesses
-    comparePointEstimate_x=nan(nCompare,nTime,nChecks);
+    comparePointEstimate_x=nan(nCompare,n_times,nChecks);
     comparePointEstimate_y=comparePointEstimate_x;
     comparePointEstimate_z=comparePointEstimate_x;
     comparePointsW=comparePointEstimate_x;
-    xyzRefAll=nan(nCompare,3,nChecks);
+    xyzRefAll=nan(n_times,3,nChecks);
     
     %load all of that data
     clear data

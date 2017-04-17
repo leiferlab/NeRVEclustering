@@ -28,7 +28,7 @@ load([dataFolder filesep 'heatData'])
 pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
 pointStats=load(pointStatsFile);
 pointStats=pointStats.pointStatsNew;
-
+XYZcoord=getSampleCoordinates(pointStats);
 
 hasPoints=1:length(pointStats);
 hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
@@ -116,10 +116,9 @@ save([dataFolder filesep 'positionData'],...
     'xPos','yPos','hiResVel','behaviorZTrack','projectionsTrack')
 
 save([dataFolder filesep 'heatData'],...
+    'XYZcoord',...
     'behavior',...
     'hasPointsTime',...
-    'trackWeightAll',...
-    'bfTime',...
     '-append');
 
 
@@ -506,5 +505,26 @@ for iBehavior=[0 1 2];
 end
 
 ethogram(hiResVel==0)=nan;
+
+
+function coord=getSampleCoordinates(pointStats)
+
+foundNeurons= max(cellfun(@(x) nanmax(x),{pointStats.trackIdx}));
+for iFrame=1:length(pointStats)
+ps=pointStats(iFrame);
+coord=ps.straightPoints;
+trackIdx=ps.trackIdx;
+coord=coord(~isnan(trackIdx),:);
+trackIdx=trackIdx(~isnan(trackIdx));
+coord=coord(trackIdx,:);
+
+
+if ~any(isnan(coord(:))) && size(coord,1)==foundNeurons
+    break
+end
+end
+error('No frame has all the neurons! Tracking failed');
+
+
 
 

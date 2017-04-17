@@ -39,6 +39,7 @@ for i=1:size(RvalAll,1)
         xVals=(1:size(RvalAll,2))';
         % only take values where bot R and G are present
         present=(~isnan(RvalAll(i,:)+GvalAll(i,:))') ;
+        present=present & (RvalAll(i,:)~=0)' & (GvalAll(i,:) ~=0)';
         xVals=xVals(present);
         % get R and G traces
         rVals=RvalAll(i,:)';
@@ -93,7 +94,7 @@ for i=1:size(RvalAll,1)
             end
         end
         %plot some of the results, turned off for now
-        if 0 
+        if 0
             subplot(2,1,1);
             plot(GvalAll(i,:))
             hold on
@@ -111,9 +112,11 @@ for i=1:size(RvalAll,1)
             drawnow
             pause(.1)
         end
+        
+        limit=min(3000,size(RvalAll,2));
         %calculating photobleaching correction from exponential fits
-        photoBleachingR(i,:)=f((1:size(RvalAll,2)))-f(size(RvalAll,2));
-        photoBleachingG(i,:)=g((1:size(RvalAll,2)))-g(size(RvalAll,2));
+        photoBleachingR(i,:)=f((1:size(RvalAll,2)))-f(limit);
+        photoBleachingG(i,:)=g((1:size(RvalAll,2)))-g(limit);
     catch me
         me
     end
