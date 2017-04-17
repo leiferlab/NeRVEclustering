@@ -22,7 +22,7 @@ function varargout = VisualizeTrackedData(varargin)
 
 % Edit the above text to modify the response to help VisualizeTrackedData
 
-% Last Modified by GUIDE v2.5 18-Nov-2016 11:46:14
+% Last Modified by GUIDE v2.5 17-Apr-2017 10:34:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -336,8 +336,7 @@ if isempty(ax1)
 else
     ax1.CData=baseImg;
 end
-set(ax1,'ButtonDownFcn',...
-    'Worm3DFiducialPickerNetwork(''axes1_ButtonDownFcn'',gcbo,[],guidata(gcbo))')
+
 caxis(handles.axes1, [newContrast]);
 hold(handles.axes1,'on')
 axis(handles.axes1,'equal');
@@ -1055,3 +1054,10 @@ function pointShowType_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on mouse press over axes background.
+function axes1_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
