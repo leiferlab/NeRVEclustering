@@ -1,4 +1,4 @@
-﻿ 
+ 
 Worm analysis protocol:
 
 
@@ -7,7 +7,7 @@ This repository hold the code used for the analyzing movies from the Leifer Lab'
 
 
 #########################################################################
-QUICK SUMMARY
+QUICK SUMMARY: 
 
 All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della, /tigress/LEIFER (ask Andy to email John Wiggins), save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac), have python installed with paramiko.  Some of the paths are hard coded into the python scripts to locations in the /tigress/LEIFER/communalCode/3dBrain folder. 
 
@@ -46,9 +46,11 @@ Use alignment_gui.m on the BrainScanner folder. After saving the alignments, mov
 STEP 1: WORM CENTERLINE DETECTION
 (done locally for manual centerline initialization)
 
-	initializeCLWorkspace.m - this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm.
+	initializeCLWorkspace.m 
+		- this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm.
  
-				 - when this is done, move the alignment and the initialCLWorkspace.mat into the corresponding folder on tigress.
+		- when this is done, move the alignment and the initialCLWorkspace.mat into the corresponding LowMag folder on tigress.
+
  
 	Python submission code:
 
@@ -135,6 +137,9 @@ STEP 5: SIGNAL EXTRACTION
 USEFUL GUIS FOR VISUALIZATION
 
 
+All guis use wasd gaming controls, ie a for left, d for right, w for up, s for down. 
+
+
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
@@ -153,7 +158,9 @@ VisualizeTrackedData.m - Same as previous, but works on the unstraightened .dat 
 FOLDER DATA REQUIREMENTS
 
 
+
 ======Worm Videos======
+
 
 sCMOS_Frames_U16_1024x1024.dat  -	binary image file from the Leifer Lab's WholeBrainImaging labview program. The images do not need to be 1024 by 1024.The image is produced by a dual view setup so that the left and right images represent the RFP and the GCaMP6s images in some order. 
 
@@ -168,12 +175,14 @@ CamData.txt	-	text file with relative timing for every frame
 
 
 
-
-
 *****NOTE: FOR OLDER DATA
-We used to use avi’s that were not time synced and used a YAML file containing the meta data. Using this data requires the code from the repo https://github.com/leiferlab/MindControlAccessUtils.git. 
+We used to use avi’s that were not time synced and used a YAML file containing the meta data. Using this data requires the code from the repo https://github.com/leiferlab/MindControlAccessUtils.git.
+
+ 
 
 ======Raw Text files======
+
+
 These files contain timing information for every frame of each of the video feeds. They also contain information about the positions of the stage and the objective. This information, along with the videos themselves, are used to align the timing for all of the videos. Several camera flashes are used throughout the recording. The timing of  
 
 labJackData.txt - 	Raw outputs from LabVIEW for the stage, the piezo that drives the objective, the sCMOS camera, and the function generator (FG), taken at 1kHz. The objective is mounted on a piezo stage that is driven by the output voltage of the function generator. The 1kHz clock acts as the timing for each event.

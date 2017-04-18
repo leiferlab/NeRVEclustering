@@ -144,6 +144,7 @@ def submitScript(master=None):
     print('Writing inputs line to text file')
     userEmail=username+"@princeton.edu"
     
+    commandList=slurm.path_setup(commandList)
     commandList=slurm.flash_input(commandList,fullPath)
     slurm.make_ouputfolder(client,fullPath)
     #write commands to text file via paramiko

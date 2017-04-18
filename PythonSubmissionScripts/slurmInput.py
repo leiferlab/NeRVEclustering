@@ -21,7 +21,7 @@ def path_setup(commandList):
 
 def pickle_load():
     # get ready for pickled variables 
-    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
+    pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
     pickle_file = pickle_path + "pickles2.p"
     if not os.path.exists(pickle_path):
             os.makedirs(pickle_path)
@@ -249,7 +249,6 @@ def flash_input(commandList,fullPath):
     
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
-    
     qsubCommand1 = ("sbatch --mem=2000 " 
         + qString_min 
         + " -J "+ folderName

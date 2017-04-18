@@ -252,7 +252,7 @@ def submitScript(master=None):
     nCheck=master.e['n_checks'].get()
     
     #save defaults using pickle dump
-    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
+    pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
     pickle_file = pickle_path + "pickles2.p"
     prevUser=slurm.pickle_load()
     prevUser['username']=username
