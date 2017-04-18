@@ -49,6 +49,10 @@ def make_gui():
     master.columnconfigure(3, pad=3)
     master.columnconfigure(4, pad=3)
     master.columnconfigure(5, pad=3)
+    master.columnconfigure(6, pad=3)
+    master.columnconfigure(9, pad=3)
+    master.columnconfigure(10, pad=3)
+    master.columnconfigure(11, pad=3)
     
     master.rowconfigure(0, pad=3)
     master.rowconfigure(1, pad=3)
@@ -124,7 +128,7 @@ def submitScript(master=None):
     print("full path is: " + fullPath)
         
     if socket.gethostname()=='tigressdata.princeton.edu':
-        keypath='/tigress/LEIFER/id_rsa'
+        keypath='/tigress/LEIFER/.ssh/id_rsa'
         key = paramiko.RSAKey.from_private_key_file(keypath)
     else:
         key=None
@@ -196,7 +200,7 @@ def callback1(event=None,master=None):
         isNeedsPassword = True
     else:
         if socket.gethostname()=='tigressdata.princeton.edu':
-            keypath='/tigress/LEIFER/id_rsa'
+            keypath='/tigress/LEIFER/.ssh/id_rsa'
             key = paramiko.RSAKey.from_private_key_file(keypath)
         else:
             key=None
@@ -236,6 +240,20 @@ def callback1b(event=None):
     #master.withdraw()
     callback1(master=master)
 
+def SelectFolder(master=None):
+   
+    folder=tkFileDialog.askdirectory(mustexist=False , initialdir= '/tigress/LEIFER/PanNeuronal/')
+    if folder:
+        path,folderName=os.path.split(folder)
+        path,date=os.path.split(path)
+        master.e['parent_path'].delete(0,END)
+        master.e['parent_path'].insert(0,path)
+        master.e['date'].delete(0,END)
+        master.e['date'].insert(0,date)
+        master.e['folder_name'].delete(0,END)
+        master.e['folder_name'].insert(0,folderName)
+        print folder
+
 if __name__ == '__main__':
 # bind enter key and button
     print('''
@@ -257,7 +275,12 @@ if __name__ == '__main__':
     master.b = Button(master, text="Enter", width=10, command=lambda:callback1(master=master))
     master.b.grid(row=10,columnspan=2, sticky=W+E)
     master.bind("<Return>", callback1b)
-    
+
+
+    if  socket.gethostname()=='tigressdata.princeton.edu':
+        master.b2 = Button(master, text='Select Folder', width=10, command=lambda:SelectFolder(master=master))
+        master.b2.grid(row=11,columnspan=2, sticky=W+E)
+        
     master.e['user_name'].focus_set()
     
     mainloop()
