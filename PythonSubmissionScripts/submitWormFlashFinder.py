@@ -11,6 +11,7 @@ except ImportError:
 
 import paramiko
 import slurmInput as slurm
+import socket
 
 def make_gui():
     # need to make the master Tk window at the very beginning
@@ -122,13 +123,17 @@ def submitScript(master=None):
     
     print("full path is: " + fullPath)
         
-    
+    if socket.gethostname()=='tigressdata.princeton.edu':
+        keypath='/tigress/LEIFER/id_rsa'
+        key = paramiko.RSAKey.from_private_key_file(keypath)
+    else:
+        key=None
     # connect and submit job via sbatch
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(server, 22, username)
+        client.connect(server, 22, username,pkey=key)
     except paramiko.AuthenticationException:
         password = master.e7.get()
         client.connect(server, 22, username, password)
@@ -190,13 +195,19 @@ def callback1(event=None,master=None):
     if username == "noPass":
         isNeedsPassword = True
     else:
+        if socket.gethostname()=='tigressdata.princeton.edu':
+            keypath='/tigress/LEIFER/id_rsa'
+            key = paramiko.RSAKey.from_private_key_file(keypath)
+        else:
+            key=None
+
         # try to see if a password is needed
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         username = master.e['user_name'].get()
         try:
-            client.connect('della.princeton.edu', 22, username)
+            client.connect('della.princeton.edu', 22, username,pkey=key)
             isNeedsPassword = False
         except paramiko.AuthenticationException:
             isNeedsPassword = True
