@@ -18,14 +18,27 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		mkdir -p $HOME/.ssh
 		cp /tigress/LEIFER/.ssh/id_rsa $HOME/.ssh/id_rsa
 		chmod 700 $HOME/.ssh/id_rsa
+		
+		cp /tigress/LEIFER/.ssh/id_rsa $HOME/.ssh/id_rsa.pub
+		chmod 700 $HOME/.ssh/id_rsa
 # copy the ssh key from keyfile into .ssh folder in della. you'll need to input your password 2x.
 		echo " ###Keys not found, copying keys from /tigress/LEIFER###. 
 			###You will need to enter your password###"
 		ssh $USER@della.princeton.edu mkdir -p .ssh
 		cat /tigress/LEIFER/.ssh/id_rsa | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
+		cat /tigress/LEIFER/.ssh/id_rsa.pub | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 	else
 		echo "Keys found"
 	fi
+	
+	pass2=$(ssh $USER@della.princeton.edu -qo PasswordAuthentication=no echo 0 || echo 1)
+
+	if [ "$pass2" == "1" ]; then
+		echo "ERROR: still have problems connecting to della without password"
+	else
+		echo "Success! Keys saved for della connection"
+	fi
+	
 	# load python module, install paramiko with pip
 	module load anaconda
 	pip install --user paramiko
