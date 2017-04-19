@@ -4,8 +4,11 @@
 # Author: jnguyen
 
 # This program sets up paths and ssh keys for running code from the 3dbrain repo. 
-# this is made to run from terminal in tigressdata. First VNC into tigressdata using 
-# the instructions from https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/
+# this is made to run from terminal in tigressdata. This be done by ssh or VNC
+# For SSH, ssh into USER@tigressdata.princeton.edu.
+
+# For VNC, follow the instructions from https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/
+# to set up a VNC window. Open the terminal and run this script
 
 
 
@@ -25,8 +28,8 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		echo " ###Keys not found, copying keys from /tigress/LEIFER###. 
 			###You will need to enter your password###"
 		ssh $USER@della.princeton.edu mkdir -p .ssh
-		cat /tigress/LEIFER/.ssh/id_rsa | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 		cat /tigress/LEIFER/.ssh/id_rsa.pub | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
+		cat /tigress/LEIFER/.ssh/id_rsa | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 	else
 		echo "Keys found"
 	fi
