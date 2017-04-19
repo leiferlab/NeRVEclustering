@@ -138,10 +138,6 @@ if handles.viewMode.Value
     alignments=getappdata(handles.figure1,'alignments');
     Rsegment=alignments.S2AHiRes.Rsegment;
     
-    tform_lo2hi=alignments.lowResFluor2BF.t_concord;
-    tform2=alignments.Hi2LowResF.t_concord;
-    tform_lo2hi.T=tform2.T*tform_lo2hi.T;
-    
     switch handles.imageType.Value
         case 1
             bigImage=redImage;
@@ -165,11 +161,14 @@ if handles.viewMode.Value
         imagesc(bigImage,'Parent',handles.bigPlot);
     end
     
-    CL_hi=transformPointsForward(tform_lo2hi,CL);
+    tform_lo2hi=alignments.lowResFluor2BF.t_concord;
+    tform2=alignments.Hi2LowResF.t_concord;
+    CL_hi=transformPointsInverse(tform_lo2hi,CL(:,[2,1]));
+    CL_hi=transformPointsForward(tform2,CL_hi);
     plot_handle=findobj(handles.bigPlot,'Type','Line');
     if ~isempty(plot_handle)
-        plot_handle.XData=CL_hi(:,2);
-        plot_handle.YData=CL_hi(:,1);
+        plot_handle.XData=CL_hi(:,1);
+        plot_handle.YData=CL_hi(:,2);
     else
         hold(handles.bigPlot,'on');
         plot(handles.bigPlot,CL_hi(:,2),CL_hi(:,1),'r','LineWidth',4);

@@ -10,16 +10,16 @@
 
 
 #check if we currently need keys to ssh in
-if [ "$HOSTNAME"== "tigressdata.princeton.edu"]; then
+if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 	pass=$(ssh $USER@della.princeton.edu -qo PasswordAuthentication=no echo 0 || echo 1)
-	if [ "$pass" == "1"]; then
+	if [ "$pass" == "1" ]; then
 		echo " Keys not found, copying keys from /tigress/LEIFER. You will need to enter your password"
 		# copy the key file into the users home directory, and chmod to proper permissions
 		mkdir $HOME/.ssh
 		cp /tigress/LEIFER/.ssh/id_rsa $HOME/.ssh/id_rsa
 		chmod 700 $HOME/.ssh/id_rsa
-		
-		# copy the ssh key from keyfile into .ssh folder in della. you'll need to input your password 2x.
+
+# copy the ssh key from keyfile into .ssh folder in della. you'll need to input your password 2x.
 		ssh $USER@della.princeton.edu mkdir -p .ssh
 		cat /tigress/LEIFER/.ssh/id_rsa | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 	else
