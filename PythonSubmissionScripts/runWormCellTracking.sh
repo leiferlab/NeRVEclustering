@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # File:   runWormCellTracking.sh
-# Author: benbratton
+# Author: jnguyen
 #
 # Created on May 26, 2015, 11:56:37 AM
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence

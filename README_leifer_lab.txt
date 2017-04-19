@@ -1,4 +1,4 @@
- 
+﻿ 
 Worm analysis protocol:
 
 
@@ -9,7 +9,16 @@ This repository hold the code used for the analyzing movies from the Leifer Lab'
 #########################################################################
 QUICK SUMMARY: 
 
-All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della, /tigress/LEIFER (ask Andy to email John Wiggins), save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac), have python installed with paramiko.  Some of the paths are hard coded into the python scripts to locations in the /tigress/LEIFER/communalCode/3dBrain folder. 
+All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
+
+ save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac), have python installed with paramiko.  Some of the paths are hard coded into the python scripts to locations in the /tigress/LEIFER/communalCode/3dBrain folder. 
+
+Once you have a tigressdata VNC open, open a terminal window by going to 
+Applications->System Tools -> Terminal
+
+The first time you enter, you will need to save your ssh keys
+
+
 
 
 
@@ -70,6 +79,10 @@ STEP 1: WORM CENTERLINE DETECTION
 
 
 
+
+
+
+**steps 2-5 all use submitWormAnalysisPipelineFull.py for submission. 
 STEP 2: STRAIGHTEN AND SEGMENTATION
 	
 Python submission code:
@@ -137,12 +150,14 @@ STEP 5: SIGNAL EXTRACTION
 USEFUL GUIS FOR VISUALIZATION
 
 
-All guis use wasd gaming controls, ie a for left, d for right, w for up, s for down. 
-
-
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
+
+
+
+
+These guis use wasd gaming controls, ie a for left, d for right, w for up, s for down:
 
 WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. Good for use prior to straightening.
 
