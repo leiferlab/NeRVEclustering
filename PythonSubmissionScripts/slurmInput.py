@@ -17,6 +17,7 @@ def path_setup(commandList):
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
+    commandList.insert(len(commandList)-1, "umask 000")
     return commandList
 
 def pickle_load():
