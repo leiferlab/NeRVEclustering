@@ -6,6 +6,7 @@ import os
 import numpy as np
 import datetime
 import pickle
+import subprocess 
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
 qString_min = "--time=180"
