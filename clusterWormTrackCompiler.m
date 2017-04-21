@@ -30,7 +30,8 @@ display([ 'PS file is ' filePath]);
 
 %load all pointStats with, which has all trackMatrix data
 [~,pointStats]=compileTrackMatrix(dataFolder);
-
+PS_ref=load([dataFolder filesep 'pointStatsRef']);
+PS_ref=PS_ref.PS_ref;
 % fill in indexing holes with error fits,
 for iPS=1:length(pointStats)
     if isempty(pointStats(iPS).stackIdx);
@@ -48,59 +49,20 @@ pointStats=pointStats(1:N);
 presentIdx=1:length(pointStats);
 
 
-
-
 %% do matching of tracks by clustering similarities in matching matrices
 %build cell array of all track matrices
 TrackMatrix={pointStats(presentIdx).TrackMatrixi};
-%get number of neurons found in each volume
-nObjs=cell2mat(cellfun(@(x) size(x,1),TrackMatrix,'uniform',0)');
+n_ref_neurons=cellfun(@(x) size(x,1),{PS_ref.straightPoints});
+cellfun(@(x) oneHotNeuron(x,n_ref_neurons),TrackMatrix,'Uniform',0);
 
-%neurons will all be linearly indexed, so a number is added to each index
-%depending on the timepoint the neuron is found in.
-indexAdd=[0; cumsum(nObjs(1:N))]';
-%for the references this can be pre
-indexAdd2=0:100:100*N;
-
-transitionMatrixSize=sum(nObjs);
 %% loop through all track matrices to build binary feature vectors
 %each track matrix has an n neurons by t time points vector with each
 %neuron having a number (match index) for each time. To build the binary
 %feature vector 
-    transitionIdxX=cell(1,N);
-    transitionIdxY=cell(1,N);
-    
-for i=1:N
-    %take individual match matrix and linearize all matches
-    TrackMatrixTemp=pointStats(i).TrackMatrixi;
-
-    if size(TrackMatrixTemp,1)>10 && any(TrackMatrixTemp(:))
-        validPoints=TrackMatrixTemp(:)>0;
-        %add index offset for for reference time points
-        indexAdd_i= indexAdd2(1:size(TrackMatrixTemp,2));
-        TrackMatrixTemp=bsxfun(...
-            @plus,TrackMatrixTemp ,indexAdd_i);
-        %add indexing offset for sample
-        startIdx=indexAdd(presentIdx(i));
-        startPos=startIdx+(1:size(TrackMatrixTemp,1));
-        startPos=repmat(startPos,size(TrackMatrixTemp,2),1)';
-        %get indeces for binary feature vectors
-        transitionIdxX{i}=startPos(validPoints);
-        transitionIdxY{i}=TrackMatrixTemp(validPoints);
-    end
-end
-%% 
-%convert results into matrices
-transitionIdxX=cell2mat(transitionIdxX');
-transitionIdxY=cell2mat(transitionIdxY');
 
 %build binary sparce matrix, referred to as a transition matrix
-nTransitions=length(transitionIdxY);
-transitionMatrixi=sparse(transitionIdxX,transitionIdxY,ones(1,nTransitions),...
-    transitionMatrixSize,max(indexAdd2),nTransitions);
-
-%collapse away empty columns
-transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
+transitionMatrixCell=...
+    cellfun(@(x) oneHotNeuron(x,n_ref_neurons),TrackMatrix,'Uniform',0);
 
 %% build training set on first 800 time points
 %if this fails, continuously decrease the number of training time points
@@ -109,35 +71,22 @@ transitionMatrixi=transitionMatrixi(:,any(transitionMatrixi));
 for iTry=0:5
     %% try loop to try to work around out of memory issues
 
-        nSelectRangeCell=[];
-        NTrainingRange=800-100*iTry;
+        NTrainingRange=900-100*iTry;
         NTrainingRange=min(NTrainingRange,N-1);
         nTraining=min(NTrainingRange,N-1);
         
         display(['Attempting nTraining of ' num2str(nTraining)]);
         nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
-        nSelectRangeCell=cell(1,length(nSelect)-1);
-        for i=1:length(nSelect)-1
-            nSelectRangeCell{i}=1+indexAdd(nSelect(i)):indexAdd(nSelect(i)+1);
-        end
-        nSelectAdd=cellfun(@(x) length(x), nSelectRangeCell);
-        nSelectRange=cell2mat(nSelectRangeCell);
-        
     try
         
         %% correlation and cluster, can take up to 10 minutes  
         %make subset of transition matrix
-        subTranstionMatrix=transitionMatrixi(nSelectRange,:);
+        subTranstionMatrix=cell2mat(transitionMatrixCell(nSelect)');
         %calculate distance matrix as correlation distance using custom 
         %code for sparce correlations.
         tic;
         tcorr2=sparseTransitionCorr(subTranstionMatrix',[],1);
         display(['Distance calculated in ' num2str(toc) 's']);
-        transition_mag=sqrt(sum(transitionMatrixi.^2,2));
-        normTransitionMatrixi=bsxfun(...
-            @rdivide,transitionMatrixi,transition_mag);
-        normTransitionMatrixi(isnan(normTransitionMatrixi))=0;
-   
         %get lower triangular section of the matrix for using clustering
         tcorr2_lin=tcorr2(tril(true(length(tcorr2)),-1));
         
@@ -294,7 +243,6 @@ masterVec=bsxfun(@minus,masterVec,mean(masterVec,1));
 masterVecVar(masterVecVar<.1)=.1;
 %use 1/std as the weighting for each vector
 masterWeights=1./masterVecVar;
-masterVec=sparse(masterVec);
 
 %apply the weightings to the mastervectors
 masterVec=normr(masterVec.*masterWeights);
@@ -345,73 +293,20 @@ gamma=nHit./(nHit+nMiss);
 hitCutoff=histX(find(gamma>.2,1,'first'));
 
 %% project data onto clustered components and detect values larger than threshold
-matchProjectionsRaw=masterVec*normTransitionMatrixi';
-matchProjections=matchProjectionsRaw.*(matchProjectionsRaw>hitCutoff);
-
-aMax = max(matchProjections);
-%if there is no hit, set the max high, the projection will never equal it
-aMax(aMax==0)=10;
-%find where the best match occurs
-matchBool=bsxfun(@eq, matchProjections,aMax);
-matchBool=matchProjections.*matchBool;
-[match_x,match_y,~]=find(matchBool);
-
-% make sparse linear matrix with all matches, match_x has the clustered index 
-% for each neuron 
-match_x=sparse(match_y,ones(size(match_y)),match_x,max(indexAdd),1);
-match_x=full(match_x);
-match_x(match_x==0)=nan;
-
-%turn all cluster assignments into cell
-ccell=mat2cell(match_x,diff(indexAdd));
-%turn all cluster weights (value of projection onto that cluster master
-%vec) into cell
-ccellProj=sparse(...
-    match_y,ones(size(match_y)),matchProjections(matchBool>0),max(indexAdd),1);
-ccellProj=mat2cell(full(ccellProj),diff(indexAdd));
-matchProjectionsCell=mat2cell(...
-    full(matchProjectionsRaw),n_clusters,diff(indexAdd));
-
-
-%% clear doubles
-%find if there are time points with doubles
-ccellDoubles=cellfun(@(x) check4doubles(x),ccell,'uniform',0);
-frames2check=find(cellfun(@(x) ~isempty(x),ccellDoubles));
-
-%loop over all frames with doubles
-for iCheck=(frames2check)'
-    %get the indices which appear twice
-    ccellTemp=ccell{iCheck};
-    doubleTerm=ccellDoubles{iCheck};
-    %also get the weights for each of them, 
-    weights=ccellProj{iCheck};
-    %loop over all doubles in that frame
-    for iiCheck=doubleTerm'
-        % get the neurons that were assigned to the same index
-        doubleSearch=find(ccellTemp==iiCheck);
-        % get the weights for each of them
-        w=weights(doubleSearch);
-        % remove the one with the smaller projection. 
-        idx2Remove=doubleSearch(w~=max(w));
-        ccellTemp(idx2Remove)=nan;
-        % also set that weight to zero
-        weights(idx2Remove)=0;
-    end
-    %repopulate the cells
-    ccell{iCheck}=ccellTemp;
-    ccellProj{iCheck}=weights;
-end
-
-
+output=cellfun(@(x) distanceClassify(masterVec,x,hitCutoff),...
+    transitionMatrixCell','Uniform',0);
+output=cat(1,output{:});
+track_cell=output(:,1);
+weight_cell=output(:,2);
 %% add new identities into track matrix, kill off unidentified cell
 
 pointStats2=pointStats;
-for i=1:length(ccell)
-    pointStats2(presentIdx(i)).trackIdx=ccell{i};
-    pointStats2(presentIdx(i)).trackWeights=ccellProj{i};
+for i=1:length(pointStats2)
+    pointStats2(presentIdx(i)).trackIdx=track_cell{i};
+    pointStats2(presentIdx(i)).trackWeights=weight_cell{i};
 end
 %% SAVE HERE %%
 fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save(fileOutput,'pointStats2');
-save(fileOutput_stats,'masterVec','matchProjectionsCell'...
+save(fileOutput_stats,'masterVec','hitCutoff'...
     ,'cluster_assign','caccum','subTcorr2')
