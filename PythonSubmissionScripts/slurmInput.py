@@ -22,7 +22,7 @@ def path_setup(commandList):
     code_home,_=os.path.split(CODE_PATH)
     git_hash=get_git_hash()
     git_statement = '### Current git hash:' + git_hash + "###"
-    commandList.insert(len(commandList-1,git_statement))
+    commandList.insert(len(commandList)-1,git_statement))
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     commandList.insert(len(commandList)-1, "umask 000")
