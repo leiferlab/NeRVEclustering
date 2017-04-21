@@ -11,15 +11,23 @@ QUICK SUMMARY:
 
 All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
 
- save your ssh keys (see http://www.linuxproblem.org/art_9.html for mac), have python installed with paramiko.  Some of the paths are hard coded into the python scripts to locations in the /tigress/LEIFER/communalCode/3dBrain folder. 
 
-Once you have a tigressdata VNC open, open a terminal window by going to 
-Applications->System Tools -> Terminal
+TO RUN THE CODE FROM TIGRESSDATA
+Once you have access to della and tigressdata, open a VNC connection by following the instructions on https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/. 
 
-The first time you enter, you will need to save your ssh keys
+Open a terminal window by going to Applications->System Tools -> Terminal
 
+Run the following commands:
 
+	/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
 
+You can then navigate to the code location with:
+
+	cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
+
+You can then run the Python submission codes by entering:
+
+	python <python submission code name>.py
 
 
 STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
@@ -44,8 +52,7 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done locally for point matching)
-After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder, most likely on the computer "Bardeen".
-Use alignment_gui.m on the BrainScanner folder. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 
 
@@ -149,12 +156,21 @@ STEP 5: SIGNAL EXTRACTION
 #########################################################################
 USEFUL GUIS FOR VISUALIZATION
 
+If running from tigressdata, matlab can be found by typing this into terminal:
+
+/usr/licensed/matlab-R2016b/bin/matlab
+
+In matlab, set up the paths to use these programs with:
+
+cd /tigress/LEIFER/communalCode
+path(pathdef)
+
+You can then run any of these by typing the name of the .m file into the command line.
+
 
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
-
-
 
 
 These guis use wasd gaming controls, ie a for left, d for right, w for up, s for down:
@@ -164,9 +180,6 @@ WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. 
 VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
 
 VisualizeTrackedData.m - Same as previous, but works on the unstraightened .dat file. 
-
-
-
 
 
 #########################################################################
