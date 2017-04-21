@@ -53,7 +53,6 @@ presentIdx=1:length(pointStats);
 %build cell array of all track matrices
 TrackMatrix={pointStats(presentIdx).TrackMatrixi};
 n_ref_neurons=cellfun(@(x) size(x,1),{PS_ref.straightPoints});
-cellfun(@(x) oneHotNeuron(x,n_ref_neurons),TrackMatrix,'Uniform',0);
 
 %% loop through all track matrices to build binary feature vectors
 %each track matrix has an n neurons by t time points vector with each
