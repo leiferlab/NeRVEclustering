@@ -52,15 +52,15 @@ end
 
 %% do the same if avi is present
 h=dir([imFolder filesep '*.avi']);
-if ~isempty(h)
+if isempty(h)
     lowMagFolder=dir([imFolder filesep 'LowMag*']);
     if ~isempty(lowMagFolder)
         imFolder=[imFolder filesep lowMagFolder(1).name];
     else
         error('No AVI files found!')
     end
-    
 end
+
 camData=importdata([imFolder filesep 'CamData.txt']);
 time=camData.data(:,2);
 timestep=median(diff(time));

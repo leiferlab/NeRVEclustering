@@ -22,7 +22,7 @@ function varargout = wormCL_tip_clicker(varargin)
 
 % Edit the above text to modify the response to help wormCL_tip_clicker
 
-% Last Modified by GUIDE v2.5 03-Nov-2016 12:06:57
+% Last Modified by GUIDE v2.5 24-Apr-2017 15:15:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -634,3 +634,19 @@ handles.axes1.Children(end).CDataMapping='scaled';
 h=imcontrast(handles.axes1);
 uiwait(h)
 %handles.axes1.Children.CDataMapping='direct';
+
+
+
+function currentFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to currentFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of currentFrame as text
+%        str2double(get(hObject,'String')) returns contents of currentFrame as a double
+
+currentFrame=str2double(get(hObject,'String'));
+currentFrame=max(currentFrame,handles.slider1.Min);
+currentFrame=min(currentFrame,handles.slider1.Max);
+handles.slider.Value=round(currentFrame);
+

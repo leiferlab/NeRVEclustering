@@ -4,7 +4,7 @@ function clusterWormCenterline(dataFolder,iCell,show2)
 %brain imaging setup. a CL workspace must be loaded with initial parameters
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window.
-%
+%It also requires an alignment.mat file in the BrainScanner folder.
 
 if nargin==2
     show2=0;
@@ -112,7 +112,7 @@ end
 
 
 %% load alignments
-alignments=load([aviFolder filesep 'alignments']);
+alignments=load([dataFolder filesep 'alignments']);
 alignments=alignments.alignments;
 lowResFluor2BF=alignments.lowResFluor2BF;
 

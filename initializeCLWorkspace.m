@@ -217,7 +217,7 @@ hold off
 %% pick a region around the head to cut out, now for behavior
 %cut out the head and reinperpolate in to get a background without the
 %brain
-display('Select an ROI around where the worm is to try and get him out of the background')
+display('Select an ROI around where the worm"s head is to try and get him out of the background')
 imagesc(max(mean_bf_all,[],3));
 head_rectangle=roipoly();
 
@@ -314,5 +314,3 @@ save([dataFolder filesep 'CLworkspace'],...
     'cline_para',...
     'bf2fluor_lookup',...
     'tips');
-
-

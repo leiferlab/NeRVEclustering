@@ -35,7 +35,7 @@ You can then run the Python submission codes by entering:
 #####TO RUN A MATLAB SCRIPT#####:
 If running from tigressdata, matlab can be found by typing this into terminal:
 
-	/usr/licensed/matlab-R2016b/bin/matlab
+	/usr/licensed/matlab-R2016a/bin/matlab
 
 In the matlab command line, set up the paths to use these programs with:
 
@@ -63,13 +63,15 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 		multipleAVIFlash.m
 
 
-	File Outputs: 	*YAML.mat files
-			*flashTrack.mat files
-			hiResData.mat file
+	File Outputs:
+			hiResData.mat file -data for timing of .dat file
+			cam0flashtrack.mat
+			cam1flashtrack.mat
+
 
 
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
-(done locally for point matching)
+(done locally for point matching, does not depend on timing)
 After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 
@@ -96,7 +98,7 @@ STEP 1: WORM CENTERLINE DETECTION
 	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
 
 
-	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by AL to manually adjust centerlines
+	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
 
 
 
