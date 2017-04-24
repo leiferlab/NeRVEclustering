@@ -29,7 +29,7 @@ From Terminal navigate to the code location with:
 	cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
 
 You can then run the Python submission codes by entering:
-
+	module load anaconda
 	python <python submission code name>.py
 	
 #####TO RUN A MATLAB SCRIPT#####:

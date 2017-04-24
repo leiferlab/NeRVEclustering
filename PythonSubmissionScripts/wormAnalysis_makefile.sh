@@ -5,7 +5,13 @@
 
 # This program sets up paths and ssh keys for running code from the 3dbrain repo. 
 # this is made to run from terminal in tigressdata. This be done by ssh or VNC
-# For SSH, ssh into USER@tigressdata.princeton.edu.
+# For SSH, ssh into USER@tigressdata.princeton.edu. A key file, currently located in 
+#/tigress/LEIFER/.ssh, is copied into the USER's home directory on tigress. The key is then
+# added to the "authorized_keys" file in the USER's .ssh folder in DELLA. All users who run
+# this program will be able to use their USER tigressdata account to SSH into all other USERs
+# DELLA accounts. 
+
+# The program also installs paramiko for Anaconda. 
 
 # For VNC, follow the instructions from https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/
 # to set up a VNC window. Open the terminal by going to Application>System Tools> Terminal
