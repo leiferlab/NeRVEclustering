@@ -1,7 +1,14 @@
+%% initializeCLWorkspace
+% This script is used for initializing parameters and data for centerline
+% detection. This script can be run cell by cell, with a few or the cells
+% running for or parfor loops over every frame of the video, and some cells
+% require user inpurts to initialize centerlines or crop out image regions.
+% Prior to running this script, you may run wormCL_tip_clicker.m for a GUI
+% that allows the user to click centerline tips. 
 
-%% Initialize fitting parameters
 
-maxFrame=Inf; %%% CHECK FOR LAST USEFUL FRAME IN VIDEO
+
+%% Initialize fitting parameters for centerline, 
 
 cline_para.refIdx=10;
 cline_para.tipRegion=45;
@@ -34,83 +41,48 @@ smoothkernal=smoothkernal/sum(smoothkernal);
 dataFolder=uipickfiles();
 dataFolder=dataFolder{1};
 
-[dataFolder,name,ext] = fileparts(dataFolder);
-display dataFolder;
-%% load alignment data
-alignmentLocation='Y:\CommunalCode\3dbrain\registration';
-backgroundLocation='Y:\CommunalCode\3dbrain\background';
-if exist([dataFolder filesep 'alignments.mat'],'file')
-    %try to load the alignment file in the folder, otherwise, select them
-    %individual in the registration folder
-    alignments=load([dataFolder filesep 'alignments.mat']);
-    alignments=alignments.alignments;
-else
-    %Select the alignment files in the order prompted
-    display('Select Low Res Alignment')
-    
-    lowResFluor2BF=uipickfiles('FilterSpec',alignmentLocation);
-    lowResFluor2BF=load(lowResFluor2BF{1});
-    lowResBF2FluorT=invert(lowResFluor2BF.t_concord);
-    
-    display('Select Hi to Low Fluor Res Alignment')
-    Hi2LowResF=uipickfiles('FilterSpec',alignmentLocation);
-    Hi2LowResF=load(Hi2LowResF{1});
-    
-    display('Select Hi Res Alignment')
-    
-    S2AHiRes=uipickfiles('FilterSpec',alignmentLocation);
-    S2AHiRes=load(S2AHiRes{1});
-    rect1=S2AHiRes.rect1;
-    rect2=S2AHiRes.rect2;
-    
-    % if there's a background image, load it as well into alignments.
-    display('select a background image for this size himag video');
-    
-    backgroundImage=uipickfiles('FilterSpec',backgroundLocation);
-    if iscell(backgroundImage)
-        backgroundImage=load(backgroundImage{1});
-        backgroundImage=backgroundImage.backgroundImage;
-    else
-        backgroundImage=0;
-    end
-    
-    
-    %% if you select them individually, bundle them and save it for later use
-    alignments.lowResFluor2BF=lowResFluor2BF;
-    alignments.S2AHiRes=S2AHiRes;
-    alignments.Hi2LowResF=Hi2LowResF;
-    alignments.background=backgroundImage;
-    save([dataFolder filesep 'alignments'],'alignments');
-    
+%% get lowmag folder
+low_mag_folder=dir([dataFolder filesep 'LowMag*']);
+if isempty(low_mag_folder)
+    error(...
+    'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
 end
+low_mag_folder=[dataFolder filesep low_mag_folder(1).name];
+
+
+%% load alignment data
+
+alignments=load([dataFolder filesep 'alignments.mat']);
+alignments=alignments.alignments;
 
 %% load tip file if present
-try
-    display('Load tip file if present, otherwise, cancel')
-tip_file=uipickfiles('filterspec', dataFolder);
-tip_file=tip_file{1};
-tips=load(tip_file);
-catch
+
+display('Load tip file if present, otherwise, cancel')
+tip_file=[low_mag_folder filesep 'tip_coodinates.mat'];
+if exist(tip_file,'file')
+    tips=load(tip_file);
+    display(' Tip file found, loading tips');
+else
     tips=[];
+    display('No tips found!');
 end
 
 %% set up low magvideos, we've changed the way we save data, the older version
 %includes a HUDS avi file and yaml files for metadata
 
-aviFiles=dir([dataFolder filesep '*.avi']);
+aviFiles=dir([low_mag_folder filesep '*.avi']);
 aviFiles={aviFiles.name}';
 HUDFiles=aviFiles(cellfun(@(x) ~isempty(strfind(x,'HUDS')),aviFiles));
 oldFlag=length(HUDFiles);
 
 if ~oldFlag
-    
     %import textdata
-    camdata=importdata([ dataFolder  filesep name filesep 'CamData.txt']);
+    camdata=importdata([ low_mag_folder  filesep 'CamData.txt']);
     %get timing of each frames
     time=camdata.data(:,2);
     %setup paths to movies
-    fluormovie=[dataFolder filesep name filesep 'cam0.avi'];
-    behaviormovie=[dataFolder filesep name filesep 'cam1.avi'];
+    fluormovie=[low_mag_folder filesep 'cam0.avi'];
+    behaviormovie=[low_mag_folder filesep 'cam1.avi'];
     %get movie length
     nframes=length(camdata.data);
     bf2fluor_lookup=[];
@@ -123,7 +95,7 @@ else
 
     %get timing sync for old data movies, folders were hard saved at
     %1200x600
-    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder,[1200 600]);
+    [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
     nframes=length(bfAll.frameTime);
     fluorIdxList=1:length(fluorAll.frameTime);
     bf2fluor_lookup=interp1(fluorAll.frameTime,fluorIdxList,bfAll.frameTime,'linear');
@@ -137,19 +109,20 @@ behavior_vidobj = VideoReader(behaviormovie);
 fluor_vidobj= VideoReader(fluormovie);
 
 
-%% calculate backgrounds and projections
+%% take subsample of ref pointsfrom each behavior frame
 bf_imsize=[behavior_vidobj.Height,behavior_vidobj.Width];
+%make ref points
 refpoints_x=meshgrid(1:20:bf_imsize(1));
 refpoints_y=refpoints_x';
 refpoints=sub2ind(bf_imsize,refpoints_x(:),refpoints_y(:));
 refintensity=nan(length(refpoints),nframes);
-%parfor_progress(nframes);
+parfor_progress(nframes);
 parfor itime=1:nframes;
     % if ~any(fluorAll.flash_loc==itime)
     behavior_vidobj_par = VideoReader(behaviormovie);
     bf_frame =read(behavior_vidobj_par,itime);
     refintensity(:,itime)=bf_frame(refpoints);
-    %parfor_progress;
+    parfor_progress;
     %   end
 end
 
@@ -159,42 +132,30 @@ refintensityZ_frames=zscore(refintensity_mean);
 flash_loc=refintensityZ_frames>4;
 flash_loc_idx=find(flash_loc);
 
-%% find which pixels of the subset vary the most
-display(['Crop out region where worm might explore (cut out bubbles)'])
+%% find which pixels of the subset vary the most, excluding ones that may 
+% bubble related
+display(['Crop out region with background imformation ( exclude bubbles and obvious worm)'])
 refi_std=nanstd(refintensity,[],2);
 std_im=reshape(refi_std,55,55);
 imagesc(std_im)
 std_mask=roipoly();
 std_pix=std_im(std_mask);
 
-important_pix=refi_std>quantile(std_pix,.8) & std_mask(:);
+important_pix= std_mask(:);
 
 
 %% do PCA on reference point intensities to classify background frames
 %get z scores
 refintensity_mean=nanmean(refintensity(:,~flash_loc),2);
 refintensityZ=bsxfun(@minus, double(refintensity),refintensity_mean);
-refintensityZ(:,flash_loc)=nan;
+refintensityZ(:,flash_loc)=0;
 refintensityZ=refintensityZ(important_pix,:);
-%do PCA
+refintensityZ=zscore(refintensityZ,0,2);
+%do
 [coeff,score,latent,tsquared] = pca(refintensityZ');
 
-%get projection onto first PC for all frames
-frame_zscore=colNanFill(score(:,1));
-
-%filter scores
-frame_zscore=frame_zscore-conv(frame_zscore,smoothkernal,'same');
-%remove flashes
-frame_zscore(flash_loc)=nan;
-frame_zscore=frame_zscore/nanstd(frame_zscore);
-
-%remove outliers for better quantiles
-frame_zscore(abs(frame_zscore)>4)=nan;
-%get the quantil each frame falls in,
-boundaryI=quantile(frame_zscore,10);
-frame_bg_lvl=sum(bsxfun(@le,frame_zscore,boundaryI),2);
-frame_bg_lvl=frame_bg_lvl+1;
-%testing new way to cluster backgrounds)
+% cluster backgrounds into 11 groups, calculate a background for each of
+% them
 frame_bg_lvl=kmeans(score(:,1:2),11);
 
 frame_bg_list=unique(frame_bg_lvl);
@@ -318,10 +279,12 @@ close all
 close all
 for i=1:nCells+1
     lowframe=min((i-1)*nSteps+1,nframes);
-    BFFrameRaw = read(behavior_vidobj,lowframe);
-    imagesc(BFFrameRaw)
+    BFFrameRaw = double(read(behavior_vidobj,lowframe));
+    BFFrame = BFFrameRaw-mean_bf_all(:,:,frame_bg_lvl(lowframe));
+  %  BFFrame(BFFrame<0)=0;
+    imagesc(BFFrame)
     hold on
-    plot(clStartI{i}(:,1),clStartI{i}(:,2),'r');
+    %plot(clStartI{i}(:,1),clStartI{i}(:,2),'r');
     pause(.3)
     hold off
 end
