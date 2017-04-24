@@ -194,6 +194,15 @@ def make_gui():
     master.e['crop_flag'].grid(row=15, column=1, sticky=W+E)
     master.e['crop_flag'].var.set(1)
     
+    L_email = Label(master, text="Crop")
+    L_email.grid(row=16, column=0, sticky=W+E)
+    
+    var6= IntVar()
+    master.e['mail_flag']= Checkbutton(master, text=None, variable=var5)
+    master.e['mail_flag'].var = var6
+    master.e['mail_flag'].grid(row=16, column=1, sticky=W+E)
+    master.e['mail_flag'].var.set(1)
+    
     return master
 
 def get_nframes(username,fullPath):
@@ -278,6 +287,7 @@ def submitScript(master=None):
     trackFlag       = master.e['track_flag'].var.get()
     checkFlag       = master.e['check_flag'].var.get()
     cropFlag        = master.e['crop_flag'].var.get()
+    emailFlag       = master.e['email_flag'].var.get()
     
     if socket.gethostname()=='tigressdata.princeton.edu':
         keypath='/tigress/LEIFER/.ssh/id_rsa'
@@ -326,7 +336,7 @@ def submitScript(master=None):
         commandList=slurm.check_input(commandList,fullPath,totalRuns,nCheck,nNeurons)
         
     if cropFlag:
-        commandList=slurm.crop_input(commandList,fullPath)
+        commandList=slurm.crop_input(commandList,fullPath,emailFlag)
 
     commands = "\n".join(commandList)
     print(commands)
@@ -449,12 +459,12 @@ if __name__ == '__main__':
         ''')
     master=make_gui()
     master.b = Button(master, text="Enter", width=10, command=lambda:callback1(master=master))
-    master.b.grid(row=16,columnspan=2, sticky=W+E)
+    master.b.grid(row=17,columnspan=2, sticky=W+E)
     master.bind("<Return>", callback1b)
     
     if  socket.gethostname()=='tigressdata.princeton.edu':
         master.b2 = Button(master, text='Select Folder', width=10, command=lambda:SelectFolder(master=master))
-        master.b2.grid(row=17,columnspan=2, sticky=W+E)
+        master.b2.grid(row=18,columnspan=2, sticky=W+E)
         
     master.e['user_name'].focus_set()
     

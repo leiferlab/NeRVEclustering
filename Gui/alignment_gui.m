@@ -223,16 +223,22 @@ HiResS2A_name=[fileName 'HiResS2A'];
 LowResB2F_name=[fileName 'LowResB2F'];
 HiResS2LoResF_name=[fileName 'HiResS2LoResF'];
 
-alignmentFolder='Y:\CommunalCode\3dbrain\registration\';
-backgroundLocation='Y:\CommunalCode\3dbrain\background';
+[~,hostname]=system('hostname');
 
+if strfind('tigressdata',hostname)
+    alignmentFolder='/tigress/LEIFER/commnualCode/3dbrain/registration/';
+    backgroundLocation='/tigress/LEIFER/commnualCode/background';
+else
+alignmentFolder='Y:\CommunalCode\3dbrain\registration\';
+backgroundLocation='Y:\CommunalCode\3dbrain\background\';
+end
 alignments=makeTransformation(handles);
 setappdata(handles.figure1,'alignments',alignments)
 % if there's a background image, load it as well into alignments.
 display('select a background image for this size himag video');
 
 backgroundImage=uipickfiles('FilterSpec',backgroundLocation,...
-    'Prompt','Select Background File');
+    'Prompt','Select Background HiMag Image File');
 
 if iscell(backgroundImage)
     backgroundImage=load(backgroundImage{1});

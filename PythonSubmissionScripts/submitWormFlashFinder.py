@@ -92,6 +92,15 @@ def make_gui():
     master.e['folder_name'].insert(0,defaultFolder)
     master.e['folder_name'].grid(row=5, column=1, sticky=W+E)
     
+    L_email = Label(master, text="Crop")
+    L_email.grid(row=6, column=0, sticky=W+E)
+    
+    var1= IntVar()
+    master.e['mail_flag']= Checkbutton(master, text=None, variable=var5)
+    master.e['mail_flag'].var = var1
+    master.e['mail_flag'].grid(row=6, column=1, sticky=W+E)
+    master.e['mail_flag'].var.set(1)
+    
     return master
 
 if os.name == 'posix':
@@ -114,8 +123,10 @@ def submitScript(master=None):
     # which folder to process, must add paths linux style
     fullPath = beginOfPath + "/" + date
     fullPath = fullPath + "/" + folderName
-    
-    #picle dump
+
+    emailFlag       = master.e['email_flag'].var.get()
+
+    #pickle dump
     #save defaults using pickle dump
     pickle_path = (os.environ['HOME'] + "/platypusTemp/")
     pickle_file = pickle_path + "pickles2.p"
@@ -149,10 +160,9 @@ def submitScript(master=None):
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
    # matlabDirName = "\\ ".join(matlabDirName);
     print('Writing inputs line to text file')
-    userEmail=username+"@princeton.edu"
     
     commandList=slurm.path_setup(commandList)
-    commandList=slurm.flash_input(commandList,fullPath)
+    commandList=slurm.flash_input(commandList,fullPath,emailFlag)
     slurm.make_ouputfolder(client,fullPath)
     #write commands to text file via paramiko
     slurm.write_input(commandList,client,fullPath)

@@ -6,6 +6,8 @@ import os
 import numpy as np
 import datetime
 import pickle
+import subprocess
+import getpass
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
 qString_min = "--time=180"
@@ -15,6 +17,9 @@ NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
 
 def path_setup(commandList):
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
+    os.chdir(CODE_PATH)
+    current_git_hash=subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+    commandList.insert(len(commandList)-1, '#### current git: '+current_git_hash + '####')
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     commandList.insert(len(commandList)-1, "umask 000")
@@ -34,6 +39,13 @@ def pickle_load():
     # check to see if there is a username in the pickle file
     prevUser = pickle.load( open( pickle_file, "rb" ) )
     return prevUser
+    
+def get_email_script():
+    user= getpass.getuser()
+    user_email=user+'@princeton.edu'
+    mail_script= ' --mail-type=begin' +
+                 ' --mail-user='+user_email
+    return mail_script
 
 def make_output_path(fullPath):
     outputFilePath= fullPath + "/outputFiles"
@@ -43,21 +55,26 @@ def make_output_path(fullPath):
     return outputFilePath
     
 
-def centerline_input(commandList,fullPath):
+def centerline_input(commandList,fullPath,email_flag = False):
     commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
     
     folderName=os.path.basename(fullPath)
     outputFilePath= make_output_path(fullPath)
-
     code_centerline = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineFitting.sh'
     code_centerline_compile = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineCompile.sh'
+    
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
     
     qsubCommand1 = ("sbatch" + memString 
         + qString_min 
         + " -D " + folderName
-        + " -J "+ jobName
-        + " --output=\"" + outputFilePath + "/CLjob-%J.out" 
-        + "\" --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\""
+        + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
         + " --array=1-32:1"
         + " " + code_centerline
         + " '"  + fullPath +"' ")
@@ -67,7 +84,8 @@ def centerline_input(commandList,fullPath):
     qsubCommand2 = ("sbatch" + memString 
         + qString_min 
         + " -D " + folderName
-        + " -J "+ jobName
+        + " -J "+ folderName
+        + email_script
         + " -d singleton"
         + " --output=\"" + outputFilePath + "/CLCompile-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/CLCompile-%J.err" + "\""
@@ -79,7 +97,7 @@ def centerline_input(commandList,fullPath):
 
 
 
-def straighten_input(commandList,fullPath,totalRuns):
+def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     commandList.insert(len(commandList)-1, '####STRAIGHTENING####'+NOW)
 
     totalRuns = int(totalRuns)
@@ -90,12 +108,18 @@ def straighten_input(commandList,fullPath,totalRuns):
     code_straighten = CODE_PATH + '/PythonSubmissionScripts/runWormStraighten.sh'
     code_pscompiler = CODE_PATH + '/PythonSubmissionScripts/runWormCompilePointStats.sh'
     
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+    
     nRuns=np.ceil(totalRuns/1000)
     stepSize=totalRuns//300
     
     input0 = "clusterStraightenStart('"+ fullPath + "')"
     qsubCommand0 = ("sbatch --mem=12000 " 
-        + qString_min + " -D " + folderName
+        + qString_min 
+        + " -D " + folderName
         + " -J "+ folderName
         + " --output=\"" + outputFilePath + "/straight_s-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/straight_s-%J.err" + "\""
@@ -130,8 +154,11 @@ def straighten_input(commandList,fullPath,totalRuns):
 
         
     qsubCommand2 = ("sbatch --mem=12000 " 
-        + qString_min + " -D " + folderName
-        + " -J "+ folderName + " -d singleton"
+        + qString_min 
+        + " -D " + folderName
+        + " -J "+ folderName 
+        + " -d singleton"
+        + email_script
         + " --output=\"" + outputFilePath + "/pscompile-%J.out" + "\" "
         + "--error=\"" + outputFilePath + "/pscompile-%J.err" + "\""
         + " " + code_pscompiler 
@@ -142,7 +169,7 @@ def straighten_input(commandList,fullPath,totalRuns):
 
 
 
-def track_input(commandList,fullPath,totalRuns,nRef):
+def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     commandList.insert(len(commandList)-1, '####TRACKING####'+NOW)
     totalRuns=int(totalRuns)
     nRef=int(nRef)
@@ -152,7 +179,12 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     currentDate=datetime.date.today()
     currentDate=str(currentDate)
     outputFilePath= outputFilePath + currentDate
-
+    
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+    
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
     code_track = CODE_PATH + '/PythonSubmissionScripts/runWormCellTracking.sh'
     code_trackcompiler = CODE_PATH+'/PythonSubmissionScripts/runWormTrackCompiler.sh'
@@ -170,7 +202,6 @@ def track_input(commandList,fullPath,totalRuns,nRef):
         + qString_min 
         + " -D " + folderName
         + " -J "+ folderName
-        
         + " --output=\"" + outputFilePath + "/track_s-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/track_s-%J.err" + "\""
         + " " + code_runinput
@@ -205,8 +236,11 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     commandList.insert(len(commandList)-1, '\r')
     
     qsubCommand2 = ("sbatch --mem=100000 " 
-        + qString_track + " -D " + folderName
-        + " -J "+ folderName + " -d singleton"
+        + qString_track 
+        + " -D " + folderName
+        + " -J "+ folderName 
+        + " -d singleton"
+        + email_script
         + " --output=\"" + outputFilePath + "/trackCompiler-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/trackCompiler-%J.err" + "\""
         + " " + code_trackcompiler 
@@ -216,7 +250,7 @@ def track_input(commandList,fullPath,totalRuns,nRef):
     return commandList
 
 
-def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons):
+def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = False):
     commandList.insert(len(commandList)-1, '####CHECKING####'+NOW)
     nCheck=int(nCheck)
     nNeurons=int(nNeurons)
@@ -232,8 +266,10 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons):
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
     qsubCommand5 = ("sbatch --mem=8000 " 
-        + qString_check + " -D " + folderName
-        + " -J "+ folderName + " -d singleton"
+        + qString_check 
+        + " -D " + folderName
+        + " -J "+ folderName 
+        + " -d singleton"
         + " --output=\"" + outputFilePath + "/check-%J.out" + "\" "
         + " --error=\"" + outputFilePath + "/check-%J.err" + "\" "
         + " --array=1-"+ str(nNeurons) + ":" + "1"
@@ -243,19 +279,22 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons):
     commandList.insert(len(commandList)-1, qsubCommand5)
         
     qsubCommand6 = ("sbatch --mem=100000 " 
-        + qString_min + " -D " + folderName
-        + " -J "+ folderName + " -d singleton"
+        + qString_min 
+        + " -D " + folderName
+        + " -J "+ folderName 
+        + " -d singleton"
+        + email_script
         + " --output=\"" + outputFilePath + "/checkcompile-%J.out" + " \""
         + " --error=\"" + outputFilePath + "/checkcompile-%J.err" + " \""
- #       + " --mail-type=end" + " --mail-user=" + userEmail
         + " " + code_checkcompiler 
         + "  '" + fullPath +"' ")
+        
     commandList.insert(len(commandList)-1, qsubCommand6)
     commandList.insert(len(commandList)-1, '\r')
     return commandList
 
 
-def crop_input(commandList,fullPath):
+def crop_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, '####CROPPING####'+NOW)
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
@@ -265,8 +304,11 @@ def crop_input(commandList,fullPath):
     input1= "fiducialCropper3('"+ fullPath +"')"
     
     qsubCommand7 = ("sbatch --mem=16000 " 
-        + qString_min + " -D " + folderName
-        + " -J "+ folderName + " -d singleton"
+        + qString_min 
+        + " -D " + folderName
+        + " -J "+ folderName 
+        + " -d singleton"
+        + email_script
         + " --output=\"" + outputFilePath + "/crop-%J.out"+ "\"" 
         + " --error=\"" + outputFilePath + "/crop-%J.err" + "\""
         + " " + code_runinput 
@@ -277,7 +319,7 @@ def crop_input(commandList,fullPath):
     return commandList
 
 
-def flash_input(commandList,fullPath):
+def flash_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
@@ -289,6 +331,7 @@ def flash_input(commandList,fullPath):
     qsubCommand1 = ("sbatch --mem=2000 " 
         + qString_min 
         + " -J "+ folderName
+        + email_script
         + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
         + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
         + " " + code_runinput + " " 
@@ -299,6 +342,7 @@ def flash_input(commandList,fullPath):
     qsubCommand2 = ("sbatch --mem=2000 "  
         + qString_min 
         + " -J "+ folderName
+        + email_script
         + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/avFlash-%J.err" + "\""
         + " " + code_runinput + " " 

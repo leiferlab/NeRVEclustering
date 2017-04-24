@@ -52,7 +52,8 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 	else
 		echo "Success! Keys saved for della connection"
 	fi
-	
+	# load virtualgl for matlab
+	module laod virtualgl
 	# load python module, install paramiko with pip
 	module load anaconda
 	pip install --user paramiko

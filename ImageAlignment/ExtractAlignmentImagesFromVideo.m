@@ -27,9 +27,9 @@ if ~isempty(h)
     status=fseek(Fid,0,-1);
     
     dat_images=zeros(rows,cols,max(frame_index));
-    
+    progressbar(0);
     for idx=1:max(frame_index)
-        
+    progressbar(idx/max(frame_index));
         display(['starting index ' num2str(idx)])
         
         fileNamedat=[imFolder filesep 'dat_' num2str(idx) '.tif'];
@@ -75,8 +75,10 @@ vidObj1 = VideoReader(cam1File);
 
 avi0_images=zeros(vidObj0.Width,vidObj0.Height,max(frame_index));
 avi1_images=zeros(vidObj1.Width,vidObj1.Height,max(frame_index));
+    progressbar(0);
 
 for idx=1:max(frame_index)
+    progressbar(idx/max(frame_index))
     display(['starting index ' num2str(idx)])
 
     fileName0=[imFolder filesep 'cam0_' num2str(idx)];
@@ -99,8 +101,6 @@ for idx=1:max(frame_index)
     end
     avi0_images(:,:,idx)=meanImage0;
     avi1_images(:,:,idx)=meanImage1;
-    
-    
     
 end
 
