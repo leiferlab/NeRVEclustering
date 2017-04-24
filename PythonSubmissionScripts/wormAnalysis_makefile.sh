@@ -34,7 +34,6 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		cat /tigress/LEIFER/.ssh/id_rsa | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 		
 		echo "Changning default save permissions to 777"
-		ssh $USER@della.princeton.edu umask 000
 		umask 000
 	else
 		echo "Keys found"

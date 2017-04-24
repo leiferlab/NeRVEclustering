@@ -6,7 +6,6 @@ import os
 import numpy as np
 import datetime
 import pickle
-import subprocess 
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
 qString_min = "--time=180"
@@ -14,19 +13,11 @@ PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
 
-def get_git_hash():
-    os.chdir(CODE_PATH)
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'])
-
 def path_setup(commandList):
-    code_home,_=os.path.split(CODE_PATH)
-    git_hash=get_git_hash()
-    git_statement = '### Current git hash:' + git_hash + "###"
-    commandList.insert(len(commandList)-1,git_statement)
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
+    code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     commandList.insert(len(commandList)-1, "umask 000")
-    
     return commandList
 
 def pickle_load():
@@ -50,6 +41,42 @@ def make_output_path(fullPath):
     currentDate=str(currentDate)
     outputFilePath= outputFilePath + currentDate
     return outputFilePath
+    
+
+def centerline_input(commandList,fullPath):
+    commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
+    
+    folderName=os.path.basename(fullPath)
+    outputFilePath= make_output_path(fullPath)
+
+    code_centerline = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineFitting.sh'
+    code_centerline_compile = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineCompile.sh'
+    
+    qsubCommand1 = ("sbatch" + memString 
+        + qString_min 
+        + " -D " + folderName
+        + " -J "+ jobName
+        + " --output=\"" + outputFilePath + "/CLjob-%J.out" 
+        + "\" --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
+        + " --array=1-32:1"
+        + " " + code_centerline
+        + " '"  + fullPath +"' ")
+        
+    commandList.insert(len(commandList)-1, qsubCommand1)
+    
+    qsubCommand2 = ("sbatch" + memString 
+        + qString_min 
+        + " -D " + folderName
+        + " -J "+ jobName
+        + " -d singleton"
+        + " --output=\"" + outputFilePath + "/CLCompile-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/CLCompile-%J.err" + "\""
+        + " " + code_centerline_compile
+        + " '"  + fullPath +"' ")
+        
+    commandList.insert(len(commandList)-1, qsubCommand2)
+    print(qsubCommand2)
+
 
 
 def straighten_input(commandList,fullPath,totalRuns):
@@ -96,7 +123,7 @@ def straighten_input(commandList,fullPath,totalRuns):
             + " --output=\"" + outputFilePath + "/straight-%J.out" 
             + "\" --error=\"" + outputFilePath + "/straight-%J.err" + "\""
             + " --array=1-" + currentLimit + ":" + str(stepSize) 
-            + " " +code_straighten 
+            + " " + code_straighten 
             + " '"  + fullPath +"' "  + str(stepSize) +" " + offset)
         commandList.insert(len(commandList)-1, qsubCommand1)
     commandList.insert(len(commandList)-1, '\r')

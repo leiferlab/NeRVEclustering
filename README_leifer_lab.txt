@@ -7,7 +7,8 @@ This repository hold the code used for the analyzing movies from the Leifer Lab'
 
 
 #########################################################################
-QUICK SUMMARY: 
+SETUP 
+#########################################################################
 
 All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
 
@@ -20,14 +21,33 @@ Open a terminal window by going to Applications->System Tools -> Terminal
 Run the following commands:
 
 	/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
+	
+#####TO RUN A PYTHON SCRIPT#####:
 
-You can then navigate to the code location with:
+From Terminal navigate to the code location with:
 
 	cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
 
 You can then run the Python submission codes by entering:
 
 	python <python submission code name>.py
+	
+#####TO RUN A MATLAB SCRIPT#####:
+If running from tigressdata, matlab can be found by typing this into terminal:
+
+	/usr/licensed/matlab-R2016b/bin/matlab
+
+In the matlab command line, set up the paths to use these programs with:
+
+	cd /tigress/LEIFER/communalCode
+	path(pathdef)
+
+You can then run any GUI typing the name of the .m file into the command line.
+
+		
+######################################################################
+ANALYSIS PIPELINE
+######################################################################
 
 
 STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
@@ -48,20 +68,16 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 			hiResData.mat file
 
 
-
-
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done locally for point matching)
 After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 
-
-
-
-
 STEP 1: WORM CENTERLINE DETECTION
-(done locally for manual centerline initialization)
+(done locally or on tigressdata VNC for manual centerline initialization)
 
+	wormCL_tip_clicker.m
+		- this is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail. 
 	initializeCLWorkspace.m 
 		- this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm.
  
@@ -80,12 +96,7 @@ STEP 1: WORM CENTERLINE DETECTION
 	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
 
 
-
-
 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by AL to manually adjust centerlines
-
-
-
 
 
 
@@ -156,16 +167,6 @@ STEP 5: SIGNAL EXTRACTION
 #########################################################################
 USEFUL GUIS FOR VISUALIZATION
 
-If running from tigressdata, matlab can be found by typing this into terminal:
-
-/usr/licensed/matlab-R2016b/bin/matlab
-
-In matlab, set up the paths to use these programs with:
-
-cd /tigress/LEIFER/communalCode
-path(pathdef)
-
-You can then run any of these by typing the name of the .m file into the command line.
 
 
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files

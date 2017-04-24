@@ -27,11 +27,11 @@ function varargout = wormCL_tip_clicker(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @wormCL_tip_clicker_OpeningFcn, ...
-                   'gui_OutputFcn',  @wormCL_tip_clicker_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @wormCL_tip_clicker_OpeningFcn, ...
+    'gui_OutputFcn',  @wormCL_tip_clicker_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -61,6 +61,7 @@ hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
 setappdata(handles.figure1,'holdaxes',false);
 setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'Max',2000);
+set(gcf, 'WindowButtonDownFcn', @getMousePositionOnImage);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -70,7 +71,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = wormCL_tip_clicker_OutputFcn(hObject, eventdata, handles) 
+function varargout = wormCL_tip_clicker_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -78,6 +79,32 @@ function varargout = wormCL_tip_clicker_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+
+
+function getMousePositionOnImage(src, event)
+
+handles = guidata(src);
+current_axis=handles.axes1;
+cursorPoint = get(current_axis, 'CurrentPoint');
+curX = cursorPoint(1,1);
+curY = cursorPoint(1,2);
+
+xLimits = get(current_axis, 'xlim');
+yLimits = get(current_axis, 'ylim');
+
+if (curX > min(xLimits) && curX < max(xLimits) &&...
+        curY > min(yLimits) && curY < max(yLimits))
+    if handles.get_head.Value
+        addPoint('head',curX,curY,handles);
+        forward1_Callback(handles.forward1, event, handles)
+    elseif handles.get_tail.Value
+        addPoint('tail',curX,curY,handles);
+        forward1_Callback(handles.forward1, event, handles)
+    end
+end
+
+
+
 
 
 % --- Executes on slider movement.
@@ -115,28 +142,19 @@ catch
 end
 
 try
-currentData=uipickfiles('FilterSpec',mostRecent);
+    currentData=uipickfiles('FilterSpec',mostRecent);
 catch
     currentData=uipickfiles();
 end
 currentData=currentData{1};
-row=str2double(get(handles.imageRows,'String'));
-col=str2double(get(handles.imageCols,'String'));
 
 setappdata(0,'mostRecent',fileparts(currentData));
 set(handles.currentFolder,'String',currentData);
-if strfind(currentData,'.dat')
-Fid=fopen(currentData);
-status=fseek(Fid,0,1);
-nFrames=ftell(Fid)/(2*row*col)-1;
-setappdata(handles.figure1,'Fid',Fid);
-setappdata(handles.figure1,'aviFlag',0);
-elseif strfind(currentData,'.avi')
-     Fid= VideoReader(currentData);
-     nFrames=Fid.NumberOfFrames;
+
+Fid= VideoReader(currentData);
+nFrames=Fid.NumberOfFrames;
 setappdata(handles.figure1,'Fid',Fid);
 setappdata(handles.figure1,'aviFlag',1);
-end
 
 
 setappdata(handles.figure1,'maxC',0);
@@ -160,12 +178,10 @@ function show_image(hObject,eventdata)
 handles=guidata(get(hObject,'Parent'));
 frameNumber=get(handles.slider1,'Value');
 frameNumber=max(1,round(frameNumber));
+set(handles.currentFrame,'String',num2str(frameNumber));
+
 Fid=getappdata(handles.figure1,'Fid');
 im_handle=getappdata(handles.figure1,'im_handle');
-head_handle=getappdata(handles.figure1,'head_handle');
-tail_handle=getappdata(handles.figure1,'tail_handle');
-if ~isempty(head_handle), delete(head_handle);end
-if ~isempty(tail_handle),delete(tail_handle);end
 
 centerline=getappdata(handles.figure1,'centerline');
 CLoffset=getappdata(handles.figure1,'CLoffset');
@@ -173,24 +189,8 @@ CLnumber=frameNumber+CLoffset;
 if getappdata(handles.figure1,'aviFlag')
     C=read(Fid,frameNumber);
     C=C(:,:,1);
-else
-    
-row=str2double(get(handles.imageRows,'String'));
-col=str2double(get(handles.imageCols,'String'));
-nPix=row*col;
+end
 
-
-status=fseek(Fid,2*frameNumber*nPix,-1);
-if ~status
-  frewind(Fid) 
-  status=fseek(Fid,2*frameNumber*nPix,-1);
-end
-pixelValues=fread(Fid,nPix,'uint16',0,'l');
-C=reshape(pixelValues,row,col);
-end
-if 0
-C=pedistalSubtract(C);
-end
 maxC=getappdata(handles.figure1,'maxC');
 setappdata(handles.figure1,'maxC',max(max(C(:)),maxC));
 if isempty(im_handle)
@@ -198,74 +198,50 @@ if isempty(im_handle)
     setappdata(handles.figure1,'im_handle',h)
 else
     im_handle.CData=C;
-    setappdata(handles.figure1,'im_handle',im_handle)
 end
 
-set(handles.currentFrame,'String',num2str(frameNumber));
-switch get(handles.colorMap,'Value');
-    case 1
-        colormap(handles.axes1,jet(64))
-      %  caxis(handles.axes1,[0,maxC]); 
-
-    case 2
-        colormap(handles.axes1,hot(64))
-        caxis(handles.axes1,[0,maxC]); 
-
-    case 3
-        colormap(handles.axes1,gray(64))
-        caxis(handles.axes1,[0,maxC]); 
-
-    case 4
-        C(1:1:row/2,:)=normalizeRange(pedistalSubtract(C(1:1:row/2,:)))+1;
-        C(round(row/2):end,:)=normalizeRange(pedistalSubtract(C(round(row/2):end,:)));
-        h=imagesc(C,'Parent',handles.axes1);
-      colormap(handles.axes1,[hot(32);circshift(hot(32),[0,1])]);
-      caxis(handles.axes1,[0,2]); 
-    case 5
-        colormap(handles.axes1,parula(64))
-        caxis(handles.axes1,[0,maxC]); 
-        
-    otherwise
-end
 hold(handles.axes1,'on')
 if any(centerline)
-if  get(handles.transpose,'Value')
-    X=centerline(:,2,CLnumber);
-    Y=centerline(:,1,CLnumber);
-else
-    X=centerline(:,1,CLnumber);
-    Y=centerline(:,2,CLnumber);
-end
-if CLnumber<size(centerline,3)
-plot(handles.axes1,X, Y,'r');
-end
-plot(handles.axes1,X([1,end],:), Y([1 end],1),'or');
-
+    if  get(handles.transpose,'Value')
+        X=centerline(:,2,CLnumber);
+        Y=centerline(:,1,CLnumber);
+    else
+        X=centerline(:,1,CLnumber);
+        Y=centerline(:,2,CLnumber);
+    end
+    if CLnumber<size(centerline,3)
+        plot(handles.axes1,X, Y,'r');
+    end
+    plot(handles.axes1,X([1,end],:), Y([1 end],1),'or');
+    
 end
 
 %plot tips
+head_handle=getappdata(handles.figure1,'head_handle');
 
 head_pts=getappdata(handles.figure1,'head_pts');
 head=head_pts(frameNumber,:);
-if any(head)
-    h_head=plot(handles.axes1,head(1),head(2),'ob');
+if ~isempty(head_handle)
+    head_handle.XData=head(1);
+    head_handle.YData=head(2);
 else
-    h_head=[];
+    head_handle=plot(handles.axes1,head(1),head(2),'ob');
 end
 
+tail_handle=getappdata(handles.figure1,'tail_handle');
 tail_pts=getappdata(handles.figure1,'tail_pts');
 tail=tail_pts(frameNumber,:);
-if any(tail)
-    h_tail=plot(handles.axes1,tail(1),tail(2),'og');
+if ~isempty(tail_handle)
+    tail_handle.XData=tail(1);
+    tail_handle.YData=tail(2);
 else
-    h_tail=[];
+    tail_handle=plot(handles.axes1,tail(1),tail(2),'og');
 end
-setappdata(handles.figure1,'head_handle',h_head);
-setappdata(handles.figure1,'tail_handle',h_tail);
+setappdata(handles.figure1,'head_handle',head_handle);
+setappdata(handles.figure1,'tail_handle',tail_handle);
 hold(handles.axes1,'off')
 
 drawnow
-setappdata(handles.figure1,'currentImage',C);
 
 
 % --------------------------------------------------------------------
@@ -350,52 +326,6 @@ show_image(hObject)
 %end
 
 
-
-function imageRows_Callback(hObject, eventdata, handles)
-% hObject    handle to imageRows (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of imageRows as text
-%        str2double(get(hObject,'String')) returns contents of imageRows as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function imageRows_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to imageRows (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function imageCols_Callback(hObject, eventdata, handles)
-% hObject    handle to imageCols (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of imageCols as text
-%        str2double(get(hObject,'String')) returns contents of imageCols as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function imageCols_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to imageCols (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on selection change in colorMap.
 function colorMap_Callback(hObject, eventdata, handles)
 % hObject    handle to colorMap (see GCBO)
@@ -404,7 +334,24 @@ function colorMap_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns colorMap contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from colorMap
-
+maxC=getappdata(handles.figure1,'maxC');
+switch get(handles.colorMap,'Value');
+    case 1
+        colormap(handles.axes1,jet(64))
+        %  caxis(handles.axes1,[0,maxC]);
+    case 2
+        colormap(handles.axes1,hot(64))
+        caxis(handles.axes1,[0,maxC]);
+        
+    case 3
+        colormap(handles.axes1,gray(64))
+        caxis(handles.axes1,[0,maxC]);
+        
+    case 4
+        colormap(handles.axes1,parula(64))
+        caxis(handles.axes1,[0,maxC]);
+    otherwise
+end
 
 % --- Executes during object creation, after setting all properties.
 function colorMap_CreateFcn(hObject, eventdata, handles)
@@ -447,7 +394,7 @@ function snapshot_Callback(hObject, eventdata, handles)
 % hObject    handle to snapshot (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-currentImage=getappdata(handles.figure1,'currentImage');
+currentImage=handles.axes1.Children(1).CData;
 currentFolder=getappdata(0,'mostRecent');
 imageName=get(handles.snapShotName,'String');
 imageName=fullfile(currentFolder,imageName);
@@ -481,26 +428,25 @@ function figure1_KeyPressFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-        if strcmp(eventdata.Key,'rightarrow')||strcmp(eventdata.Key,'d')%strcmp(evnt.Key,'space') || 
-            forward1_Callback(handles.slider1,eventdata,handles);
-            
-        %Backward
-        elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
-            back1_Callback(handles.slider1,eventdata,handles);
-        %Up
-        
-        elseif strcmp(eventdata.Key,'w')
-            get_head_Callback(handles.slider1,eventdata,handles);            
-        elseif strcmp(eventdata.Key,'s')
-            get_tail_Callback(handles.slider1,eventdata,handles);            
-        elseif  strcmp(eventdata.Key,'space')
-            snapshot_Callback(handles.slider1,eventdata,handles);
-             forward1_Callback(handles.slider1,eventdata,handles);
-   
-        end
-        
-        
-        
+if strcmp(eventdata.Key,'rightarrow')||strcmp(eventdata.Key,'d')%strcmp(evnt.Key,'space') ||
+    forward1_Callback(handles.slider1,eventdata,handles);
+    
+    %Backward
+elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
+    back1_Callback(handles.slider1,eventdata,handles);
+    %Up
+    
+elseif strcmp(eventdata.Key,'w')
+    get_head_Callback(handles.get_head,eventdata,handles);
+elseif strcmp(eventdata.Key,'s')
+    get_tail_Callback(handles.get_tail,eventdata,handles);
+elseif  strcmp(eventdata.Key,'space')
+    snapshot_Callback(handles.slider1,eventdata,handles);
+    forward1_Callback(handles.slider1,eventdata,handles);
+    
+end
+
+
 
 
 
@@ -539,9 +485,9 @@ CLfieldNames=fieldnames(centerline);
 CLfieldIdx=cellfun(@(x) ~isempty(strfind(x,'centerline')),CLfieldNames);
 CLoffsetIdx=cellfun(@(x) ~isempty(strfind(x,'off')),CLfieldNames);
 if any(CLoffsetIdx)
-CLoffset=centerline.(CLfieldNames{CLoffsetIdx});
+    CLoffset=centerline.(CLfieldNames{CLoffsetIdx});
 else
-   CLoffset=0; 
+    CLoffset=0;
 end
 centerline=centerline.(CLfieldNames{CLfieldIdx});
 setappdata(handles.figure1,'CLoffset',CLoffset);
@@ -562,14 +508,16 @@ function get_head_Callback(hObject, eventdata, handles)
 % hObject    handle to get_head (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-currentFrame=get(handles.slider1,'Value');
-head_pts=getappdata(handles.figure1,'head_pts');
-[xselect,yselect]=ginput(1);
-head_pts(currentFrame,:)=[xselect,yselect];
-setappdata(handles.figure1,'head_pts',head_pts);
-set(handles.last_click,'String', num2str(currentFrame));
-saveWarning(handles,1);
 
+if get(hObject,'Value')
+    hObject.BackgroundColor=[1 .4 .4];
+else
+    hObject.BackgroundColor=[0.9400 0.9400 0.9400];
+end
+
+if get(handles.get_tail,'Value');
+    get_tail_Callback(handles.get_tail,eventdata,handles);
+end
 
 
 % --- Executes on button press in get_tail.
@@ -577,11 +525,31 @@ function get_tail_Callback(hObject, eventdata, handles)
 % hObject    handle to get_tail (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+if get(hObject,'Value')
+    hObject.BackgroundColor=[1 .4 .4];
+else
+    hObject.BackgroundColor=[0.9400 0.9400 0.9400];
+end
+
+if get(handles.get_head,'Value');
+    get_head_Callback(handles.get_head,eventdata,handles);
+end
+
+function addPoint(location,xselect,yselect,handles)
+
 currentFrame=get(handles.slider1,'Value');
-tail_pts=getappdata(handles.figure1,'tail_pts');
-[xselect,yselect]=ginput(1);
-tail_pts(currentFrame,:)=[xselect,yselect];
-setappdata(handles.figure1,'tail_pts',tail_pts);
+switch location
+    case 'head'
+        head_pts=getappdata(handles.figure1,'head_pts');
+        head_pts(currentFrame,:)=[xselect,yselect];
+        setappdata(handles.figure1,'head_pts',head_pts);
+    case 'tail'
+        tail_pts=getappdata(handles.figure1,'tail_pts');
+        tail_pts(currentFrame,:)=[xselect,yselect];
+        setappdata(handles.figure1,'tail_pts',tail_pts);
+end
 set(handles.last_click,'String', num2str(currentFrame));
 saveWarning(handles,1);
 

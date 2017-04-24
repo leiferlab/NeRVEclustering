@@ -147,8 +147,6 @@ def submitScript(master=None):
     
     commandList = ["pwd","pwd"] # pwd at both ends, give the list something to add to the middle of
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
-    commandList.insert(len(commandList)-1, "export PATH=$PATH:/usr/local/emboss/bin:/sge/bin/lx-amd64:/usr/kerberos/bin")
-
    # matlabDirName = "\\ ".join(matlabDirName);
     print('Writing inputs line to text file')
     userEmail=username+"@princeton.edu"

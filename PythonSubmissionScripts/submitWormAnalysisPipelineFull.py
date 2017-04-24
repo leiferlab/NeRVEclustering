@@ -1,3 +1,7 @@
+#!/usr/bin/python
+
+
+
 #code for submitting jobs onto Princeton Slurm cluster, mainly using Della now.
 #Running this opens a GUI for selecting input files and parameters for analyzing
 #imaging data after centerline and straightening steps. Neuron tracking algorithm
@@ -7,7 +11,6 @@
 
 
 
-#!/usr/bin/python
 import pickle
 import os
 import sys
