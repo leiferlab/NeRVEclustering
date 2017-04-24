@@ -326,17 +326,26 @@ def submitScript(master=None):
     #submit path setup bash commands
     commandList=slurm.path_setup(commandList)
     #make job name from foldername
+    
+    output_string=[]
     if straightFlag:
         commandList=slurm.straighten_input(commandList,fullPath,totalRuns)
+        output_string+='CLstraight folder'
         
     if trackFlag:
         commandList=slurm.track_input(commandList,fullPath,totalRuns,nRef)
-        
+        output_string+='trackMatrix folder'
+        output_string+='pointsStats2.mat'
+
     if checkFlag:
         commandList=slurm.check_input(commandList,fullPath,totalRuns,nCheck,nNeurons)
-        
+        output_string+='trackMatrix folder'
+        output_string+='pointsStatsNew.mat'
+
     if cropFlag:
         commandList=slurm.crop_input(commandList,fullPath,emailFlag)
+        output_string+='heatData.mat'
+        output_string+='botFiducials Folder'
 
     commands = "\n".join(commandList)
     print(commands)
@@ -353,7 +362,13 @@ def submitScript(master=None):
     print(stderr.readlines())
     client.close()
     print('Done submitting job.\n\n')
-
+    
+    print('''
+        Output files will be saved in 
+        '''
+        + fullPath
+        + '\n'
+        + '\n'.join(output_string))
     # close window at the end
     master.destroy()
         

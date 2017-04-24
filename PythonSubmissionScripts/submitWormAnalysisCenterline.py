@@ -171,6 +171,14 @@ def submitScript(master=None):
     print('Done submitting job.\n\n')
     print(matlabDirName)
 
+    print('''
+        Output files will be saved in 
+        '''
+        + fullPath
+        + '''
+        behaviorAnalysis Folder with a centerline.mat inside
+        ''')
+
     # close window at the end
     master.destroy()
         

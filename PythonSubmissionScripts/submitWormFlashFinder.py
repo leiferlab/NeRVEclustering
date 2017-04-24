@@ -176,7 +176,18 @@ def submitScript(master=None):
     print(stderr.readlines())
     client.close()
     print('Done submitting job.\n\n')
-
+    
+    print('''
+        Output files will be saved in 
+        '''
+        + fullPath 
+        + ''' 
+        and the corresponding LowMag folder
+        The output files are:
+                  hiResData.mat
+                  cam0flashTrack.mat
+                  cam1flashTrack.mat
+                  ''')
     # close window at the end
     master.destroy()
         
