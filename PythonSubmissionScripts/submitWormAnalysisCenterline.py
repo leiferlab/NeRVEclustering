@@ -100,6 +100,15 @@ def make_gui():
     master.e['folder_name'].insert(0,defaultFolder)
     master.e['folder_name'].grid(row=5, column=1, sticky=W+E)
     
+    L_email = Label(master, text="Email")
+    L_email.grid(row=6, column=0, sticky=W+E)
+    
+    var1= IntVar()
+    master.e['mail_flag']= Checkbutton(master, text=None, variable=var1)
+    master.e['mail_flag'].var = var1
+    master.e['mail_flag'].grid(row=6, column=1, sticky=W+E)
+    master.e['mail_flag'].var.set(1)
+    
     return master
     
 

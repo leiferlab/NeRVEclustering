@@ -194,7 +194,7 @@ def make_gui():
     master.e['crop_flag'].grid(row=15, column=1, sticky=W+E)
     master.e['crop_flag'].var.set(1)
     
-    L_email = Label(master, text="Crop")
+    L_email = Label(master, text="Email")
     L_email.grid(row=16, column=0, sticky=W+E)
     
     var6= IntVar()

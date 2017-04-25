@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-
+stdin,stdout,stderr = ssh.exec_command('cd /tigress/LEIFER/communalCode/3dbrain/ \n git rev-parse HEAD')
 """
 import os
 import numpy as np
@@ -15,11 +15,15 @@ PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
 
+def get_git_hash(commandList,client):
+    git_command='cd '+ CODE_PATH +'\n git rev-parse HEAD \n cd $HOME'
+    stdin,stdout,stderr = client.exec_command(git_command)
+    current_git_hash=stdout.readlines()
+    commandList.insert(len(commandList)-1, '#### current git: '+current_git_hash[0])
+    return commandList
+    
 def path_setup(commandList):
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
-    os.chdir(CODE_PATH)
-    current_git_hash=subprocess.check_output(['git', 'rev-parse', 'HEAD'])
-    commandList.insert(len(commandList)-1, '#### current git: '+current_git_hash + '####')
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
     commandList.insert(len(commandList)-1, "umask 000")
@@ -43,8 +47,7 @@ def pickle_load():
 def get_email_script():
     user= getpass.getuser()
     user_email=user+'@princeton.edu'
-    mail_script= ' --mail-type=begin' +
-                 ' --mail-user='+user_email
+    mail_script= ' --mail-type=end --mail-user=' + user_email
     return mail_script
 
 def make_output_path(fullPath):
@@ -258,6 +261,11 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     folderName=os.path.basename(fullPath)
     outputFilePath=make_output_path(fullPath)
     
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+        
     code_checkcompiler = CODE_PATH + '/PythonSubmissionScripts/runWormBotCheckCompiler.sh'
     code_check = CODE_PATH+'/PythonSubmissionScripts/runWormBotChecker.sh'
     time_estimate=int(np.round(nCheck*totalRuns*.2/60))
@@ -302,7 +310,12 @@ def crop_input(commandList,fullPath, email_flag = False):
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
     
     input1= "fiducialCropper3('"+ fullPath +"')"
-    
+
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+        
     qsubCommand7 = ("sbatch --mem=16000 " 
         + qString_min 
         + " -D " + folderName
@@ -325,7 +338,12 @@ def flash_input(commandList,fullPath, email_flag = False):
     outputFilePath=make_output_path(fullPath)
     
     code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
-    
+
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
     qsubCommand1 = ("sbatch --mem=2000 " 
