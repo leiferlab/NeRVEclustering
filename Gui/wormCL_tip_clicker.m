@@ -142,9 +142,11 @@ catch
 end
 
 try
-    currentData=uipickfiles('FilterSpec',mostRecent);
+    currentData=uipickfiles('FilterSpec',mostRecent,...
+        'Prompt','Select the cam1.avi file from the LowMag folder');
 catch
-    currentData=uipickfiles();
+    currentData=uipickfiles(...
+         'Prompt','Select the cam1.avi file from the LowMag folder');
 end
 currentData=currentData{1};
 
@@ -648,5 +650,5 @@ function currentFrame_Callback(hObject, eventdata, handles)
 currentFrame=str2double(get(hObject,'String'));
 currentFrame=max(currentFrame,handles.slider1.Min);
 currentFrame=min(currentFrame,handles.slider1.Max);
-handles.slider.Value=round(currentFrame);
+handles.slider1.Value=round(currentFrame);
 
