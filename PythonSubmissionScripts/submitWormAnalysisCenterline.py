@@ -164,14 +164,23 @@ def submitScript(master=None):
     commandList = ["pwd","pwd"] # pwd at both ends, give the list something to add to the middle of
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
     
+    # add somewhere for err and out files to go
+    outputFilePath=make_output_path(fullPath)
+    commandList.insert(len(commandList)-1, "mkdir -p " + outputFilePath)
+    
+    
+    
     print('Writing inputs line to text file')
 
     commandList=slurm.path_setup(commandList)
     commandList=slurm.centerline_input(commandList,fullPath)
-    slurm.write_input(commandList,client,fullPath)
+    
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
+    slurm.write_input(commandList,client,fullPath)
+
     print('stdOutput: submitting job')
+    
     returnedOutput = stdout.readlines()
     print(' '.join(returnedOutput))
     print('stdError: submitting job')

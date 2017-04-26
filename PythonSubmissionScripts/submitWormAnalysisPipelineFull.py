@@ -311,10 +311,7 @@ def submitScript(master=None):
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
         
     # add somewhere for err and out files to go
-    outputFilePath= fullPath + "/outputFiles"
-    currentDate=datetime.date.today()
-    currentDate=str(currentDate)
-    outputFilePath= outputFilePath + currentDate
+    outputFilePath=make_output_path(fullPath)
     commandList.insert(len(commandList)-1, "mkdir " + outputFilePath)
     
     #deal with folders with spaces in names
