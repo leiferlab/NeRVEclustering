@@ -14,6 +14,7 @@ dataFolder=uipickfiles('FilterSpec',mostRecent,...
 dataFolder=dataFolder{1};
 setappdata(0,'mostRecent',fileparts(dataFolder));
 
+display(['Data Folder: ', dataFolder]);
 %% get lowmag folder
 
 if strfind(dataFolder,'LowMag')
@@ -145,7 +146,7 @@ masks.bubble_mask=bubble_mask;
 display('Done! if you need tips, run wormCL_tip_clicker, otherwise, move the file:')
 display([dataFolder filesep 'CLworkspace'])
 display('into the same folder in /tigress/LEIFER/PanNeuronal')
-save([dataFolder filesep 'CLworkspace'],...
+save([low_mag_folder filesep 'CLworkspace'],...
     'clStartI',...
     'masks',...
     'nCells');

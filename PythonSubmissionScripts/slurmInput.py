@@ -86,18 +86,19 @@ def centerline_input(commandList,fullPath,email_flag = False):
     commandList.insert(len(commandList)-1, qsubCommand0)
     
     qsubCommand1 = ("sbatch --mem=12000 " 
-        + qString_min 
+        + qString_min #Time in mins requested. Use at least 180 to get the right queue
         + " -D " + folderName
         + " -J "+ folderName
-        + " -d singleton"
-        + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\""
-        + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
-        + " --array=1-32:1"
-        + " " + code_centerline
-        + " '"  + fullPath +"' ")
+        + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
+        + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\"" #where output messages are stored
+        + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\"" #where error messages are stored
+        + " --array=1-32:1"  #there are 32 threads
+        + " " + code_centerline #this is the shell command to invoke the centerline specific matlab script
+        + " '"  + fullPath +"' ") #this is an input which is handed into the shell command which gets into matlab
         
-    commandList.insert(len(commandList)-1, qsubCommand1)
-    
+    commandList.insert(len(commandList)-1, qsubCommand1) #Add this to the stack of strings
+   
+    #Same as above but now for the "centerline compile" part 
     qsubCommand2 = ("sbatch --mem=12000 " 
         + qString_min 
         + " -D " + folderName
@@ -142,12 +143,12 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
         + " --error=\"" + outputFilePath + "/straight_s-%J.err" + "\""
         + " " + code_runinput
         +" \"" + input0 +"\"")
-    qsubCommand0 = "q0=$("+ qsubCommand0 + ")"
-    commandList.insert(len(commandList)-1, qsubCommand0)
+    qsubCommand0 = "q0=$("+ qsubCommand0 + ")" # wrap the whole comaand in parens and set that equal to q0 at the bash level.
+    commandList.insert(len(commandList)-1, qsubCommand0) #In the command list, have a command that runs the job and coppies the name into $q0 so that later we can submit jobs that depend on it and refer to it by its number stored in q0
     commandList.insert(len(commandList)-1, "echo $q0")
     commandList.insert(len(commandList)-1, '\r')
 
-    dependencyString=" --dependency=afterok:${q0##* }"
+    dependencyString=" --dependency=afterok:${q0##* }" #wait for q0 (previous command) to be done successfully. The next job will use the dependency string.
 
     
     for i in range(0,int(nRuns)):
@@ -184,7 +185,9 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     return commandList
 
 
-
+#This one looks different because it needs to work around limits on thread names imposed by SLURM/ Della.
+# Basically every thread needs a number. SLURM/Della forbits numbers greater than 1000 for thread names. 
+# Because we want to name our threads in a way that it is obvious which volumes they handle, we often have to exceed the 1000 thread name limit. So in that case we run multiple submissions and get additional digits that way.  
 def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     commandList.insert(len(commandList)-1, '####TRACKING####'+NOW)
     totalRuns=int(totalRuns)
@@ -211,7 +214,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     matlabDirName = fullPath + "/" +  PS_NAME1
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
-    stepSize=int(np.ceil(50.0/nRef))
+    stepSize=int(np.ceil(50.0/nRef)) #Calculate how many volumes each parallel thread should handle serially. This is arbitrary right now. Parallelize more is generally good, but there are other limits like to the total number of jobs running which we roughly estimate to be limited to about a few thousand. Also its good to remember that tehre still is overhead with starting jobs, so some element of serialization is probably desirable.
     
     input1= "makePointStatsRef('"+ fullPath +"',"+ str(nRef) + ")"
     qsubCommand0 = ("sbatch --mem=2000 " 
