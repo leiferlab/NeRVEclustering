@@ -111,7 +111,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         
     commandList.insert(len(commandList)-1, qsubCommand2)
     print(qsubCommand2)
-
+    return commandList
 
 
 def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
@@ -168,7 +168,6 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
             + " '"  + fullPath +"' "  + str(stepSize) +" " + offset)
         commandList.insert(len(commandList)-1, qsubCommand1)
     commandList.insert(len(commandList)-1, '\r')
-
         
     qsubCommand2 = ("sbatch --mem=12000 " 
         + qString_min 
