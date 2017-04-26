@@ -168,7 +168,7 @@ def submitScript(master=None):
 
     commandList=slurm.path_setup(commandList)
     commandList=slurm.centerline_input(commandList,fullPath)
-    write_input(commandList,client,fullPath)
+    slurm.write_input(commandList,client,fullPath)
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
     print('stdOutput: submitting job')
