@@ -81,7 +81,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         + " --output=\"" + outputFilePath + "/CLstart.out"+"\""
         + " --error=\"" + outputFilePath + "/CLstart.err" + "\""
         + " " + code_runinput
-        + " \"" + input1 +"\" ")
+        + " \"" + input0 +"\" ")
         
     commandList.insert(len(commandList)-1, qsubCommand0)
     
