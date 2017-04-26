@@ -178,7 +178,6 @@ def submitScript(master=None):
     print(stderr.readlines())
     client.close()
     print('Done submitting job.\n\n')
-    print(matlabDirName)
 
     print('''
         Output files will be saved in 
