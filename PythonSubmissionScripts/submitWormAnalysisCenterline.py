@@ -212,7 +212,7 @@ def enterPass1(event=None, master=None):
 
 def callback1(event=None,master=None):
     "Check for password and continue"
-    print(master.e1.get())
+    print(master.e['user_name'] .get())
     
     
     username = master.e['user_name'].get()
@@ -228,7 +228,7 @@ def callback1(event=None,master=None):
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        username = master.e1.get()
+        username = master.e['user_name'] .get()
         try:
             client.connect('della.princeton.edu', 22, username)
             isNeedsPassword = False
