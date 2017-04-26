@@ -47,7 +47,8 @@ initial_cl=CLworkspace.initial_cl; % initial_cl clStart
 flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
 frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
 cline_para=CLworkspace.cline_para;
-bf2fluor_lookup=CLworkspace.bf2fluor_lookup; %for old setup of avi files
+%bf2fluor_lookup=CLworkspace.bf2fluor_lookup; %for old setup of avi files
+bf2fluor_lookup=[];
 refIdx=cline_para.refIdx;
 cline_para.showFlag=00;
 
