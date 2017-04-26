@@ -165,9 +165,8 @@ def submitScript(master=None):
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
     
     # add somewhere for err and out files to go
-    outputFilePath=slurm.make_output_path(fullPath)
-    commandList.insert(len(commandList)-1, "mkdir -p " + outputFilePath)
-    
+    outputFilePath=make_output_path(fullPath)
+    stdin,stdout,stderr = client.exec_command("mkdir -p " + outputFilePath)
     
     
     print('Writing inputs line to text file')

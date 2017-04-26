@@ -312,8 +312,7 @@ def submitScript(master=None):
         
     # add somewhere for err and out files to go
     outputFilePath=make_output_path(fullPath)
-    commandList.insert(len(commandList)-1, "mkdir " + outputFilePath)
-    
+    stdin,stdout,stderr = client.exec_command("mkdir -p " + outputFilePath)
     #deal with folders with spaces in names
 
    # matlabDirName = "\\ ".join(matlabDirName);
@@ -321,6 +320,7 @@ def submitScript(master=None):
     userEmail=username+"@princeton.edu"
     
     #submit path setup bash commands
+    commandList=slurm.get_git_hash(commandList,client)
     commandList=slurm.path_setup(commandList)
     #make job name from foldername
     

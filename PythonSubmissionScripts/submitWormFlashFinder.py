@@ -158,7 +158,10 @@ def submitScript(master=None):
     
     commandList = ["pwd","pwd"] # pwd at both ends, give the list something to add to the middle of
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
-   # matlabDirName = "\\ ".join(matlabDirName);
+    # add somewhere for err and out files to go
+    outputFilePath=make_output_path(fullPath)
+    stdin,stdout,stderr = client.exec_command("mkdir -p " + outputFilePath)
+
     print('Writing inputs line to text file')
    # commandList=slurm.get_git_hash(commandList,client)
     commandList=slurm.path_setup(commandList)

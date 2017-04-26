@@ -68,7 +68,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
     code_centerline = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineFitting.sh'
     code_centerline_compile = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineCompile.sh'
     
-    input0 = "clusterStraightenStart('"+ fullPath + "')"
+    input0 = "clusterCL_start('"+ fullPath + "')"
     if email_flag:
         email_script=get_email_script()
     else:
