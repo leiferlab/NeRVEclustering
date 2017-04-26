@@ -1,7 +1,8 @@
 #!/usr/bin/python
-"""
-stdin,stdout,stderr = ssh.exec_command('cd /tigress/LEIFER/communalCode/3dbrain/ \n git rev-parse HEAD')
-"""
+# Supplementary code to go with submitWormAnalysis code developed in the Leifer Lab. 
+
+# Jeffrey Nguyen
+
 import os
 import numpy as np
 import datetime
@@ -26,7 +27,7 @@ def path_setup(commandList):
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
-    commandList.insert(len(commandList)-1, "umask 000")
+    commandList.insert(len(commandList)-1, "umask 002")
     return commandList
 
 def pickle_load():
@@ -63,19 +64,32 @@ def centerline_input(commandList,fullPath,email_flag = False):
     
     folderName=os.path.basename(fullPath)
     outputFilePath= make_output_path(fullPath)
+    code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
     code_centerline = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineFitting.sh'
     code_centerline_compile = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineCompile.sh'
     
+    input0 = "clusterStraightenStart('"+ fullPath + "')"
     if email_flag:
         email_script=get_email_script()
     else:
         email_script=""
     
+    qsubCommand0 = ("sbatch" + memString 
+        + qString_min 
+        + " -D " + folderName
+        + " -J "+ folderName
+        + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\""
+        + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
+        + " " + code_runinput
+        + " " + input0)
+        
+    commandList.insert(len(commandList)-1, qsubCommand0)
+    
     qsubCommand1 = ("sbatch" + memString 
         + qString_min 
         + " -D " + folderName
         + " -J "+ folderName
-        + email_script
+        + " -d singleton"
         + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\""
         + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
         + " --array=1-32:1"
@@ -107,7 +121,7 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     folderName=os.path.basename(fullPath)
     outputFilePath= make_output_path(fullPath)
     
-    code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
+    code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
     code_straighten = CODE_PATH + '/PythonSubmissionScripts/runWormStraighten.sh'
     code_pscompiler = CODE_PATH + '/PythonSubmissionScripts/runWormCompilePointStats.sh'
     
