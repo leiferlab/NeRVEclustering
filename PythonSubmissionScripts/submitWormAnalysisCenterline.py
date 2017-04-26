@@ -168,8 +168,8 @@ def submitScript(master=None):
 
     commandList=slurm.path_setup(commandList)
     commandList=slurm.centerline_input(commandList,fullPath)
+    write_input(commandList,client,fullPath)
     commands = "\n".join(commandList)
-    
     stdin, stdout, stderr = client.exec_command(commands)
     print('stdOutput: submitting job')
     returnedOutput = stdout.readlines()
@@ -186,7 +186,6 @@ def submitScript(master=None):
         + '''
         behaviorAnalysis Folder with a centerline.mat inside
         ''')
-
     # close window at the end
     master.destroy()
         

@@ -78,10 +78,10 @@ def centerline_input(commandList,fullPath,email_flag = False):
         + qString_min 
         + " -D " + folderName
         + " -J "+ folderName
-        + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\""
-        + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\""
+        + " --output=\"" + outputFilePath + "/CLstart.out"+"\""
+        + " --error=\"" + outputFilePath + "/CLstart.err" + "\""
         + " " + code_runinput
-        + " " + input0)
+        + " \"" + input1 +"\" ")
         
     commandList.insert(len(commandList)-1, qsubCommand0)
     
