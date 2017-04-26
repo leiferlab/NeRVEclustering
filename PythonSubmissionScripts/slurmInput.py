@@ -74,7 +74,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
     else:
         email_script=""
     
-    qsubCommand0 = ("sbatch" + memString 
+    qsubCommand0 = ("sbatch --mem=12000 " 
         + qString_min 
         + " -D " + folderName
         + " -J "+ folderName
@@ -85,7 +85,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         
     commandList.insert(len(commandList)-1, qsubCommand0)
     
-    qsubCommand1 = ("sbatch" + memString 
+    qsubCommand1 = ("sbatch --mem=12000 " 
         + qString_min 
         + " -D " + folderName
         + " -J "+ folderName
@@ -98,7 +98,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         
     commandList.insert(len(commandList)-1, qsubCommand1)
     
-    qsubCommand2 = ("sbatch" + memString 
+    qsubCommand2 = ("sbatch --mem=12000 " 
         + qString_min 
         + " -D " + folderName
         + " -J "+ folderName
