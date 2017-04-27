@@ -9,6 +9,8 @@ import datetime
 import pickle
 import subprocess
 import getpass
+import socket
+import time
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
 qString_min = "--time=180"
@@ -74,8 +76,9 @@ def centerline_input(commandList,fullPath,email_flag = False):
     else:
         email_script=""
     
-    qsubCommand0 = ("sbatch --mem=12000 " 
+    qsubCommand0 = ("sbatch --mem=64000 " 
         + qString_min 
+        + " -N 1 -n 1 -c 20" #for use of 20 cores for parfor loop
         + " -D " + folderName
         + " -J "+ folderName
         + " --output=\"" + outputFilePath + "/CLstart.out"+"\""
@@ -400,10 +403,15 @@ def write_input(commandList,client,fullPath):
     
 def make_ouputfolder(client,fullPath):
     outputFilePath=make_output_path(fullPath)
-    ftp = client.open_sftp()
-    try:
-        ftp.chdir(outputFilePath) # sub-directory exists
-    except IOError:
-        ftp.mkdir(outputFilePath)
-    ftp.close()
     
+    if socket.gethostname()=='tigressdata.princeton.edu':
+        if not os.path.exists(outputFilePath):
+            os.makedirs(outputFilePath)
+    else:
+        ftp = client.open_sftp()
+        try:
+            ftp.chdir(outputFilePath) # sub-directory exists
+        except IOError:
+            ftp.mkdir(outputFilePath)
+            time.sleep(1)
+            ftp.close()

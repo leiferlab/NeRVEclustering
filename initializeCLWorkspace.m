@@ -15,30 +15,57 @@ dataFolder=dataFolder{1};
 setappdata(0,'mostRecent',fileparts(dataFolder));
 
 display(['Data Folder: ', dataFolder]);
-%% get lowmag folder
 
-if strfind(dataFolder,'LowMag')
-    low_mag_folder=dataFolder;
-else
-    low_mag_folder=dir([dataFolder filesep 'LowMag*']);
-    if isempty(low_mag_folder)
-        
-        error(...
-            'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
+
+aviFiles=dir([dataFolder filesep '*.avi']);
+aviFiles={aviFiles.name}';
+HUDFiles=aviFiles(cellfun(@(x) ~isempty(strfind(x,'HUDS')),aviFiles));
+oldFlag=length(HUDFiles);
+
+if ~oldFlag
+    
+    %% get lowmag folder
+    if strfind(dataFolder,'LowMag')
+        low_mag_folder=dataFolder;
+    else
+        low_mag_folder=dir([dataFolder filesep 'LowMag*']);
+        if isempty(low_mag_folder)
+            
+            error(...
+                'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
+        end
+        low_mag_folder=[dataFolder filesep low_mag_folder(1).name];
     end
-    low_mag_folder=[dataFolder filesep low_mag_folder(1).name];
-end
-%% set up low magvideos, we've changed the way we save data, the older version
-%setup paths to movies
-fluormovie=[low_mag_folder filesep 'cam0.avi'];
-behaviormovie=[low_mag_folder filesep 'cam1.avi'];
+    %setup paths to movies
+    fluormovie=[low_mag_folder filesep 'cam0.avi'];
+    behaviormovie=[low_mag_folder filesep 'cam1.avi'];
+    %get movie length
+    bf2fluor_lookup=[];
+else
+    aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
+    aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
+    behaviormovie=[dataFolder filesep name filesep aviFiles{~aviFluorIdx}];
+    fluormovie=[dataFolder filesep name filesep aviFiles{aviFluorIdx}];
+     %% set up timing alignments and lookups
 
+    %get timing sync for old data movies, folders were hard saved at
+    %1200x600
+    [bfAll,fluorAll,~]=tripleFlashAlign(dataFolder);
+    fluorIdxList=1:length(fluorAll.frameTime);
+    bf2fluor_lookup=interp1(fluorAll.frameTime,fluorIdxList,bfAll.frameTime,'linear');
+    
+end
+
+
+
+%% set up low magvideos, we've changed the way we save data, the older version
 
 %initialize video objects
 behavior_vidobj = VideoReader(behaviormovie);
 fluor_vidobj= VideoReader(fluormovie);
 %get move length
 nframes=round(behavior_vidobj.Duration*behavior_vidobj.FrameRate);
+nframes_fluor=round(fluor_vidobj.Duration*fluor_vidobj.FrameRate);
 bf_imsize=[behavior_vidobj.Height,behavior_vidobj.Width];
 
 %% initialize centerline points
@@ -115,10 +142,10 @@ end
 %% calculate  background for fluor
 progressbar(0);
 fluor_stack=0;
-skip=max(500,round(nframes/1000)); %don't need to do every frame, only do 1 every skip.
+skip=max(500,round(nframes_fluor/1000)); %don't need to do every frame, only do 1 every skip.
 counter=0;
-for itime=1:skip:nframes;
-    progressbar(itime/nframes);
+for itime=1:skip:nframes_fluor;
+    progressbar(itime/nframes_fluor);
     fluor_frame = read(fluor_vidobj,itime);
     fluor_stack=fluor_stack+double(fluor_frame(:,:,1));
     counter=counter+1;

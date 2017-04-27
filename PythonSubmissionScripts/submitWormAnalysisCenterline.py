@@ -165,17 +165,15 @@ def submitScript(master=None):
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
     
     # add somewhere for err and out files to go
-    outputFilePath=slurm.make_output_path(fullPath)
-    stdin,stdout,stderr = client.exec_command("mkdir -p " + outputFilePath)
-    
-    
+    outputFilePath=slurm.make_output_path(fullPath)    
     print('Writing inputs line to text file')
-
+    commandList=slurm.get_git_hash(commandList,client)
     commandList=slurm.path_setup(commandList)
     commandList=slurm.centerline_input(commandList,fullPath)
     
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
+    
     slurm.write_input(commandList,client,fullPath)
 
     print('stdOutput: submitting job')
@@ -282,9 +280,10 @@ def SelectFolder(master=None):
 if __name__ == '__main__':
 # bind enter key and button
     print('''
-        This is the submission script for running time alignment and detcting flashes in videos. 
-        The lowMag folders must be inside the corresponding BrainScanner folder on della. 
-        The videos must each contain at least 2 flashes.
+        This is the submission script for running centerline fitting.
+        Before running this code, you must have a CLworkspace.mat file 
+        in the BrainScanner folder. That file is created by the 
+        initializeCLWorkspace.m, with initialized centerlines. 
         
         
         For a quick test, run this code as follows:

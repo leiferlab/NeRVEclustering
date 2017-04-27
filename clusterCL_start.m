@@ -23,8 +23,6 @@ cline_para.refL=6;
 cline_para.memForce=.05;
 
 
-nCells=16;
-
 smoothkernal=gausswin(1000, 4);
 smoothkernal=smoothkernal/sum(smoothkernal);
 
@@ -41,7 +39,14 @@ else
     low_mag_folder=[dataFolder filesep low_mag_folder(1).name];
 end
 %% load CL workspace with masks and centerlines
-cl_workspace=load([dataFolder filesep 'CLworkspace']);
+
+workspace_file=[dataFolder filesep 'CLworkspace'];
+if ~exist(workspace_file,'file')
+    workspace_file=[low_mag_folder filesep 'CLworkspace'];
+end
+
+
+cl_workspace=load(workspace_file);
 masks=cl_workspace.masks;
 clStartI=cl_workspace.clStartI;
 nCells=cl_workspace.nCells;
