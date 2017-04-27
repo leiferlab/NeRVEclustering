@@ -99,7 +99,7 @@ def centerline_start_input(commandList,fullPath,email_flag=False):
         + " \"" + input0 +"\" ")
         
     commandList.insert(len(commandList)-1, qsubCommand0)
-    
+    return commandList
         
 # input code for centerline submission
 def centerline_input(commandList,fullPath,email_flag = False):
