@@ -1,6 +1,19 @@
 #!/usr/bin/python
-# Supplementary code to go with submitWormAnalysis code developed in the Leifer Lab. 
-
+# Supplementary code to go with submitWormAnalysis code developed in the Leifer Lab. For the most part, the code is generating sbatch jobs with flags and inputs. For instructions for the flags, see
+# https://slurm.schedmd.com/sbatch.html
+# but the general strcutre will go as
+# sbatch 
+#    --mem=<memory request> 
+#    --time = < time request> 
+#    -d < directory to start>
+#    -J < name of job>
+#    < dependency>
+#    --output =< output file path>
+#    --error = < error file path>
+#    < email string>
+#    --array = 1-<end>:stepsize
+#    < shell script that runs job>
+#    < inputs for the shell script>
 # Jeffrey Nguyen
 
 import os
@@ -19,7 +32,7 @@ PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
 
 
-# submit command over ssh to get the current git has of CODE_PATH, add it to the commandList
+# submit command over ssh to get the current git has of CODE_PATH, add it to the commandList so that it will appear in the input.txt file
 def get_git_hash(commandList,client):
     git_command='cd '+ CODE_PATH +'\n git rev-parse HEAD \n cd $HOME'
     stdin,stdout,stderr = client.exec_command(git_command)
@@ -66,43 +79,54 @@ def make_output_path(fullPath):
     outputFilePath= outputFilePath + currentDate
     return outputFilePath
     
-
-def centerline_input(commandList,fullPath,email_flag = False):
-    commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
-    
+def centerline_start_input(commandList,fullPath,email_flag=False):
+    commandList.insert(len(commandList)-1, '####CENTERLINES Start####'+NOW)
     folderName=os.path.basename(fullPath)
     outputFilePath= make_output_path(fullPath)
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
-    code_centerline = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineFitting.sh'
-    code_centerline_compile = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineCompile.sh'
     
     input0 = "clusterCL_start('"+ fullPath + "')"
-    if email_flag:
-        email_script=get_email_script('end,fail')
-    else:
-        email_script=get_email_script('fail')
-    
+    #make submission command
     qsubCommand0 = ("sbatch --mem=12000 " 
         + MIN_TIME_STR 
-        + " -N 1 -n 1 -c 10" #for use of 20 cores for parfor loop
+        + " -N 1 -n 1 -c 10" #for use of 10 cores for parfor loop
         + " -D " + folderName
         + " -J "+ folderName
-        + get_email_script('fail')
-        + " --output=\"" + outputFilePath + "/CLstart.out"+"\""
-        + " --error=\"" + outputFilePath + "/CLstart.err" + "\""
+        + " " + get_email_script('fail')
+        + " --output=\"" + outputFilePath + "/CLstart-%J.out"+"\""
+        + " --error=\"" + outputFilePath + "/CLstart-%J.err" + "\""
         + " " + code_runinput
         + " \"" + input0 +"\" ")
         
     commandList.insert(len(commandList)-1, qsubCommand0)
     
+        
+# input code for centerline submission
+def centerline_input(commandList,fullPath,email_flag = False):
+    #make header for input file
+    commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
+    
+    folderName=os.path.basename(fullPath)
+    outputFilePath= make_output_path(fullPath)
+    
+    #path to shell script job files
+    code_centerline = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineFitting.sh'
+    code_centerline_compile = CODE_PATH + '/PythonSubmissionScripts/runWormCenterlineCompile.sh'
+    
+    if email_flag:
+        email_script=get_email_script('end,fail')
+    else:
+        email_script=get_email_script('fail')
+        
+    
     qsubCommand1 = ("sbatch --mem=12000 " 
-        + MIN_TIME_STR #Time in mins requested. Use at least 180 to get the right queue
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
         + " --output=\"" + outputFilePath + "/CLjob-%J.out"+"\"" #where output messages are stored
         + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\"" #where error messages are stored
-        + " --array=1-32:1"  #there are 32 threads
+        + " --array=1-32:1"  #there are 32 threads for centerline fitting
         + " " + code_centerline #this is the shell command to invoke the centerline specific matlab script
         + " '"  + fullPath +"' ") #this is an input which is handed into the shell command which gets into matlab
         

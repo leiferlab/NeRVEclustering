@@ -99,15 +99,25 @@ def make_gui():
     master.e['folder_name'] = Entry(master)
     master.e['folder_name'].insert(0,defaultFolder)
     master.e['folder_name'].grid(row=5, column=1, sticky=W+E)
-    
-    L_email = Label(master, text="Email")
+
+    L_email = Label(master, text="Start Workspace")
     L_email.grid(row=6, column=0, sticky=W+E)
     
     var1= IntVar()
-    master.e['mail_flag']= Checkbutton(master, text=None, variable=var1)
-    master.e['mail_flag'].var = var1
-    master.e['mail_flag'].grid(row=6, column=1, sticky=W+E)
-    master.e['mail_flag'].var.set(1)
+    master.e['start_flag']= Checkbutton(master, text=None, variable=var1)
+    master.e['start_flag'].var = var1
+    master.e['start_flag'].grid(row=6, column=1, sticky=W+E)
+    master.e['start_flag'].var.set(1)
+    
+
+    L_email = Label(master, text="Email")
+    L_email.grid(row=7, column=0, sticky=W+E)
+    
+    var2= IntVar()
+    master.e['email_flag']= Checkbutton(master, text=None, variable=var1)
+    master.e['email_flag'].var = var2
+    master.e['email_flag'].grid(row=7, column=1, sticky=W+E)
+    master.e['email_flag'].var.set(1)
     
     return master
     
@@ -126,6 +136,10 @@ def submitScript(master=None):
     print("dateFolder is " + date)
     print("beginOfPath is "+ beginOfPath)
     print(folderName)
+    
+    startFlag        = master.e['start_flag'].var.get()
+    emailFlag       = master.e['email_flag'].var.get()
+        
     # which folder to process, must add paths linux style
     fullPath = beginOfPath + "/" + date
     fullPath = fullPath + "/" + folderName
@@ -169,7 +183,9 @@ def submitScript(master=None):
     print('Writing inputs line to text file')
     commandList=slurm.get_git_hash(commandList,client)
     commandList=slurm.path_setup(commandList)
-    commandList=slurm.centerline_input(commandList,fullPath)
+    if startFlag:
+        commandList=slurm.centerline_start_input(commandList,fullPath)
+    commandList=slurm.centerline_input(commandList,fullPath,emailFlag)
     
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
