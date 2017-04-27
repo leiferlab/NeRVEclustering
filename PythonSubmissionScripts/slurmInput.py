@@ -12,12 +12,14 @@ import getpass
 import socket
 import time
 
-CODE_PATH='/tigress/LEIFER/communalCode/3dbrain'
-qString_min = "--time=180"
+CODE_PATH='/tigress/LEIFER/communalCode/3dbrain' #path to the code repo
+MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
-NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
+NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
 
+
+# submit command over ssh to get the current git has of CODE_PATH, add it to the commandList
 def get_git_hash(commandList,client):
     git_command='cd '+ CODE_PATH +'\n git rev-parse HEAD \n cd $HOME'
     stdin,stdout,stderr = client.exec_command(git_command)
@@ -25,13 +27,15 @@ def get_git_hash(commandList,client):
     commandList.insert(len(commandList)-1, '#### current git: '+current_git_hash[0])
     return commandList
     
+# set up path so .sh files know where to find the matlab codes
 def path_setup(commandList):
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
     code_home,_=os.path.split(CODE_PATH)
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
-    commandList.insert(len(commandList)-1, "umask 002")
+    commandList.insert(len(commandList)-1, "umask 002") #make permissions open to group and user
     return commandList
 
+#load the pickle files for default values to put into fields. The pickle files store your previous entries in the pickles2.p file in ~. 
 def pickle_load():
     # get ready for pickled variables 
     pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
@@ -43,16 +47,18 @@ def pickle_load():
             storedUsername = { "username": "USER" }
             pickle.dump( storedUsername, open(pickle_file, "wb" ) )
     
-    # check to see if there is a username in the pickle file
+    # return the dictionary with all previous values stored. 
     prevUser = pickle.load( open( pickle_file, "rb" ) )
     return prevUser
     
-def get_email_script():
+# construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
+def get_email_script(mail_type='end,fail'):
     user= getpass.getuser()
     user_email=user+'@princeton.edu'
-    mail_script= ' --mail-type=end --mail-user=' + user_email
+    mail_script= ' --mail-type=' + mail_type +' --mail-user=' + user_email
     return mail_script
 
+# make a path name for the output file where the .out and .err files will be saved for all the jobs. One is created each day and all files from that day are saved in the folder. 
 def make_output_path(fullPath):
     outputFilePath= fullPath + "/outputFiles"
     currentDate=datetime.date.today()
@@ -72,15 +78,16 @@ def centerline_input(commandList,fullPath,email_flag = False):
     
     input0 = "clusterCL_start('"+ fullPath + "')"
     if email_flag:
-        email_script=get_email_script()
+        email_script=get_email_script('end,fail')
     else:
-        email_script=""
+        email_script=get_email_script('fail')
     
-    qsubCommand0 = ("sbatch --mem=64000 " 
-        + qString_min 
-        + " -N 1 -n 1 -c 20" #for use of 20 cores for parfor loop
+    qsubCommand0 = ("sbatch --mem=12000 " 
+        + MIN_TIME_STR 
+        + " -N 1 -n 1 -c 10" #for use of 20 cores for parfor loop
         + " -D " + folderName
         + " -J "+ folderName
+        + get_email_script('fail')
         + " --output=\"" + outputFilePath + "/CLstart.out"+"\""
         + " --error=\"" + outputFilePath + "/CLstart.err" + "\""
         + " " + code_runinput
@@ -89,7 +96,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
     commandList.insert(len(commandList)-1, qsubCommand0)
     
     qsubCommand1 = ("sbatch --mem=12000 " 
-        + qString_min #Time in mins requested. Use at least 180 to get the right queue
+        + MIN_TIME_STR #Time in mins requested. Use at least 180 to get the right queue
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
@@ -103,7 +110,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
    
     #Same as above but now for the "centerline compile" part 
     qsubCommand2 = ("sbatch --mem=12000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
         + email_script
@@ -132,14 +139,14 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     if email_flag:
         email_script=get_email_script()
     else:
-        email_script=""
+        email_script=get_email_script('fail')
     
     nRuns=np.ceil(totalRuns/1000)
     stepSize=totalRuns//300
     
     input0 = "clusterStraightenStart('"+ fullPath + "')"
     qsubCommand0 = ("sbatch --mem=12000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
         + " --output=\"" + outputFilePath + "/straight_s-%J.out" + "\""
@@ -162,7 +169,7 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
             currentLimit="1000"
 
         qsubCommand1 = ("sbatch --mem=12000 " 
-            + qString_min + " -D " + folderName
+            + MIN_TIME_STR + " -D " + folderName
             + " -J "+ folderName 
             + dependencyString
             + " --output=\"" + outputFilePath + "/straight-%J.out" 
@@ -174,7 +181,7 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     commandList.insert(len(commandList)-1, '\r')
         
     qsubCommand2 = ("sbatch --mem=12000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -205,7 +212,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     if email_flag:
         email_script=get_email_script()
     else:
-        email_script=""
+        email_script=get_email_script('fail')
     
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
     code_track = CODE_PATH + '/PythonSubmissionScripts/runWormCellTracking.sh'
@@ -221,7 +228,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     
     input1= "makePointStatsRef('"+ fullPath +"',"+ str(nRef) + ")"
     qsubCommand0 = ("sbatch --mem=2000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
         + " --output=\"" + outputFilePath + "/track_s-%J.out" + "\""
@@ -281,7 +288,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     outputFilePath=make_output_path(fullPath)
     
     if email_flag:
-        email_script=get_email_script()
+        email_script=get_email_script('end,fail')
     else:
         email_script=""
         
@@ -306,7 +313,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     commandList.insert(len(commandList)-1, qsubCommand5)
         
     qsubCommand6 = ("sbatch --mem=100000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -331,12 +338,12 @@ def crop_input(commandList,fullPath, email_flag = False):
     input1= "fiducialCropper3('"+ fullPath +"')"
 
     if email_flag:
-        email_script=get_email_script()
+        email_script=get_email_script('end,fail')
     else:
         email_script=""
         
     qsubCommand7 = ("sbatch --mem=16000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -366,7 +373,7 @@ def flash_input(commandList,fullPath, email_flag = False):
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
     qsubCommand1 = ("sbatch --mem=2000 " 
-        + qString_min 
+        + MIN_TIME_STR 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
@@ -377,7 +384,7 @@ def flash_input(commandList,fullPath, email_flag = False):
     print(qsubCommand1)
     
     qsubCommand2 = ("sbatch --mem=2000 "  
-        + qString_min 
+        + MIN_TIME_STR 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
@@ -388,19 +395,28 @@ def flash_input(commandList,fullPath, email_flag = False):
     print(qsubCommand2)
     return commandList
     
-    
+
+#Write all of the inputs that were submitted into della into a text file and place it in the output folder. This file can be copied directly into the terminal of della to re run the job. 
 def write_input(commandList,client,fullPath):
     outputFilePath=make_output_path(fullPath)
     fileName=outputFilePath+'/input.txt'
+#open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
+    if socket.gethostname()=='tigressdata.princeton.edu':
+        with open(fileName) as f:
+            for command in commandList:
+                f.write(command)
+                f.write('\r\n')
+    else:
+        ftp = client.open_sftp()
+        file=ftp.file(fileName, "a", -1)
+        for command in commandList:
+            file.write(command)
+            file.write('\r\n')
+        file.flush()
+        ftp.close()
     
-    ftp = client.open_sftp()
-    file=ftp.file(fileName, "a", -1)
-    for command in commandList:
-        file.write(command)
-        file.write('\r\n')
-    file.flush()
-    ftp.close()
-    
+
+#make the outputfolder where things are going to live, normally this folder is created automatically by the jobs but we need to make it ourselves because thats where we chose to put the input file from write_input. 
 def make_ouputfolder(client,fullPath):
     outputFilePath=make_output_path(fullPath)
     

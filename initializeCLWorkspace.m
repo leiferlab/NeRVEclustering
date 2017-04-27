@@ -4,7 +4,7 @@ function initializeCLWorkspace
 % running for or parfor loops over every frame of the video, and some cells
 % require user inpurts to initialize centerlines or crop out image regions.
 % Prior to running this script, you may run wormCL_tip_clicker.m for a GUI
-% that allows the user to click centerline tips. 
+% that allows the user to click centerline tips.
 
 
 %% Select datafolder for analysis
@@ -46,8 +46,8 @@ else
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
     behaviormovie=[dataFolder filesep name filesep aviFiles{~aviFluorIdx}];
     fluormovie=[dataFolder filesep name filesep aviFiles{aviFluorIdx}];
-     %% set up timing alignments and lookups
-
+    %% set up timing alignments and lookups
+    
     %get timing sync for old data movies, folders were hard saved at
     %1200x600
     [bfAll,fluorAll,~]=tripleFlashAlign(dataFolder);
@@ -96,7 +96,7 @@ for ichunk=1:nCells+1
     if ichunk<=nCells
         bfCell_i{ichunk}=lowframe:hiframe;
     end
-   sample_images(:,:,ichunk)=BFFrameRaw; 
+    sample_images(:,:,ichunk)=BFFrameRaw;
 end
 close all
 mean_sample=sum(sample_images,3);
@@ -106,39 +106,39 @@ mean_sample=sum(sample_images,3);
 close all
 button = questdlg('Would you like to preview the centerlines?');
 if strcmp(button,'Yes')
-for i=1:nCells+1
-    lowframe=min((i-1)*nSteps+1,nframes);
-    BFFrameRaw = double(read(behavior_vidobj,lowframe));
-  %  BFFrame(BFFrame<0)=0;
-    imagesc(BFFrameRaw)
-    hold on
-    plot(clStartI{i}(:,1),clStartI{i}(:,2),'r');
-    pause(.3)
-    hold off
-end
+    for i=1:nCells+1
+        lowframe=min((i-1)*nSteps+1,nframes);
+        BFFrameRaw = double(read(behavior_vidobj,lowframe));
+        %  BFFrame(BFFrame<0)=0;
+        imagesc(BFFrameRaw)
+        hold on
+        plot(clStartI{i}(:,1),clStartI{i}(:,2),'r');
+        pause(.3)
+        hold off
+    end
 end
 
 
-%% find which pixels of the subset vary the most, excluding ones that may 
+%% find which pixels of the subset vary the most, excluding ones that may
 % bubble related
 button = questdlg('Is there an obvious bubble in the video?');
-bubble_mask=zeros(bf_imsize);
+bubble_mask=false(bf_imsize);
 while strcmp(button,'Yes')
-display('Crop out where the bubble explores')
-imagesc(mean_sample.*~bubble_mask)
-bubble_mask=bubble_mask+roipoly();
-button = questdlg('Is there another bubble?');
+    display('Crop out where the bubble explores')
+    imagesc(mean_sample.*~bubble_mask)
+    bubble_mask=and(bubble_mask,roipoly());
+    button = questdlg('Is there another bubble?');
 end
 
 %% Remove worm for background calculation if it doesnt move much
 button = questdlg('Is the worm moving??');
-worm_mask=zeros(bf_imsize);
 if strcmp(button,'No')
-display('Crop out the worm!')
-imagesc(mean_sample.*~worm_mask)
-worm_mask=roipoly();
+    display('Crop out the worm!')
+    imagesc(mean_sample.*~worm_mask)
+    worm_mask=roipoly();
+else
+    worm_mask=false(bf_imsize);
 end
-
 %% calculate  background for fluor
 progressbar(0);
 fluor_stack=0;

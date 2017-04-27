@@ -518,8 +518,8 @@ else
 end
 
 if get(handles.get_tail,'Value');
-    get_tail_Callback(handles.get_tail,eventdata,handles);
-end
+    handles.get_tail.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.get_tail.Value=0;end
 
 
 % --- Executes on button press in get_tail.
@@ -536,7 +536,8 @@ else
 end
 
 if get(handles.get_head,'Value');
-    get_head_Callback(handles.get_head,eventdata,handles);
+    handles.get_head.BackgroundColor=[0.9400 0.9400 0.9400];
+    handles.get_head.Value=0;
 end
 
 function addPoint(location,xselect,yselect,handles)

@@ -85,12 +85,10 @@ mask_points=find(~masks.bubble_mask);
 refpoints=sub2ind(bf_imsize,refpoints_x(:),refpoints_y(:));
 refpoints=refpoints(ismember(refpoints,mask_points));
 refintensity=nan(length(refpoints),nframes);
-parfor_progress(nframes);
 parfor itime=1:nframes;
     behavior_vidobj_par = VideoReader(behaviormovie);
     bf_frame =read(behavior_vidobj_par,itime);
     refintensity(:,itime)=bf_frame(refpoints);
-    parfor_progress;
 end
 
 %% do PCA on reference point intensities to classify background frames
@@ -121,7 +119,6 @@ frame_bg_list=frame_bg_list(~isnan(frame_bg_list));
 
 
 mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_list));
-parfor_progress(nframes);
 
 %parfor loop over different background levels and calculate the mean image.
 %
@@ -135,7 +132,6 @@ parfor i_bg=1:length(frame_bg_list);
         currentTime=time_list(i_time);
         bf_frame = read(behavior_vidobj_par,currentTime);
         fluor=fluor+double(bf_frame(:,:,1));
-        parfor_progress;
     end
     %calculate average.
     mean_bf_all(:,:,i_bg)=(fluor/length(time_list));
@@ -144,7 +140,6 @@ end
 % remove worm if worm is present
 
 for iZ=1:size(mean_bf_all,3);
-    
     temp=mean_bf_all(:,:,iZ);
     temp(masks.worm_mask)=nan;
     temp=inpaint_nans(temp);
