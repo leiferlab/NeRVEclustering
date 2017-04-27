@@ -402,7 +402,7 @@ def write_input(commandList,client,fullPath):
     fileName=outputFilePath+'/input.txt'
 #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
     if socket.gethostname()=='tigressdata.princeton.edu':
-        with open(fileName) as f:
+        with open(fileName,'w') as f:
             for command in commandList:
                 f.write(command)
                 f.write('\r\n')
