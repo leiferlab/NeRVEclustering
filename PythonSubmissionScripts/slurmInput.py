@@ -59,15 +59,18 @@ def get_git_hash(commandList,client):
     
 # set up path so .sh files know where to find the matlab codes
 def path_setup(commandList):
+    # add a header
     commandList.insert(len(commandList)-1, '####PATH SETUP####'+NOW)
     code_home,_=os.path.split(CODE_PATH)
+    # export CODE_HOME, needed for the shell scripts to add the correct path for matlab
     commandList.insert(len(commandList)-1, "export CODE_HOME="+code_home)
-    commandList.insert(len(commandList)-1, "umask 002") #make permissions open to group and user
+    commandList.insert(len(commandList)-1, "umask 002") #make permissions open to group and user for all future files
     return commandList
-
     
+    
+# input code for initializing the centerline worksapce
 def centerline_start_input(commandList,fullPath,email_flag=False):
-    commandList.insert(len(commandList)-1, '####CENTERLINES Start####'+NOW)
+    commandList.insert(len(commandList)-1, '####CENTERLINES START####'+NOW)
     folderName=os.path.basename(fullPath)
     outputFilePath= make_output_path(fullPath)
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'

@@ -37,7 +37,7 @@ def make_gui():
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
 
     if  socket.gethostname()=='tigressdata.princeton.edu':
-        master.addGuiButton("Select Folder",b_command=lambda:SelectFolder(master=master))
+        master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     return master
     
 
