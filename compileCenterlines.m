@@ -56,6 +56,12 @@ CL_I_2(2,:)=cellfun(@(x) flipdim(x,3),CL_I_2(2,:),'uniform',0);
 %fill in missing jobs with complete job for that cell (replace forward with
 %back and vice versa as needed)
 isMissing=cellfun(@(x) isempty(x), CL_I_2);
+cell_nframes=cellfun(@(x)  size(x,2),CL_I_2);
+isMissing= or(isMissing, bsxfun(@ne,cell_nframes,max(cell_nframes,[],2)));
+%also replace data that is short for some reason,, will find out exactlyl
+%why later but probably means something went wrong
+
+
 replace=circshift(isMissing,[1,0]);
 CLcell_2(isMissing)=CLcell_2(replace);
 CL_I_2(isMissing)=CL_I_2(replace);
