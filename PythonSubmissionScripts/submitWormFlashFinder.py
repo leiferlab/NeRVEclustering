@@ -136,7 +136,7 @@ if __name__ == '__main__':
         User Name: <your username>
         Parent Path:/tigress/LEIFER/PanNeuronal
         Date of Data: testing_sets
-        Data Folder Name: BrainScanner20161031_111303
+        Data Folder Name: Brain_working_dataset
         
         ''')
     master=make_gui()

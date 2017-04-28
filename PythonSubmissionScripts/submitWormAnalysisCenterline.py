@@ -134,15 +134,25 @@ if __name__ == '__main__':
     print('''
         This is the submission script for running centerline fitting.
         Before running this code, you must have a CLworkspace.mat file 
-        in the BrainScanner folder. That file is created by the 
-        initializeCLWorkspace.m, with initialized centerlines. 
+        in the LowMag folder. 
         
+        Requirements:
+                CLworkspace.mat: created by initilaizeCLWorkspace
+                    must be located in the LowMag folder
+                tip_coordinates.mat (optional): created by wormCL_tip_clicker.
+                    Will help centerlines, also located in LowMag folder
+                    
+        The code has 2 sections. 
+                CL_start: uses user provide results to calculate backgrounds
+                Centerline: fits centerlines using the backgroudns and initial
+                            Centerlines provided.
         
         For a quick test, run this code as follows:
         User Name: <your username>
         Parent Path:/tigress/LEIFER/PanNeuronal
         Date of Data: testing_sets
-        Data Folder Name: BrainScanner20161031_111303
+        Data Folder Name: Brain_working_dataset
+        <Check box>
         
         ''')
     master=make_gui()

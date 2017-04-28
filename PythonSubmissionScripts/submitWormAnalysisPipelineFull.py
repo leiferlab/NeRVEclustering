@@ -199,12 +199,18 @@ if __name__ == '__main__':
         extracts signals and produces heatmaps. This can be run after the wormAnalysisPreview
         gui gives all green lights. Check the readme for instructions for della access. 
         
-        
+        Requirements:
+                centerline.mat: created by submitWormAnalysisCenterline.py
+                    must be located in the behavior folder
+                alignments.mat: from alignment_gui, located in Brainscanner folder
+                all timing results from submitWormFlashFinder.py
+                
+                
         For a quick test, run this code as follows:
         User Name: <your username>
         Parent Path:/tigress/LEIFER/PanNeuronal
         Date of Data: testing_sets
-        Data Folder Name: BrainScanner20161031_111303
+        Data Folder Name: Brain_working_dataset
         Number of Frames : All
         Number of References: 10
         Number of Neurons: 150

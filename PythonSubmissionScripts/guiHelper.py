@@ -114,11 +114,11 @@ def selectFolder(master=None):
         #parse the folder path and populate the filed on the gui. 
         path,folderName=os.path.split(folder)
         path,date=os.path.split(path)
-        master.e['parent_path'].delete(0,END)
+        master.e['parent_path'].delete(0,tk.END)
         master.e['parent_path'].insert(0,path)
-        master.e['date'].delete(0,END)
+        master.e['date'].delete(0,tk.END)
         master.e['date'].insert(0,date)
-        master.e['folder_name'].delete(0,END)
+        master.e['folder_name'].delete(0,tk.END)
         master.e['folder_name'].insert(0,folderName)
         print folder
         
