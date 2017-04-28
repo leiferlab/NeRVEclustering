@@ -134,7 +134,7 @@ end
 button = questdlg('Is the worm moving??');
 if strcmp(button,'No')
     display('Crop out the worm!')
-    imagesc(mean_sample.*~worm_mask)
+    imagesc(mean_sample)
     worm_mask=roipoly();
 else
     worm_mask=false(bf_imsize);
@@ -171,9 +171,9 @@ masks.bubble_mask=bubble_mask;
 %%
 
 display('Done! if you need tips, run wormCL_tip_clicker, otherwise, move the file:')
-display([dataFolder filesep 'CLworkspace'])
+display([low_mag_folder filesep 'CLworkspace'])
 display('into the same folder in /tigress/LEIFER/PanNeuronal')
-save([low_mag_folder filesep 'CLworkspace'],...
+save([dataFolow_mag_folderlder filesep 'CLworkspace'],...
     'clStartI',...
     'masks',...
     'nCells');

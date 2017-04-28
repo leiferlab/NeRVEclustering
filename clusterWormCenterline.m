@@ -39,6 +39,9 @@ display(aviFolder);
 
 %% load initial variables from CLworkspace
 workSpaceFile=[aviFolder filesep 'CLworkspace.mat'];
+
+
+
 CLworkspace=load(workSpaceFile);
 bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
 mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
