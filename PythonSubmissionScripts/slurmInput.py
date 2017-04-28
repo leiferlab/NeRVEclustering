@@ -5,15 +5,17 @@
 # sbatch 
 #    --mem=<memory request> 
 #    --time = < time request> 
-#    -d < directory to start>
+#    -D < directory to start>
 #    -J < name of job>
-#    < dependency>
+#    -d < dependency>
 #    --output =< output file path>
 #    --error = < error file path>
 #    < email string>
 #    --array = 1-<end>:stepsize
 #    < shell script that runs job>
 #    < inputs for the shell script>
+# 
+#  functions here accompany submitWormAnalysis codes 
 # Jeffrey Nguyen
 
 import os
@@ -30,7 +32,22 @@ MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
+    
+# construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
+def get_email_script(mail_type='end,fail'):
+    user= getpass.getuser()
+    user_email=user+'@princeton.edu'
+    mail_script= ' --mail-type=' + mail_type +' --mail-user=' + user_email
+    return mail_script
 
+# make a path name for the output file where the .out and .err files will be saved for all the jobs. One is created each day and all files from that day are saved in the folder. 
+def make_output_path(fullPath):
+    outputFilePath= fullPath + "/outputFiles"
+    currentDate=datetime.date.today()
+    currentDate=str(currentDate)
+    outputFilePath= outputFilePath + currentDate
+    return outputFilePath
+    
 
 # submit command over ssh to get the current git has of CODE_PATH, add it to the commandList so that it will appear in the input.txt file
 def get_git_hash(commandList,client):
@@ -48,36 +65,6 @@ def path_setup(commandList):
     commandList.insert(len(commandList)-1, "umask 002") #make permissions open to group and user
     return commandList
 
-#load the pickle files for default values to put into fields. The pickle files store your previous entries in the pickles2.p file in ~. 
-def pickle_load():
-    # get ready for pickled variables 
-    pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
-    pickle_file = pickle_path + "pickles2.p"
-    if not os.path.exists(pickle_path):
-            os.makedirs(pickle_path)
-        
-    if not os.path.exists(pickle_file):
-            storedUsername = { "username": "USER" }
-            pickle.dump( storedUsername, open(pickle_file, "wb" ) )
-    
-    # return the dictionary with all previous values stored. 
-    prevUser = pickle.load( open( pickle_file, "rb" ) )
-    return prevUser
-    
-# construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
-def get_email_script(mail_type='end,fail'):
-    user= getpass.getuser()
-    user_email=user+'@princeton.edu'
-    mail_script= ' --mail-type=' + mail_type +' --mail-user=' + user_email
-    return mail_script
-
-# make a path name for the output file where the .out and .err files will be saved for all the jobs. One is created each day and all files from that day are saved in the folder. 
-def make_output_path(fullPath):
-    outputFilePath= fullPath + "/outputFiles"
-    currentDate=datetime.date.today()
-    currentDate=str(currentDate)
-    outputFilePath= outputFilePath + currentDate
-    return outputFilePath
     
 def centerline_start_input(commandList,fullPath,email_flag=False):
     commandList.insert(len(commandList)-1, '####CENTERLINES Start####'+NOW)
@@ -165,9 +152,6 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     else:
         email_script=get_email_script('fail')
     
-    nRuns=np.ceil(totalRuns/1000)
-    stepSize=totalRuns//300
-    
     input0 = "clusterStraightenStart('"+ fullPath + "')"
     qsubCommand0 = ("sbatch --mem=12000 " 
         + MIN_TIME_STR 
@@ -184,20 +168,29 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
 
     dependencyString=" --dependency=afterok:${q0##* }" #wait for q0 (previous command) to be done successfully. The next job will use the dependency string.
 
+
+#since we can only submit up to 1000 jobs, we have to submit nRuns number of seperate sbatch jobs
+    nRuns=np.ceil(totalRuns/1000)
+    #arbitrary stepsize, these jobs are fairly fast. 
+    stepSize=totalRuns//300
+    
     
     for i in range(0,int(nRuns)):
+        #add offset as input to shell script so matlab can be called normally
         offset=str(i*1000)
+        #last term for each sbatch, will be 1000 for all but the last sbatch command
         if i>=(nRuns-1):
             currentLimit=str(int(totalRuns)%1000)
         else:
             currentLimit="1000"
 
         qsubCommand1 = ("sbatch --mem=12000 " 
-            + MIN_TIME_STR + " -D " + folderName
+            + MIN_TIME_STR 
+            + " -D " + folderName
             + " -J "+ folderName 
             + dependencyString
-            + " --output=\"" + outputFilePath + "/straight-%J.out" 
-            + "\" --error=\"" + outputFilePath + "/straight-%J.err" + "\""
+            + " --output=\"" + outputFilePath + "/straight-%J.out" + "\""
+            + " --error=\"" + outputFilePath + "/straight-%J.err" + "\""
             + " --array=1-" + currentLimit + ":" + str(stepSize) 
             + " " + code_straighten 
             + " '"  + fullPath +"' "  + str(stepSize) +" " + offset)
@@ -209,9 +202,9 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
-        + email_script
-        + " --output=\"" + outputFilePath + "/pscompile-%J.out" + "\" "
-        + "--error=\"" + outputFilePath + "/pscompile-%J.err" + "\""
+        + " " + email_script
+        + " --output=\"" + outputFilePath + "/pscompile-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/pscompile-%J.err" + "\""
         + " " + code_pscompiler 
         +" '" + fullPath +"'")
     commandList.insert(len(commandList)-1, qsubCommand2)
@@ -432,7 +425,11 @@ def write_input(commandList,client,fullPath):
                 f.write('\r\n')
     else:
         ftp = client.open_sftp()
-        file=ftp.file(fileName, "a", -1)
+        try:
+            ftp.mkdir(outputFilePath)
+        except IOError:
+            pass
+        file=ftp.open(fileName, 'w')
         for command in commandList:
             file.write(command)
             file.write('\r\n')
