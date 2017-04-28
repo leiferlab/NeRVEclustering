@@ -67,7 +67,8 @@ def submitScript(master=None):
         client=gu.dellaConnect(username)
     # get path for output files
     outputFilePath=slurm.make_output_path(fullPath)    
-    
+    slurm.make_ouputfolder(client,fullPath)
+
     #construct command list for entering into della. 
     commandList = ["pwd","pwd"] # pwd at both ends, give the list something to add to the middle of
     # set up the environment so that it matches an ssh login instead of the reduced paramiko one, hopefully this will help.
@@ -141,6 +142,8 @@ if __name__ == '__main__':
                     must be located in the LowMag folder
                 tip_coordinates.mat (optional): created by wormCL_tip_clicker.
                     Will help centerlines, also located in LowMag folder
+                alignments.mat: from alignment_gui, located in Brainscanner folder
+                
                     
         The code has 2 sections. 
                 CL_start: uses user provide results to calculate backgrounds
