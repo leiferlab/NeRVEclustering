@@ -140,7 +140,6 @@ def submitScript(master=None):
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
     #write commands to text file via paramiko
-    slurm.write_input(commandList,client,fullPath)
     
     print('stdOutput:')
     returnedOutput = stdout.readlines()
@@ -156,6 +155,7 @@ def submitScript(master=None):
         + '\n'
         + '\n'.join(output_string))
     # close window at the end
+    slurm.write_input(commandList,client,fullPath)
     
     #save inputs using pickle dump, they will appear as defaults at the next call. 
     pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
