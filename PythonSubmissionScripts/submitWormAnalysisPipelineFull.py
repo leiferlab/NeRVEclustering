@@ -57,7 +57,9 @@ def make_gui():
     #make Enter button, tie it to the callback1
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
 
+    #if we're logged onto tigressdata, then add a select folder button to navigate files
     if  socket.gethostname()=='tigressdata.princeton.edu':
+        print("Navigate inside a Brainscanner folder and press Select.")
         master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     return master
 
@@ -191,6 +193,8 @@ def callback1(event=None,master=None):
         
 
     
+    
+# actually runs the code
 if __name__ == '__main__':
 # bind enter key and button
     print('''

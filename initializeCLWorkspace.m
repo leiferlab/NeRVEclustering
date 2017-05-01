@@ -68,6 +68,10 @@ nframes=round(behavior_vidobj.Duration*behavior_vidobj.FrameRate);
 nframes_fluor=round(fluor_vidobj.Duration*fluor_vidobj.FrameRate);
 bf_imsize=[behavior_vidobj.Height,behavior_vidobj.Width];
 
+if ~oldFlag && nframes~=nframes_fluor
+    error('Videos should be of the same length, check if one of the videos is corrupt')
+end
+
 %% initialize centerline points
 
 %cut up the entire video into nCells chunks and then initialize nCells+1

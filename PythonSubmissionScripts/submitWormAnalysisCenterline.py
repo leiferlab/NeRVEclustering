@@ -65,8 +65,7 @@ def submitScript(master=None):
         client=gu.dellaConnect(username,password)
     else:
         client=gu.dellaConnect(username)
-    # get path for output files
-    outputFilePath=slurm.make_output_path(fullPath)    
+    # make path for output files
     slurm.make_ouputfolder(client,fullPath)
 
     #construct command list for entering into della. 

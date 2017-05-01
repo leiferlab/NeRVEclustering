@@ -46,7 +46,7 @@ def pickle_load():
     if 'frameNumber' not in prevUser:
             prevUser['frameNumber'] = "1000"
     if 'refNumber' not in prevUser:
-            prevUser['refNUmber'] = "100"
+            prevUser['refNumber'] = "100"
     if 'neuronNumber' not in prevUser:
             prevUser['neuronNumber'] = "150"
     if 'checkNumber' not in prevUser:
