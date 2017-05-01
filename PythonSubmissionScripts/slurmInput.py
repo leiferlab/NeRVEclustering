@@ -79,7 +79,7 @@ def centerline_start_input(commandList,fullPath,email_flag=False):
     #make submission command
     qsubCommand0 = ("sbatch --mem=12000 " 
         + MIN_TIME_STR 
-        + " -N 1 -n 1 -c 10" #for use of 10 cores for parfor loop
+        + " -N 1 -n 1 -c 10" #for use of 10 cores for parfor loops in the matlab code
         + " -D " + folderName
         + " -J "+ folderName
         + " " + get_email_script('fail')
@@ -238,7 +238,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     code_track = CODE_PATH + '/PythonSubmissionScripts/runWormCellTracking.sh'
     code_trackcompiler = CODE_PATH+'/PythonSubmissionScripts/runWormTrackCompiler.sh'
     
-    
+    #currently arbitrary time request, ask for 2*nRef minutes (always above 180 min) 
     qString_track = "--time=" + str(np.max((nRef*2,180)))     
 
     matlabDirName = fullPath + "/" +  PS_NAME1
@@ -259,6 +259,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     commandList.insert(len(commandList)-1, qsubCommand0)
     commandList.insert(len(commandList)-1, "echo $q0")
     commandList.insert(len(commandList)-1, '\r')
+    #get jobID number to set up dependency for next job
     dependencyString=" --dependency=afterok:${q1##* }"
     
     nRuns=totalRuns//1000+1
@@ -426,6 +427,7 @@ def write_input(commandList,client,fullPath):
             for command in commandList:
                 f.write(command)
                 f.write('\r\n')
+            os.chmod(fileName,0o770)
     else:
         ftp = client.open_sftp()
         try:
@@ -447,6 +449,7 @@ def make_ouputfolder(client,fullPath):
     if socket.gethostname()=='tigressdata.princeton.edu':
         if not os.path.exists(outputFilePath):
             os.makedirs(outputFilePath)
+            os.chmod(outputFilePath,0o770)
     else:
         ftp = client.open_sftp()
         try:
@@ -454,4 +457,5 @@ def make_ouputfolder(client,fullPath):
         except IOError:
             ftp.mkdir(outputFilePath)
             time.sleep(1)
+            ftp.chmod(outputFilePath,0o770)
             ftp.close()
