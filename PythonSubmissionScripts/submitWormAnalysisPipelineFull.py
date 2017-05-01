@@ -52,7 +52,7 @@ def make_gui():
     master.addGuiCheck("Run Straightening",'straight_flag')
     master.addGuiCheck("Run Track",'track_flag')
     master.addGuiCheck("Run Check",'check_flag')
-    master.addGuiCheck("Crop",'crop_flag')
+    master.addGuiCheck("Run Crop",'crop_flag')
     master.addGuiCheck("Email",'email_flag',1)
     #make Enter button, tie it to the callback1
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
@@ -119,22 +119,22 @@ def submitScript(master=None):
     #add sbatch command to commandList for each flag.
     if straightFlag:
         commandList=slurm.straighten_input(commandList,fullPath,n_volumes)
-        output_string+='CLstraight folder'
+        output_string+=['CLstraight folder']
         
     if trackFlag:
         commandList=slurm.track_input(commandList,fullPath,n_volumes,n_references)
-        output_string+='trackMatrix folder'
-        output_string+='pointsStats2.mat'
+        output_string+=['trackMatrix folder']
+        output_string+=['pointsStats2.mat']
 
     if checkFlag:
         commandList=slurm.check_input(commandList,fullPath,n_volumes,n_check,n_neurons)
-        output_string+='trackMatrix folder'
-        output_string+='pointsStatsNew.mat'
+        output_string+=['trackMatrix folder']
+        output_string+=['pointsStatsNew.mat']
 
     if cropFlag:
         commandList=slurm.crop_input(commandList,fullPath,emailFlag)
-        output_string+='heatData.mat'
-        output_string+='botFiducials Folder'
+        output_string+=['heatData.mat']
+        output_string+=['botFiducials Folder']
 
     #submit the command list to della
     commands = "\n".join(commandList)
@@ -219,7 +219,8 @@ if __name__ == '__main__':
         Number of References: 10 (This determines how good our tracking is. 300 was used by default. Less is MUCH faster but poorer tracking.)
         Number of Neurons: 150 (Sets the upper limit for the number of neurons in the worm)
         Number of Checks: 100 (Number of volumes to use for the error checking step... ~100-300 is normally fine)
-        <click all check boxes>
+        <click all check boxes>  (you would only uncheck the Run Straighting, Run Track, Run Check or Run Crop for debugging purposes)
+        (striaghtening is worm straightening step; track is the vector construction and clustering, check is error correction and crop is the signal extraction step)
         
         ''')
     master=make_gui()
