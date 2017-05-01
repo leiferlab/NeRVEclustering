@@ -51,10 +51,12 @@ def make_output_path(fullPath):
 
 # submit command over ssh to get the current git has of CODE_PATH, add it to the commandList so that it will appear in the input.txt file
 def get_git_hash(commandList,client):
-    git_command='cd '+ CODE_PATH +'\n git rev-parse HEAD \n cd $HOME'
+    git_command='cd '+ CODE_PATH +'\n git rev-parse HEAD \n git branch -vv \n cd $HOME'
     stdin,stdout,stderr = client.exec_command(git_command)
     current_git_hash=stdout.readlines()
     commandList.insert(len(commandList)-1, '#### current git: '+current_git_hash[0])
+    commandList.insert(len(commandList)-1, '#### current git: '+current_git_hash[1])
+    
     return commandList
     
 # set up path so .sh files know where to find the matlab codes
@@ -251,6 +253,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
+        + " -d singleton"
         + " --output=\"" + outputFilePath + "/track_s-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/track_s-%J.err" + "\""
         + " " + code_runinput
@@ -423,7 +426,7 @@ def write_input(commandList,client,fullPath):
     fileName=outputFilePath+'/input.txt'
 #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
     if socket.gethostname()=='tigressdata.princeton.edu':
-        with open(fileName,'w') as f:
+        with open(fileName,'a') as f:
             for command in commandList:
                 f.write(command)
                 f.write('\r\n')
@@ -434,7 +437,7 @@ def write_input(commandList,client,fullPath):
             ftp.mkdir(outputFilePath)
         except IOError:
             pass
-        file=ftp.open(fileName, 'w')
+        file=ftp.open(fileName, 'a')
         for command in commandList:
             file.write(command)
             file.write('\r\n')

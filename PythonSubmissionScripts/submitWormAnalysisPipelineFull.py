@@ -215,10 +215,10 @@ if __name__ == '__main__':
         Parent Path:/tigress/LEIFER/PanNeuronal
         Date of Data: testing_sets
         Data Folder Name: Brain_working_dataset
-        Number of Frames : All
-        Number of References: 10
-        Number of Neurons: 150
-        Number of Checks: 100
+        Number of Frames : All  (or specify some subset of frames for testing.. e.g. 1000)
+        Number of References: 10 (This determines how good our tracking is. 300 was used by default. Less is MUCH faster but poorer tracking.)
+        Number of Neurons: 150 (Sets the upper limit for the number of neurons in the worm)
+        Number of Checks: 100 (Number of volumes to use for the error checking step... ~100-300 is normally fine)
         <click all check boxes>
         
         ''')
