@@ -44,9 +44,9 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		echo "Keys found"
 	fi
 	
-	echo "Changeing default save permissions to 775"
 	greq -q "umask 002" .bashrc
 	if [ $? -eq 1 ]; then
+		echo "Changeing default save permissions to 775"
 		echo "umask 002" >> $HOME/.bashrc
 	fi
 		
@@ -63,7 +63,7 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		fi
 	fi
 	# load virtualgl for matlab
-	module laod virtualgl
+	module load virtualgl
 	# load python module, install paramiko with pip
 	module load anaconda
 	pip install --user paramiko
