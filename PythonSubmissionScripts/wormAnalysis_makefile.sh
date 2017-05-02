@@ -44,12 +44,11 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		echo "Keys found"
 	fi
 	
-	greq -q "umask 002" .bashrc
+	grep -q "umask 002" .bashrc
 	if [ $? -eq 1 ]; then
-		echo "Changeing default save permissions to 775"
 		echo "umask 002" >> $HOME/.bashrc;
 	fi
-		if [ $? -eq 1 ]; then echo "umask 002" >> $HOME/.bashrc; fi
+		
 	pass2=$(ssh $USER@della.princeton.edu -qo PasswordAuthentication=no echo 0 || echo 1)
 
 	if [ "$pass2" == "1" ]; then
