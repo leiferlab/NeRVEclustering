@@ -34,8 +34,8 @@ def make_gui():
     master.addGuiField("DataFolderName",'folder_name',defaultFolder)
     master.addGuiCheck("Start Workspace",'start_flag',1)
     master.addGuiCheck("Email",'email_flag',1)
+    
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
-
     if  socket.gethostname()=='tigressdata.princeton.edu':
         master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     return master
@@ -54,7 +54,7 @@ def submitScript(master=None):
     # which folder to process, must add paths linux style
     fullPath = beginOfPath + "/" + date
     fullPath = fullPath + "/" + folderName
-    
+
     print("Username: " + username)
     print("full path: " + fullPath)
     # deal with folder names that have spaces

@@ -39,18 +39,28 @@ if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 		cat /tigress/LEIFER/.ssh/id_rsa.pub | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 		cat /tigress/LEIFER/.ssh/id_rsa | ssh $USER@della.princeton.edu 'cat >> .ssh/authorized_keys'
 		
-		echo "Changeing default save permissions to 777"
-		umask 000
+
 	else
 		echo "Keys found"
 	fi
 	
+	echo "Changeing default save permissions to 775"
+	greq -q "umask 002" .bashrc
+	if [ $? -eq 1 ]; then
+		echo "umask 002" >> $HOME/.bashrc
+	fi
+		
 	pass2=$(ssh $USER@della.princeton.edu -qo PasswordAuthentication=no echo 0 || echo 1)
 
 	if [ "$pass2" == "1" ]; then
 		echo "ERROR: still have problems connecting to della without password"
 	else
 		echo "Success! Keys saved for della connection"
+		echo "Setting Della default permissions"
+		ssh jnguyen@della.princeton.edu "grep -q \"umask 002\" $HOME/.bashrc"
+		if [ $? -eq 1 ]; then
+			echo "umask 002" | ssh $USER@della.princeton.edu "cat >> $HOME/.bashrc"
+		fi
 	fi
 	# load virtualgl for matlab
 	module laod virtualgl
