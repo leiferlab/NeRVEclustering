@@ -188,7 +188,7 @@ f_background(masks.fluor_mask)=mean(f_back_smooth(masks.fluor_mask));
 %forward, once back
 nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
 % number of initialized centerlines
-bfCell_i=cell(1,nCells+1);
+bfCell_i=cell(1,nCells);
 for ichunk=1:nCells+1
     %get bounds for each chunk
     lowframe=min((ichunk-1)*nSteps+1,nframes);
@@ -205,7 +205,7 @@ bfCellRev=cellfun(@(x) fliplr(x), bfCell_i, 'uniform',0);
 %interleave those two so cell 1 and 2 have the same frames, but with one
 %going back and one going forward, etc
 
-bf_list_cell=reshape([bfCell_i,bfCellRev]',1,[]);
+bf_list_cell=reshape([bfCell_i;bfCellRev],1,[]);
 
 
 initial_cl=reshape([clStartI,circshift(clStartI,[0 -1])]',1,[]);

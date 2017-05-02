@@ -211,11 +211,14 @@ if any(centerline)
         X=centerline(:,1,CLnumber);
         Y=centerline(:,2,CLnumber);
     end
-    if CLnumber<size(centerline,3)
-        plot(handles.axes1,X, Y,'r');
-    end
-    plot(handles.axes1,X([1,end],:), Y([1 end],1),'or');
-    
+    CL_handle=getappdata(handles.figure1,'CL_handle');
+    if ~isempty(CL_handle)
+        CL_handle.XData=X;
+        CL_handle.YData=Y;
+    elseif CLnumber<size(centerline,3)
+        CL_handle=plot(handles.axes1,X, Y,'r');
+        setappdata(handles.figure1,'CL_handle',CL_handle)
+    end    
 end
 
 %plot tips

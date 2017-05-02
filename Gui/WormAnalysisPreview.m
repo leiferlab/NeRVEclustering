@@ -75,12 +75,11 @@ bfTime=bfAll.frameTime;
 bfIdx=interp1(bfTime,1:length(bfTime),hiResData.frameTime(hiResIdx),'nearest');
 bfIdx(isnan(bfIdx))=1;
 
-function  [redImage,greenImage,image0,image1]=getImages(handles)
+function  [redImage,greenImage,image0,image1]=getImages(handles,hiResIdx,bfIdx)
 alignments=getappdata(handles.figure1,'alignments');
 rect1=alignments.S2AHiRes.rect1;
 rect2=alignments.S2AHiRes.rect2;
 dataFolder=getappdata(handles.figure1,'dataFolder');
-[hiResIdx,bfIdx]=getTimes(handles);
 Fid=getappdata(handles.figure1,'fileID');
 sCMOSfile=dir([dataFolder filesep '*.dat']);
 sCMOSfile=sCMOSfile.name;
@@ -88,7 +87,7 @@ sCMOSfile=[dataFolder filesep sCMOSfile ];
 if isempty(Fid)
     Fid=fopen( sCMOSfile);
     setappdata(handles.figure1,'fileID',Fid);
-elseif Fid<=0;
+elseif Fid<=0
     Fid=fopen(sCMOSfile );
     setappdata(handles.figure1,'fileID',Fid);
 end
@@ -97,11 +96,11 @@ status=fseek(Fid,2*hiResIdx*row*col,-1);
 temp=fread(Fid,row*col,'uint16',0,'l');
 temp=(reshape(temp,row,col));
 background=getappdata(0,'background');
-temp=temp-background;
+%temp=temp-background;
 temp(temp<0)=0;
 
-redImage=temp(rect1(2):rect1(4),rect1(1):rect1(3));
-greenImage=temp(rect2(2):rect2(4),rect2(1):rect2(3));
+redImage=temp(rect1(2):(rect1(2)+rect1(4)-1),rect1(1):(rect1(1)+rect1(3)-1));
+greenImage=temp(rect2(2):(rect2(2)+rect2(4)-1),rect2(1):(rect2(1)+rect2(3)-1));
 
 cam0Obj=getappdata(handles.figure1,'cam0Obj');
 cam1Obj=getappdata(handles.figure1,'cam1Obj');
@@ -115,10 +114,9 @@ else
     image1=image1(:,:,1);
 end
 
-function CL=getCenterline(handles)
+function CL=getCenterline(handles,bfIdx)
 centerline=getappdata(handles.figure1,'centerline');
 if ~isempty(centerline)
-    [~,bfIdx]=getTimes(handles);
     CL=centerline(:,:,bfIdx);
 else
     CL=[0 0; 0 0];
@@ -129,8 +127,9 @@ end
 
 function plotter(hObject,eventdata)
 handles=guidata(get(hObject,'Parent'));
-[redImage,greenImage,image0,image1]=getImages(handles);
-CL=getCenterline(handles);
+[hiResIdx,bfIdx]=getTimes(handles);
+CL=getCenterline(handles,bfIdx);
+[redImage,greenImage,image0,image1]=getImages(handles,hiResIdx,bfIdx);
 
 
             

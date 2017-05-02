@@ -108,7 +108,6 @@ timeAll(isnan(timeAll))=0;
 %     error('Different number of flashes found in image and photoDiode')
 % end
 
-imageFlashPos=find(datFlash);
 imageIdx=camFrameData(:,1);
 
 
@@ -122,7 +121,7 @@ imSTD=imSTD-min(imSTD);
 imageIdx=imageIdx(diff(saveIdx)>0);
 imageIdx=imageIdx-min(imageIdx)+1;
 dataAll.Z=imageZ;
-dataAll.flashLoc=imageFlashPos;
+dataAll.flashLoc=datFlash;
 dataAll.imageIdx=imageIdx;
 dataAll.frameTime=timeAll;
 dataAll.stackIdx=stackIdx;
