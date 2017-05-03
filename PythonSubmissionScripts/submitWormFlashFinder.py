@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import pickle
 import slurmInput as slurm
 import socket
 import guiHelper as gu
@@ -67,6 +66,9 @@ def submitScript(master=None):
     #submit flashfinder job
     commandList=slurm.flash_input(commandList,fullPath,emailFlag)
     
+    #save defaults using pickle dump
+    master.pickleDump()
+    
     #write commands to text file via paramiko
     slurm.write_input(commandList,client,fullPath)
 
@@ -92,15 +94,6 @@ def submitScript(master=None):
                   cam1flashTrack.mat
                   ''')
                   
-    #save defaults using pickle dump
-    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
-    pickle_file = pickle_path + "pickles2.p"
-    prevUser=gu.pickle_load()
-    prevUser['username']=username
-    prevUser['date'] = date
-    prevUser['folderName']=folderName
-    pickle.dump(prevUser, open(pickle_file, "wb" ) )
-    
                   
     # close window at the end
     client.close()

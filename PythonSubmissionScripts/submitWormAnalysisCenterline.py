@@ -11,7 +11,6 @@
 #            alignments.mat file must be in the BrainScanner folder, this file is made by alignmnets_gui.m 
 
 
-import pickle
 import slurmInput as slurm
 import socket
 import guiHelper as gu
@@ -77,6 +76,9 @@ def submitScript(master=None):
         commandList=slurm.centerline_start_input(commandList,fullPath)
     commandList=slurm.centerline_input(commandList,fullPath,emailFlag)
 
+    #save defaults using pickle dump
+    master.pickleDump()
+    
     #submit the command list and all of the jobs. 
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
@@ -97,16 +99,6 @@ def submitScript(master=None):
         + '''
         behaviorAnalysis Folder with a centerline.mat inside
         ''')
-        
-    #save defaults using pickle dump
-    pickle_path = (os.environ['HOME'] + "/platypusTemp/")
-    pickle_file = pickle_path + "pickles2.p"
-    prevUser=gu.pickle_load()
-    prevUser['username']=username
-    prevUser['date'] = date
-    prevUser['folderName']=folderName
-    pickle.dump(prevUser, open(pickle_file, "wb" ) )
-    
     # close window at the end
     client.close()
     master.destroy()

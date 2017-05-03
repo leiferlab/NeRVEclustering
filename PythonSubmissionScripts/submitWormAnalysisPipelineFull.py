@@ -16,7 +16,6 @@
 
 # Jeffrey Nguyen
 
-import pickle
 import slurmInput as slurm
 import socket
 import guiHelper as gu
@@ -44,16 +43,16 @@ def make_gui():
     master.addGuiField("Parent Path",'parent_path','/tigress/LEIFER/PanNeuronal')
     master.addGuiField("Date of data",'date',defaultDate)
     master.addGuiField("DataFolderName",'folder_name',defaultFolder)
-    master.addGuiField("number of frames",'nframes',defaultFrameNumber)
+    master.addGuiField("Number of frames",'nframes',defaultFrameNumber)
     master.addGuiField("Number of Reference",'n_ref',defaultRefNumber)
     master.addGuiField("Number of Neurons",'n_neurons',defaultNeuronNumber)
     master.addGuiField("Number of checks",'n_checks',defaultCheckNumber)
     # add check box inputs
     master.addGuiCheck("Run Straightening",'straight_flag')
-    master.addGuiCheck("Run Track",'track_flag')
-    master.addGuiCheck("Run Check",'check_flag')
-    master.addGuiCheck("Run Crop",'crop_flag')
-    master.addGuiCheck("Email",'email_flag',1)
+    master.addGuiCheck("Run NeRVE",'track_flag')
+    master.addGuiCheck("Run Error Correction",'check_flag')
+    master.addGuiCheck("Run Signal Extraction",'crop_flag')
+    master.addGuiCheck("Send Email",'email_flag',1)
     #make Enter button, tie it to the callback1
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
 
@@ -116,30 +115,34 @@ def submitScript(master=None):
     
     # also make output string to tell user what files to expect to see
     output_string=[]
+    
     #add sbatch command to commandList for each flag.
     if straightFlag:
         commandList=slurm.straighten_input(commandList,fullPath,n_volumes)
-        output_string+=['CLstraight folder']
+        output_string+=['Straightening Result: CLstraight folder']
         
     if trackFlag:
         commandList=slurm.track_input(commandList,fullPath,n_volumes,n_references)
-        output_string+=['trackMatrix folder']
-        output_string+=['pointsStats2.mat']
+        output_string+=['NeRVE Result: trackMatrix folder and pointsStats2.mat']
 
     if checkFlag:
         commandList=slurm.check_input(commandList,fullPath,n_volumes,n_check,n_neurons)
-        output_string+=['trackMatrix folder']
-        output_string+=['pointsStatsNew.mat']
+        output_string+=['Error Checking Result: BotCheckFolder and pointsStatsNew.mat']
 
     if cropFlag:
         commandList=slurm.crop_input(commandList,fullPath,emailFlag)
-        output_string+=['heatData.mat']
-        output_string+=['botFiducials Folder']
+        output_string+=['Signal Extractoin Result: heatData.mat and botFiducials Folder']
+        
+        
+    #save inputs using pickle dump, they will appear as defaults at the next call. 
+    master.pickleDump()
+    
+    #write command list to text file via paramiko
+    slurm.write_input(commandList,client,fullPath)
 
     #submit the command list to della
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
-    #write commands to text file via paramiko
     
     print('stdOutput:')
     returnedOutput = stdout.readlines()
@@ -149,26 +152,12 @@ def submitScript(master=None):
     print('Done submitting job.\n\n')
     
     print('''
-        Output files will be saved in 
+        The following output files will be produced and saved in
         '''
         + fullPath
-        + '\n'
+        + ':\n'
         + '\n'.join(output_string))
     # close window at the end
-    slurm.write_input(commandList,client,fullPath)
-    
-    #save inputs using pickle dump, they will appear as defaults at the next call. 
-    pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
-    pickle_file = pickle_path + "pickles2.p"
-    prevUser=gu.pickle_load()
-    prevUser['username']=username
-    prevUser['frameNumber']=n_volumes
-    prevUser['date'] = date
-    prevUser['folderName']=folderName
-    prevUser['refNumber']=n_references
-    prevUser['neuronNumber']=n_neurons
-    prevUser['checkNumber']=n_check
-    pickle.dump(prevUser, open(pickle_file, "wb" ) )
     
     client.close()
 
@@ -216,11 +205,11 @@ if __name__ == '__main__':
         Date of Data: testing_sets
         Data Folder Name: Brain_working_dataset
         Number of Frames : All  (or specify some subset of frames for testing.. e.g. 1000)
-        Number of References: 10 (This determines how good our tracking is. 300 was used by default. Less is MUCH faster but poorer tracking.)
+        Number of References: 10 (This determines how good our tracking is. 300 was used by default. For stationary animals, use ~25)
         Number of Neurons: 150 (Sets the upper limit for the number of neurons in the worm)
         Number of Checks: 100 (Number of volumes to use for the error checking step... ~100-300 is normally fine)
         <click all check boxes>  (you would only uncheck the Run Straighting, Run Track, Run Check or Run Crop for debugging purposes)
-        (striaghtening is worm straightening step; track is the vector construction and clustering, check is error correction and crop is the signal extraction step)
+
         
         ''')
     master=make_gui()

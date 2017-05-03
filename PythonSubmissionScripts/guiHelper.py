@@ -172,6 +172,30 @@ class submitTK(tk.Tk):
         self.b.grid(row=self.row_count,columnspan=2,sticky=tk.W+tk.E)
         self.row_count+=1
         
+    #save values fo fields for defaults during next call
+    def pickleDump(self):
+        pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
+        pickle_file = pickle_path + "pickles2.p"
+        prevUser=gu.pickle_load()
+        #refill prevUser dict with master entries
+        if 'user_name' in self.e:
+            prevUser['username']=self.e['user_name']
+        if 'date' in self.e:
+            prevUser['date'] = self.e['date']
+        if 'folder_name' in self.e:
+            prevUser['folderName']=self.e['folder_name']
+        if 'nframes' in self.e:
+            prevUser['frameNumber']=self.e['nframes']
+        if 'n_ref' in self.e:
+            prevUser['refNumber']=self.e['n_ref']
+        if 'n_neurons' in self.e:
+            prevUser['neuronNumber']=self.e['n_neurons']
+        if 'n_checks' in self.e:
+            prevUser['checkNumber']=self.e['n_checks']
+        #save prevUser as pickle
+        pickle.dump(prevUser, open(pickle_file, "wb" ) )
+        
+        
     # run the main loop. 
     def run(self):
         tk.mainloop()
