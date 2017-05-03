@@ -94,6 +94,10 @@ wc=cellfun(@(x) sum(eigbasis(1:2,:)*FindWormCentered(x)).^2, CLcell_2,'uniform',
 wc2=cell2mat(wc);
 
 CL_Isum=CL_Isum-wc2;
+
+%% add something to downweight stuck frames
+
+
 %% pick out centerlines that look better
 
 %organise matrices
@@ -143,6 +147,12 @@ mkdir(behaviorFolder);
 save([behaviorFolder filesep 'centerline'] ,'centerline','eigenProj'...
     ,'wormcentered');
 
-
-
+%% write to status
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ':Finished Centerlines \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
 

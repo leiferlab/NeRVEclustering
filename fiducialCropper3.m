@@ -8,6 +8,17 @@ function fiducialCropper3( dataFolder)
 % analyzes the behavior images and extracts the behavior. Outputs are saved
 % into a heatData.mat file in the dataFolder
 
+
+%write to status file
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ':Starting Signal Extraction \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
+
+
 %% create some Gaussian Kernals
 
 
@@ -346,6 +357,16 @@ save([newFiducialFolder filesep 'botFiducials'],...
     'fiducialPoints',...
     'clickPoints');
 
+%write to status file
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ':Finished Signal Extraction \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
+
+
 
 % interpSignal takes coordinates given by XYZ and interpolates the signal
 % from hiResImage. The signal is averaged over the columns, with a few
@@ -524,7 +545,6 @@ if ~any(isnan(coord(:))) && size(coord,1)==foundNeurons
 end
 end
 error('No frame has all the neurons! Tracking failed');
-
 
 
 

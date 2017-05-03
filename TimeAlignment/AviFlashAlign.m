@@ -62,6 +62,9 @@ fluorFlashloc(diff(fluorFlashloc)<3)=[];
 
 camData=importdata([aviFolder filesep 'CamData.txt']);
 time=camData.data(:,2);
+%add fix to deal with occasional repeat times, unique times are required
+%for alignments, this will tend to make then unique
+time=time+mean(diff(time))*.001*(1:length(time))';
 
 bf2fluorIdx=1:length(bfFlash);
 bfAll.frameTime=time;

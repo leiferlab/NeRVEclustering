@@ -461,3 +461,12 @@ end
 %% save results
 save([dataFolder filesep 'pointStatsNew'],'pointStatsNew');
 
+%write to status file
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ':Finished Checking \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
+

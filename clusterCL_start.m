@@ -6,7 +6,18 @@ function clusterCL_start(dataFolder)
 %It classifies frames into different background states and calculates
 %backgrounds for them. It also sets up which frames each job will analyze
 %in the subsequent step where clusterWormCenterline is called on multiple
-%threads. s
+%threads. 
+
+
+
+%% write time start stamp
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ': Starting CL initial processing \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
 
 
 %% Initialize fitting parameters for centerline, 
@@ -228,4 +239,15 @@ save([low_mag_folder filesep 'CLworkspace'],...
     'tips',...
     '-append');
 
+
+
+
+%% write time end stamp
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ': Finished CL initial processing \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
 

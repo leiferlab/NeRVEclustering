@@ -327,8 +327,8 @@ set(handles.minTime,'String',num2str(minFrame));
 set(handles.slider1,'max',maxFrame);
 setappdata(handles.figure1,'currentFrame',1);
 set(handles.slider1,'value',1);
-
-[redImage,greenImage,image0,image1]=getImages(handles);
+[hiResIdx,bfIdx]=getTimes(handles);
+[redImage,greenImage,image0,image1]=getImages(handles,hiResIdx,bfIdx);
 imagesc(redImage,'Parent',handles.r40);
 imagesc(greenImage,'Parent',handles.g40);
 imagesc(image1,'Parent',handles.dark10);

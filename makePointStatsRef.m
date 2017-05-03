@@ -13,6 +13,15 @@ function makePointStatsRef(dataFolder,nRef)
 %       a file pointStatsRef.mat is saved inside the dataFolder. 
 
 
+%% write time start stamp
+Fid=fopen([dataFolder filesep 'status.txt'],'a');
+status=[datestr(datetime('now')) ': Starting NERVE tracking \n'];
+fprintf(Fid,status);
+fclose(Fid);
+
+
+
+
 PS_file=[dataFolder filesep 'PointsStats.mat'];
 load(PS_file)
 

@@ -10,6 +10,16 @@ function clusterStraightenStart(dataFolder)
 
 
 
+%% write to status file
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ':Starting straightening \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
+
+
 
 %which volume to do for initial, not too close to begining because start
 %might not have all video feeds tracking properly

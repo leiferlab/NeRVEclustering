@@ -309,3 +309,13 @@ fileOutput_stats=strrep(fileOutput,'.mat','_info.mat');
 save(fileOutput,'pointStats2');
 save(fileOutput_stats,'masterVec','hitCutoff'...
     ,'cluster_assign','caccum','subTcorr2')
+
+
+%% write time end stamp
+hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
+if contains(hostname,'della')
+    Fid=fopen([dataFolder filesep 'status.txt'],'a');
+    status=[datestr(datetime('now')) ': Finished NERVE tracking \n'];
+    fprintf(Fid,status);
+    fclose(Fid);
+end
