@@ -40,9 +40,9 @@ def pickle_load():
     if 'username' not in prevUser:
             prevUser['username'] = "USER"
     if 'date' not in prevUser:
-            prevUser['date'] = "20160101"
+            prevUser['date'] = "testing_sets"
     if 'folderName' not in prevUser:
-            prevUser['folderName'] = "Brain_Scanner2016"
+            prevUser['folderName'] = "Brain_working_dataset"
     if 'frameNumber' not in prevUser:
             prevUser['frameNumber'] = "1000"
     if 'refNumber' not in prevUser:
@@ -176,22 +176,22 @@ class submitTK(tk.Tk):
     def pickleDump(self):
         pickle_path = (os.path.expanduser('~') + "/platypusTemp/")
         pickle_file = pickle_path + "pickles2.p"
-        prevUser=gu.pickle_load()
+        prevUser=pickle_load()
         #refill prevUser dict with master entries
         if 'user_name' in self.e:
-            prevUser['username']=self.e['user_name']
+            prevUser['username']=self.e['user_name'].get()
         if 'date' in self.e:
-            prevUser['date'] = self.e['date']
+            prevUser['date'] = self.e['date'].get()
         if 'folder_name' in self.e:
-            prevUser['folderName']=self.e['folder_name']
+            prevUser['folderName']=self.e['folder_name'].get()
         if 'nframes' in self.e:
-            prevUser['frameNumber']=self.e['nframes']
+            prevUser['frameNumber']=self.e['nframes'].get()
         if 'n_ref' in self.e:
-            prevUser['refNumber']=self.e['n_ref']
+            prevUser['refNumber']=self.e['n_ref'].get()
         if 'n_neurons' in self.e:
-            prevUser['neuronNumber']=self.e['n_neurons']
+            prevUser['neuronNumber']=self.e['n_neurons'].get()
         if 'n_checks' in self.e:
-            prevUser['checkNumber']=self.e['n_checks']
+            prevUser['checkNumber']=self.e['n_checks'].get()
         #save prevUser as pickle
         pickle.dump(prevUser, open(pickle_file, "wb" ) )
         
