@@ -7,7 +7,7 @@
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence
 export PATH=/usr/local/MATLAB/R2015a/bin/:$PATH
 # This path is for Della
-export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
+export PATH=/tigress/LICENSED/matlab-R2017a/bin/:$PATH
 
 # parse matlab paths
 FILES=$CODE_HOME/3dbrain/PythonSubmissionScripts/*.path
