@@ -18,7 +18,8 @@ function PS=classifyPS(varargin)
 % classifyPS(PS,PS_ref,masterVec,hitCutoff)
 %   hitCutoff - threshold used for definiing membership to cluster,
 
-PS=varargin{1};
+
+%parse inputs
 if nargin==2
     dataFolder=varargin{2};
     PS_ref=load([dataFolder filesep 'pointStatsRef.mat']);
@@ -39,11 +40,22 @@ elseif nargin>=3
         hitCutoff=0.2;
     end
 end
+PS=varargin{1};
+
+%make track_matrix by doing the registration between the points in PS and
+%the points in PS_ref
 
 track_matrix=compareWithRef(PS,PS_ref);
+
+% count max number of neurons
 n_ref_neurons=cellfun(@(x) size(x,1),{PS_ref.straightPoints});
+% do one hot encoding to turn matches into binary matrix
 track_matrix_bin=oneHotNeuron(track_matrix,n_ref_neurons);
+
+%classify points based on distance to centers in the masterVec
 output=distanceClassify(masterVec,track_matrix_bin,hitCutoff);
+
+%save outputs back into pointStats structure
 PS.trackIdx=output{1};
 PS.trackWeights=output{2};
 

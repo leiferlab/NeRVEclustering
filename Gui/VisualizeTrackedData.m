@@ -103,7 +103,7 @@ display([...
     '/tigress/LEIFER/PanNeuronal/testing_sets/BrainScanner20161031_111303/'...
     ])
 if isempty(mostRecent)
-    dataFolder=uipickfiles('Prompt', 'Select the data Folder' );
+    dataFolder=uipickfiles('Prompt', 'Select the BrainScanner Folder' );
 else
     dataFolder=uipickfiles('filterspec', mostRecent,...
         'Prompt', 'Select the data Folder');
@@ -129,12 +129,10 @@ setappdata(0,'registration',registration)
 setappdata(0,'background',background);
 
 
-
 if exist([dataFolder filesep 'hiResData.mat'],'file')
     hiResData=load([dataFolder filesep 'hiResData']);
     hiResData=hiResData.dataAll;
 else
-    %only for 1200 by 600 image for now
     hiResData=highResTimeTraceAnalysisTriangle4(dataFolder);
 end
 
@@ -225,8 +223,6 @@ if isempty(zPos)
     set(handles.zSlider,'Value',1);
 end
 
-% minFrame=str2double(get(handles.minTime,'string'));
-% maxFrame=str2double(get(handles.maxTime,'string'));
 
 offset=getappdata(handles.figure1,'timeOffset');
 
@@ -235,9 +231,7 @@ imFiles=getappdata(handles.figure1,'imFiles');
 
 hiResData=getappdata(handles.figure1,'hiResData');
 R=getappdata(0,'registration');
-[row,col]=size(R.initialIm);
-%row=1024;
-%col=512;
+
 FrameIdx=getappdata(handles.figure1,'FrameIdx');
 zVoltages=getappdata(handles.figure1,'zVoltages');
 
@@ -258,14 +252,9 @@ if iImage~=getappdata(handles.figure1,'currentFrame') | isempty(zVoltages)
 end
 
 
-stdPlot=hiResData.imSTD(FrameIdx+offset);
-stdPlot=smooth(stdPlot,5);
-[~,stdPeak]=max(stdPlot);
-%zVoltages=zVoltages-zVoltages(stdPeak)+.2;
 zSlice=interp1(zVoltages,1:length(zVoltages),zPos,'nearest','extrap');
 zVoltageOut=zVoltages(zSlice);
 set(handles.zSlider,'Value',zVoltageOut);
-%    hiResIdx=metaData.iFrame(zSlice);
 hiResIdx=FrameIdx(zSlice)+offset;
 setappdata(handles.figure1,'currentHiResIdx',hiResIdx);
 if getappdata(handles.figure1,'tifFlag')
@@ -276,10 +265,11 @@ else
 Fid=getappdata(handles.figure1,'fileID');
 sCMOSfile=dir([imFiles filesep '*.dat']);
 sCMOSfile=sCMOSfile.name;
+[row,col]=getdatdimensions(sCMOSfile);
 if isempty(Fid)
     Fid=fopen([imFiles filesep sCMOSfile ] );
     setappdata(handles.figure1,'fileID',Fid);
-elseif Fid<=0;
+elseif Fid<=0
     Fid=fopen([imFiles filesep sCMOSfile] );
     setappdata(handles.figure1,'fileID',Fid);
 end
@@ -292,18 +282,16 @@ background=getappdata(0,'background');
 temp=temp-background;
 temp(temp<0)=0;
 
-% fclose(Fid)
-%     temp=pixelIntensityCorrection(temp);
+
 %crop left and right regions
 rect1=R.rect1;
 rect2=R.rect2;
 t_concord=R.t_concord;
 Rsegment=R.Rsegment;
-padRegion=R.padRegion;
 worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 
 if get(handles.channelSelect,'Value')==1
-    baseImg=worm; %red
+    baseImg=worm; 
 else
     activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
     baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
@@ -312,23 +300,18 @@ end
 setappdata(handles.figure1,'baseImg',baseImg);
 setappdata(handles.figure1,'hiResIdx',hiResIdx);
 
-% baseImg=pedistalSubtract(baseImg);
 setappdata(handles.figure1,'currentFrame',iImage);
 setappdata(0,'baseImg',baseImg)
-%     figure
-%     imagesc(smooth2a(baseImg,20,20)>5);
+
 timeStep=str2double(get(handles.timeStep,'String'));
 set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's' ...
     '  ' num2str(zVoltageOut)]);
-%    set(handles.FrameIdx,'string',stackName);
 
 newContrast=getappdata(handles.figure1,'newContrast');
 if isempty(newContrast)
     newContrast=[min(baseImg(:)),max(baseImg(:))];
 end
-%         baseImg(baseImg<newContrast(1)) = newContrast(1);
-%         baseImg(baseImg>newContrast(2)) = newContrast(2);
-%         baseImg = (baseImg-newContrast(1))./diff(newContrast);
+
 hold(handles.axes1,'off')
 ax1=findobj(handles.axes1,'type','Image');
 if isempty(ax1)
@@ -345,11 +328,10 @@ axis(handles.axes1,'equal');
 colorOrder=get(gca,'colorOrder');
 colorOrder=[colorOrder;colorOrder;colorOrder];
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
-        textColor=[1 1 1] ;%textColor=colorOrder(iUser,:);
+        textColor=[1 1 1] ;
         textColor2=[0 0 0];
         textColor2=textColor;
-    if ~isempty(fiducialPoints);
-        %currentFiducialsAll=currentFiducialsAll.fiducialPoints;
+    if ~isempty(fiducialPoints)
         currentFiducials=fiducialPoints{iImage};
         
         setappdata(handles.figure1,'fiducials',currentFiducials);
@@ -363,7 +345,6 @@ fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
     
     if ~isempty(currentPoints)
         
-        %inSlice=interp1(zVoltages,1:length(zVoltages),currentPoints(:,4),'nearest','extrap');
         closeSlice=abs(currentPoints(:,4)-hiResIdx)<3;
         perfectSlice=currentPoints(:,4)==hiResIdx;
         currentTarget=str2double(get(handles.trackedNeuron,'String'));
@@ -455,9 +436,13 @@ if ~isempty(heatData) && regionSelect>0
 
  iImage=round(get(handles.slider1,'Value'));
 colorOrder='rygb';
-%draw dot with colour based on behavior
+%draw dot with colour based on behavior, if behavior is missing, use blue
+if isfield(heatData,'behavior')
 currentBehavior=heatData.behavior.ethogram(iImage);
 currentcolor=colorOrder(currentBehavior+2);
+else
+    currentcolor='black';
+end
 oldPlotState=getappdata(handles.figure1,'oldPlot');
 newPlotState=[regionSelect plotType];
 
@@ -674,7 +659,6 @@ storedImage = get(imageHandle);
 set(imageHandle,'cdata',baseImg,'cdataMapping','scaled');
 
 
-% imshow(baseImg,[]);
 contrastWindow = imcontrast(handles.axes1);
 waitfor(contrastWindow);
 newContrast = getDisplayRange(getimagemodel(findobj('parent',handles.axes1,'type','image')));
@@ -683,11 +667,6 @@ baseImg(baseImg>newContrast(2)) = newContrast(2);
 baseImg = (baseImg-newContrast(1))./diff(newContrast);
 setappdata(handles.figure1,'displayImg',baseImg);
 setappdata(handles.figure1,'newContrast',newContrast);
-
-% currentColorMask = double(repmat(baseImg,[1,1,3]));
-% currentColorMask = currentColorMask*0.8+coloredLabels.*0.2.*(1/255);
-% set(imageHandle,'cdataMapping','direct');
-% set(imageHandle,'cdata',currentColorMask);
 
 % --- Executes on button press in alignmentSelect.
 function alignmentSelect_Callback(hObject, eventdata, handles)

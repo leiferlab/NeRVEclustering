@@ -22,7 +22,7 @@ function varargout = wormCL_Viewer(varargin)
 
 % Edit the above text to modify the response to help wormCL_Viewer
 
-% Last Modified by GUIDE v2.5 03-Nov-2016 11:23:51
+% Last Modified by GUIDE v2.5 03-May-2017 17:10:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -415,7 +415,7 @@ ender=getappdata(handles.figure1,'ender');
 imageName=[imageName,num2str(ender,'%3.5d') '.tif'];
 
 
-if isempty(ender);
+if isempty(ender);;
     ender=1;
 else
     ender=ender+1;
@@ -520,3 +520,31 @@ function uipushtool1_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 imcontrast(handles.axes1)
+
+
+% --- Executes on button press in loadTips.
+function loadTips_Callback(hObject, eventdata, handles)
+% hObject    handle to loadTips (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in fixTips.
+function fixTips_Callback(hObject, eventdata, handles)
+% hObject    handle to fixTips (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in initCL.
+function initCL_Callback(hObject, eventdata, handles)
+% hObject    handle to initCL (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in autoCL.
+function autoCL_Callback(hObject, eventdata, handles)
+% hObject    handle to autoCL (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

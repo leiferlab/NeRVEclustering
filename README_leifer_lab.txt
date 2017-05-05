@@ -169,20 +169,27 @@ STEP 5: SIGNAL EXTRACTION
 #########################################################################
 USEFUL GUIS FOR VISUALIZATION
 
+These guis use wasd gaming controls, ie a for left, d for right, w for up, s for down:
 
-
+GUI to Check Data Before any analysis
+------------------------------------
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
+
+GUIs for post-centerlines
+-------------------------
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
 
 
-These guis use wasd gaming controls, ie a for left, d for right, w for up, s for down:
+WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. Good for use post centerlines but prior to straightening.
 
-WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. Good for use prior to straightening.
 
-VisualzeWorm3danalysis.m - Gui to view straightened worm data along with tracked coordinates
+GUIs for post-pipeline to make sure things worked
+-------------------------------------------------
 
-VisualizeTrackedData.m - Same as previous, but works on the unstraightened .dat file. 
+VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons. 
+
+VisualizeTrackedData.m - Check to see that tracking works well. Works on unstraightened .dat file. 
 
 
 #########################################################################
@@ -206,9 +213,9 @@ CamData.txt	-	text file with relative timing for every frame
 
 
 
-*****NOTE: FOR OLDER DATA
+*****NOTE: FOR OLDER DATA (pre 2016)
 We used to use avi’s that were not time synced and used a YAML file containing the meta data. Using this data requires the code from the repo https://github.com/leiferlab/MindControlAccessUtils.git.
-
+****** (end note for older data)
  
 
 ======Raw Text files======
