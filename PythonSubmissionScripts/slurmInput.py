@@ -169,14 +169,13 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     qsubCommand0 = "q0=$("+ qsubCommand0 + ")" # wrap the whole comaand in parens and set that equal to q0 at the bash level.
     commandList.insert(len(commandList)-1, qsubCommand0) #In the command list, have a command that runs the job and coppies the name into $q0 so that later we can submit jobs that depend on it and refer to it by its number stored in q0
     commandList.insert(len(commandList)-1, "echo $q0")
-    commandList.insert(len(commandList)-1, '\r')
-
+    
     dependencyString=" --dependency=afterok:${q0##* }" #wait for q0 (previous command) to be done successfully. The next job will use the dependency string.
 
 
 #since we can only submit up to 1000 jobs, we have to submit nRuns number of seperate sbatch jobs
     nRuns=totalRuns//1000+1
-    #arbitrary stepsize, these jobs are fairly fast. 
+    #arbitrary stepsize, these jobs are fairly fast, but for counting, limit to 300 jobs
     stepSize=totalRuns//300
     
     
@@ -200,7 +199,6 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
             + " " + code_straighten 
             + " '"  + fullPath +"' "  + str(stepSize) +" " + offset)
         commandList.insert(len(commandList)-1, qsubCommand1)
-    commandList.insert(len(commandList)-1, '\r')
         
     qsubCommand2 = ("sbatch --mem=12000 " 
         + MIN_TIME_STR 
@@ -213,7 +211,6 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
         + " " + code_pscompiler 
         +" '" + fullPath +"'")
     commandList.insert(len(commandList)-1, qsubCommand2)
-    commandList.insert(len(commandList)-1, '\r')
     return commandList
 
 
@@ -246,8 +243,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     matlabDirName = fullPath + "/" +  PS_NAME1
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
-    stepSize=int(np.ceil(50.0/nRef)) #Calculate how many volumes each parallel thread should handle serially. This is arbitrary right now. Parallelize more is generally good, but there are other limits like to the total number of jobs running which we roughly estimate to be limited to about a few thousand. Also its good to remember that tehre still is overhead with starting jobs, so some element of serialization is probably desirable.
-    
+    stepSize=int(np.ceil(totalRuns/1500)) #Calculate how many volumes each parallel thread should handle serially. This is currently capped so that a maximium of 1500 threads are run in this section. 
     input1= "makePointStatsRef('"+ fullPath +"',"+ str(nRef) + ")"
     qsubCommand0 = ("sbatch --mem=2000 " 
         + MIN_TIME_STR 
@@ -260,7 +256,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
         +" \"" + input1 +"\"")
     qsubCommand0 = "q1=$("+ qsubCommand0 + ")"
     commandList.insert(len(commandList)-1, qsubCommand0)
-    commandList.insert(len(commandList)-1, "echo $q0")
+    commandList.insert(len(commandList)-1, "echo $q1")
     commandList.insert(len(commandList)-1, '\r')
     #get jobID number to set up dependency for next job
     dependencyString=" --dependency=afterok:${q1##* }"
@@ -430,7 +426,7 @@ def write_input(commandList,client,fullPath):
             for command in commandList:
                 f.write(command)
                 f.write('\r\n')
-            os.chmod(fileName,0o770)
+            os.chmod(fileName,06775)
     else:
         ftp = client.open_sftp()
         try:
@@ -452,7 +448,7 @@ def make_ouputfolder(client,fullPath):
     if socket.gethostname()=='tigressdata.princeton.edu':
         if not os.path.exists(outputFilePath):
             os.makedirs(outputFilePath)
-            os.chmod(outputFilePath,0o770)
+            os.chmod(outputFile Path,06775)
     else:
         ftp = client.open_sftp()
         try:
@@ -460,5 +456,5 @@ def make_ouputfolder(client,fullPath):
         except IOError:
             ftp.mkdir(outputFilePath)
             time.sleep(1)
-            ftp.chmod(outputFilePath,0o770)
+            ftp.chmod(outputFilePath,06775)
             ftp.close()

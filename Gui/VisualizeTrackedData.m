@@ -22,7 +22,7 @@ function varargout = VisualizeTrackedData(varargin)
 
 % Edit the above text to modify the response to help VisualizeTrackedData
 
-% Last Modified by GUIDE v2.5 17-Apr-2017 10:34:16
+% Last Modified by GUIDE v2.5 05-May-2017 15:35:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before VisualizeTrackedData is made visible.
-function VisualizeTrackedData_OpeningFcn(hObject, eventdata, handles, varargin)
+function VisualizeTrackedData_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -62,10 +62,6 @@ hlistenerz=addlistener(handles.zSlider,'ContinuousValueChange',...
     @plotter);
 setappdata(handles.zSlider,'hlistener',hlistenerz);
 set(handles.zSlider,'SliderStep',[1,1]);
-handles.timer = timer(...
-    'ExecutionMode', 'fixedRate', ...       % Run timer repeatedly
-    'Period', 60, ...                        % Initial period is 10 sec.
-    'TimerFcn', {@updateData,hObject}); % Specify callback function
 
 setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'SliderStep',[1,1]);
@@ -80,7 +76,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = VisualizeTrackedData_OutputFcn(hObject, eventdata, handles)
+function varargout = VisualizeTrackedData_OutputFcn(~, ~, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -91,7 +87,7 @@ varargout{1} = handles.output;
 
 
 % --- Executes on button press in SelectFolder.
-function SelectFolder_Callback(hObject, eventdata, handles)
+function SelectFolder_Callback(~, eventdata, handles)
 % hObject    handle to SelectFolder (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -125,8 +121,8 @@ else
     background=0;
 end
 registration=registration.alignments.S2AHiRes;
-setappdata(0,'registration',registration)
-setappdata(0,'background',background);
+setappdata(handles.figure1,'registration',registration)
+setappdata(handles.figure1,'background',background);
 
 
 if exist([dataFolder filesep 'hiResData.mat'],'file')
@@ -143,13 +139,11 @@ setappdata(handles.figure1,'imFiles',dataFolder);
 set(handles.slider1,'Min',1)
 set(handles.slider1,'Value',1)
 setappdata(handles.figure1,'cursorTarget', 1);
-
 maxFrame=max(hiResData.stackIdx);
 minZ=min(hiResData.Z);
 maxZ=max(hiResData.Z);
-minFrame=1;
 set(handles.maxTime,'String',num2str(maxFrame));
-set(handles.minTime,'String',num2str(minFrame));
+set(handles.minTime,'String',num2str(1));
 set(handles.slider1,'max',maxFrame);
 setappdata(handles.figure1,'currentFrame',1);
 set(handles.slider1,'value',1);
@@ -158,48 +152,44 @@ set(handles.zSlider,'max', maxZ);
 set(handles.zSlider,'value',(maxZ+minZ)/2);
 
 %%% load fiducial points
+fiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
 
-fiducialFile=[dataFolder filesep 'BotfFiducialPoints'];
-%fiducialData=load(fiducialFile);
-timeOffset=load([fiducialFile filesep 'timeOffset']);
+%get all mat files in the fiducials folder. We used to have multiple users,
+%but now there should only ever be one. 
+fiducialFile=dir([fiducialFolder filesep '*.mat']);
+fiducialFile=[fiducialFolder filesep fiducialFile(1).name];
+if exist(fiducialFile,'file')
+fiducialPoints=load(fiducialFile);
+timeOffset=load([fiducialFolder filesep 'timeOffset']);
 timeOffset=timeOffset.timeOffset;
-
 setappdata(handles.figure1,'timeOffset',timeOffset)
-
-%setappdata(handles.figure1,'fiducialsData', fiducialData2)
-userList=dir([fiducialFile filesep '*.mat']); %get all user files
-userList={userList.name};
-userList=userList(~strcmp(userList,'timeOffset.mat'));
-userList=cellfun(@(x) x(1:end-4),userList,'uniform',0);
-fiducialPoints=load([fiducialFile filesep userList{1}]);
 fiducialPoints=fiducialPoints.fiducialPoints;
 setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
-stop(handles.timer)
-
-start(handles.timer);
-
+else
+    statusWarning('No neuron locations found! Has the botCheckCompiler run?')
+end
 
 %%% load heatmap data
 heatDataFile=[dataFolder filesep 'heatData'];
+if exist(heatDataFile,'file')
 heatData=load(heatDataFile);
 setappdata(handles.figure1,'heatData',heatData);
-
-
+else
+    statusWarning('No neural activity found! Has the fiducialCropper run?')
+end
 
 
 
 % --- Executes on slider movement.
-function slider1_Callback(hObject, eventdata, handles)
+function slider1_Callback(~, ~, ~)
 % hObject    handle to slider1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-%plotter(handles.slider1,eventdata);
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-%setappdata(handles.figure1,'currentFrame',get(handles.slider1,'value'));
 
 % --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
+function slider1_CreateFcn(hObject, ~, ~)
 % hObject    handle to slider1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -209,13 +199,11 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
+%Use the slider values to get the current frame to display
+function [hiResIdx,iVolume]=getHiResIdx(handles)
 
-function plotter(hObject,eventdata)
-
-%plots current frame in image window and plot window
-
-handles=guidata(get(hObject,'Parent'));
-iImage=round(get(handles.slider1,'Value'));
+%get slider positions, for time and Z
+iVolume=round(get(handles.slider1,'Value'));
 zPos=(get(handles.zSlider,'Value'));
 zPos=zPos(1);
 if isempty(zPos)
@@ -223,49 +211,58 @@ if isempty(zPos)
     set(handles.zSlider,'Value',1);
 end
 
-
+%pull data
 offset=getappdata(handles.figure1,'timeOffset');
-
-imFiles=getappdata(handles.figure1,'imFiles');
 %for selection of dat files
 
 hiResData=getappdata(handles.figure1,'hiResData');
-R=getappdata(0,'registration');
-
-FrameIdx=getappdata(handles.figure1,'FrameIdx');
+vol_frame_list=getappdata(handles.figure1,'vol_frame_list');
 zVoltages=getappdata(handles.figure1,'zVoltages');
 
-if iImage~=getappdata(handles.figure1,'currentFrame') | isempty(zVoltages)
-    
-    FrameIdx=find(hiResData.stackIdx==iImage);%+offset;
-    FrameIdx=FrameIdx(FrameIdx>(-offset) & FrameIdx<length(hiResData.stackIdx));
-    zVoltages=hiResData.Z(FrameIdx);
+% if we've moved to a new volume, re load the necessary voltage-frame
+% relations and save them. 
+if iVolume~=getappdata(handles.figure1,'currentFrame') || isempty(zVoltages)
+    vol_frame_list=find(hiResData.stackIdx==iVolume);
+    vol_frame_list=...
+        vol_frame_list(vol_frame_list>(-offset)...
+        & vol_frame_list<length(hiResData.stackIdx));
+    zVoltages=hiResData.Z(vol_frame_list);
     [zVoltages,~,ia]=unique(zVoltages);
-    FrameIdx=FrameIdx(ia);
+    vol_frame_list=vol_frame_list(ia);
     [~,ib]=sort(zVoltages,'ascend');
     zVoltages=zVoltages(ib);
-    FrameIdx=FrameIdx(ib);
-    setappdata(handles.figure1,'FrameIdx',FrameIdx);
+    vol_frame_list=vol_frame_list(ib);
+    setappdata(handles.figure1,'vol_frame_list',vol_frame_list);
     setappdata(handles.figure1,'zVoltages',zVoltages);
-    
-    
 end
-
 
 zSlice=interp1(zVoltages,1:length(zVoltages),zPos,'nearest','extrap');
 zVoltageOut=zVoltages(zSlice);
 set(handles.zSlider,'Value',zVoltageOut);
-hiResIdx=FrameIdx(zSlice)+offset;
+
+hiResIdx=vol_frame_list(zSlice)+offset;
 setappdata(handles.figure1,'currentHiResIdx',hiResIdx);
-if getappdata(handles.figure1,'tifFlag')
-    temp=getappdata(handles.figure1,'imageStack');
-    baseImg=temp(:,:,hiResIdx);
-else
-    
+setappdata(handles.figure1,'currentFrame',iVolume);
+set(handles.FrameIdx,'string',[num2str(iVolume,'%6.2f'), ...
+    '  ' num2str(zVoltageOut)]);
+setappdata(handles.figure1,'hiResIdx',hiResIdx);
+
+
+% find the image at hiResIdx, reads data from handles to determine whether
+% to show read or green image. 
+function baseImg=getImage(handles,hiResIdx)
+
+imFiles=getappdata(handles.figure1,'imFiles');
+R=getappdata(handles.figure1,'registration');
+background=getappdata(handles.figure1,'background');
+
+%get image file ID, if its an error, reload it
 Fid=getappdata(handles.figure1,'fileID');
+
 sCMOSfile=dir([imFiles filesep '*.dat']);
 sCMOSfile=sCMOSfile.name;
 [row,col]=getdatdimensions(sCMOSfile);
+
 if isempty(Fid)
     Fid=fopen([imFiles filesep sCMOSfile ] );
     setappdata(handles.figure1,'fileID',Fid);
@@ -274,194 +271,178 @@ elseif Fid<=0
     setappdata(handles.figure1,'fileID',Fid);
 end
 
+%move the pointer to the image and read it in
 status=fseek(Fid,2*hiResIdx*row*col,-1);
-temp=fread(Fid,row*col,'uint16',0,'l');
-temp=(reshape(temp,row,col));
+fullImage=fread(Fid,row*col,'uint16',0,'l');
+fullImage=(reshape(fullImage,row,col));
 
-background=getappdata(0,'background');
-temp=temp-background;
-temp(temp<0)=0;
+fullImage=fullImage-background;
+fullImage(fullImage<0)=0;
 
-
-%crop left and right regions
+% green and red image rectangles
 rect1=R.rect1;
 rect2=R.rect2;
 t_concord=R.t_concord;
 Rsegment=R.Rsegment;
-worm=temp((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 
+%1 for red image, 0 for green
 if get(handles.channelSelect,'Value')==1
-    baseImg=worm; 
+    baseImg=fullImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 else
     activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
     baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
 end
-end
-setappdata(handles.figure1,'baseImg',baseImg);
-setappdata(handles.figure1,'hiResIdx',hiResIdx);
 
-setappdata(handles.figure1,'currentFrame',iImage);
-setappdata(0,'baseImg',baseImg)
 
-timeStep=str2double(get(handles.timeStep,'String'));
-set(handles.FrameIdx,'string',[num2str(iImage*timeStep,'%6.2f') 's' ...
-    '  ' num2str(zVoltageOut)]);
+%plots current frame in image window and plot window
+function plotter(hObject,~)
+%recover main handle
+handles=guidata(get(hObject,'Parent'));
 
-newContrast=getappdata(handles.figure1,'newContrast');
-if isempty(newContrast)
-    newContrast=[min(baseImg(:)),max(baseImg(:))];
-end
+%get the frame index and the volume number
+[hiResIdx,iVolume]=getHiResIdx(handles);
 
+% pull up the image to display
+baseImg=getImage(handles,hiResIdx);
+
+% plot the actual image
 hold(handles.axes1,'off')
 ax1=findobj(handles.axes1,'type','Image');
 if isempty(ax1)
-    ax1=imagesc(baseImg,'Parent',handles.axes1);
+    imagesc(baseImg,'Parent',handles.axes1);
 else
     ax1.CData=baseImg;
 end
 
-caxis(handles.axes1, [newContrast]);
-hold(handles.axes1,'on')
+newContrast=getappdata(handles.figure1,'newContrast');
+if ~isempty(newContrast)
+    caxis(handles.axes1, newContrast);
+end
 axis(handles.axes1,'equal');
 
-
-colorOrder=get(gca,'colorOrder');
-colorOrder=[colorOrder;colorOrder;colorOrder];
+%get neuron points
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
-        textColor=[1 1 1] ;
-        textColor2=[0 0 0];
-        textColor2=textColor;
-    if ~isempty(fiducialPoints)
-        currentFiducials=fiducialPoints{iImage};
-        
-        setappdata(handles.figure1,'fiducials',currentFiducials);
+if ~isempty(fiducialPoints)
+    currentFiducials=fiducialPoints{iVolume};
+    setappdata(handles.figure1,'fiducials',currentFiducials);
+    plotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
+    currentPoints=cell2mat(currentFiducials(:,1:4));
+end
 
+if ~isempty(currentPoints)
+    hold(handles.axes1,'on')
+
+    % will will show the neuron currently being tracked, along with other
+    % neurons that are either in the same plane or in a plane close by. 
+    currentTarget=str2double(get(handles.trackedNeuron,'String'));
+    trackedPoint=currentPoints(currentTarget,:);
         
-        plotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
-        currentPoints=cell2mat(currentFiducials(:,1:4));
-    else
-        currentPoints=[];
+    textColor=[1 1 1] ;
+    % closeSlices are within +/- 2 frames of the currently shown frame,
+    % these neurons will be shown in black
+    closePointIDS=abs(currentPoints(:,4)-hiResIdx)<3;
+    closePointIDS(currentTarget)=0; % no need to highlight twice
+    closePoints=currentPoints(closePointIDS,:);
+    % perfectSlice neurons lie in the exact plane being visualized, they
+    % will be shown with a red x
+    inSlicePointIDs=currentPoints(:,4)==hiResIdx;
+    inSlicePoints=currentPoints(inSlicePointIDs,:);
+
+    %remove current scatter and text objects from axes
+    delete(findobj(handles.axes1,'type','scatter'))
+    delete(findobj(handles.axes1,'type','text'))
+    
+    if closeSlice(currentTarget)
+        %show the currently tracked neuron in green
+        text( trackedPoint(1), trackedPoint(2),num2str(currentTarget),...
+            'VerticalAlignment','bottom', ...
+            'HorizontalAlignment','right',...
+            'color',[0 1 0],...
+            'fontsize',11,...
+            'parent',handles.axes1);
+        
+        scatter(handles.axes1,...
+            trackedPoint(1),...
+            trackedPoint(2),'green');
     end
     
-    if ~isempty(currentPoints)
-        
-        closeSlice=abs(currentPoints(:,4)-hiResIdx)<3;
-        perfectSlice=currentPoints(:,4)==hiResIdx;
-        currentTarget=str2double(get(handles.trackedNeuron,'String'));
-        trackedPoint=currentPoints(currentTarget,:);
-        delete(findobj(handles.axes1,'type','scatter'))
-        delete(findobj(handles.axes1,'type','text'))
-        if ~isempty(currentPoints)
-         if closeSlice(currentTarget)
-            text( trackedPoint(1), trackedPoint(2),num2str(currentTarget),...
-                'VerticalAlignment','bottom', ...
-                'HorizontalAlignment','right',...
-                'color',[0 1 0],...
-                 'fontsize',11,'parent',handles.axes1);
-             scatter(handles.axes1,...
-                 trackedPoint(1),...
-                 trackedPoint(2),'black');
-             if perfectSlice(currentTarget)
-             scatter(handles.axes1,...
-                 trackedPoint(1),...
-                 trackedPoint(2),'xr');
-             end
-             closeSlice(currentTarget)=0;
-             perfectSlice(currentTarget)=0;
-             
-             
-         end
-         
-         
-         switch getappdata(handles.figure1,'show')
-                case 1
-                    scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
-                    scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
-                    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),[cellstr(num2str(plotIdx(closeSlice)))],'VerticalAlignment'...
-                        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
-                        'fontsize',10,'parent',handles.axes1);
-                    
-                case 2
-                    scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
-                    scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
-                    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),...
-                        cellfun(@(x) [user x],cellstr(num2str(plotIdx(closeSlice))),'uniform',0)...
-                        ,'VerticalAlignment','bottom', ...
-                        'HorizontalAlignment','right',...
-                        'color',textColor,...
-                        'fontsize',10,'parent',handles.axes1);
-                case 3
-                    cursorTarget=getappdata(handles.figure1,'cursorTarget');
-                    cursorTarget=plotIdx==cursorTarget;
-                    cursorTarget=cursorTarget & perfectSlice;
-                    scatter(handles.axes1,currentPoints(cursorTarget,1),currentPoints(cursorTarget,2),'xr');
-                case 4
-                    if iUser ==get(handles.usersDropdown,'Value')
-                    scatter(handles.axes1,currentPoints(closeSlice,1),currentPoints(closeSlice,2),'black');
-                    scatter(handles.axes1,currentPoints(perfectSlice,1),currentPoints(perfectSlice,2),'xr');
-                    text( currentPoints(closeSlice,1), currentPoints(closeSlice,2),[cellstr(num2str(plotIdx(closeSlice)))],'VerticalAlignment'...
-                        ,'bottom', 'HorizontalAlignment','right','color',textColor,...
-                        'fontsize',10,'parent',handles.axes1);  
-                    end
-         end
-        end
-        
+    %show the rest of the points, the ones that are close are shown 
+    scatter(handles.axes1,...
+        closePoints(1),closePoints(2),'black');
+    scatter(handles.axes1,...
+        inSlicePoints(1),inSlicePoints(2),'xr');
     
-    %allPoints=cat(2,allPoints,currentPoints);
+    text( closePoints(1), closePoints(2),...
+        cellstr(num2str(plotIdx(closeSlice))),...
+        'VerticalAlignment','bottom',...
+        'HorizontalAlignment','right',...
+        'color',textColor,...
+        'fontsize',10,...
+        'parent',handles.axes1);
+    hold(handles.axes1,'off')
+else
+    statusWarning(handles,'Warning, no neuron locations found!')
 end
-%setappdata(handles.figure1,'allPoints',allPoints)
-hold(handles.axes1,'off')
+
 tracePlotter(handles,currentTarget);
 drawnow;
 
-function tracePlotter(handles,regionSelect)
-
+%plot the trace of the activity
+function tracePlotter(handles,target)
 heatData=getappdata(handles.figure1,'heatData');
 
-%plot the selected heatmap data if present
-if ~isempty(heatData) && regionSelect>0
-    plotType=get(handles.plotDisplay,'Value');
- switch plotType
-     case 1
-         plotTrace=heatData.Ratio2(regionSelect,:);
-     case 2
-         plotTrace=heatData.R2(regionSelect,:);
-     case 3
-         plotTrace=heatData.G2(regionSelect,:);
-     case 4
-         plotTrace=heatData.rRaw(regionSelect,:);
-     case 5
-         plotTrace=heatData.gRaw(regionSelect,:);
- end
+%if heatdata is missing, skip all of this
+if ~isempty(heatData) && target>0
+    return
+end
 
- iImage=round(get(handles.slider1,'Value'));
+%plot the selected data trace if present
+plotType=get(handles.plotDisplay,'Value');
+switch plotType
+    case 1
+        plotTrace=heatData.Ratio2(target,:);
+    case 2
+        plotTrace=heatData.R2(target,:);
+    case 3
+        plotTrace=heatData.G2(target,:);
+    case 4
+        plotTrace=heatData.rRaw(target,:);
+    case 5
+        plotTrace=heatData.gRaw(target,:);
+end
+
+iVolume=round(get(handles.slider1,'Value'));
+
 colorOrder='rygb';
 %draw dot with colour based on behavior, if behavior is missing, use blue
 if isfield(heatData,'behavior')
-currentBehavior=heatData.behavior.ethogram(iImage);
-currentcolor=colorOrder(currentBehavior+2);
+    currentBehavior=heatData.behavior.ethogram(iVolume);
+    currentcolor=colorOrder(currentBehavior+2);
 else
     currentcolor='black';
 end
 oldPlotState=getappdata(handles.figure1,'oldPlot');
-newPlotState=[regionSelect plotType];
+newPlotState=[target plotType];
 
-
- if ~all(ismember(oldPlotState,newPlotState)) || isempty(oldPlotState)
- plot(handles.axes3,plotTrace);
- hold(handles.axes3,'on')
- tracePoint=scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
- setappdata(handles.figure1,'tracePoint',tracePoint);
- hold(handles.axes3,'off');
- setappdata(handles.figure1,'oldPlot',newPlotState)
- else
-     tracePoint=getappdata(handles.figure1,'tracePoint');
-     tracePoint.YData=plotTrace(iImage);
-     tracePoint.XData=iImage;
- end
- 
- xlim(handles.axes3,[max(iImage-100,1),min(length(plotTrace),iImage+100)]);
+%if either the neuron being tracked or the type of plot has changed, you
+%need to reload the data, otherwise, just move the dot and slide the window
+if ~all(ismember(oldPlotState,newPlotState)) || isempty(oldPlotState)
+    plot(handles.axes3,plotTrace);
+    hold(handles.axes3,'on')
+    tracePoint=scatter(handles.axes3,...
+        iVolume,plotTrace(iVolume),...
+    currentcolor,'filled');
+    setappdata(handles.figure1,'tracePoint',tracePoint);
+    hold(handles.axes3,'off');
+    setappdata(handles.figure1,'oldPlot',newPlotState)
+else
+    tracePoint=getappdata(handles.figure1,'tracePoint');
+    tracePoint.YData=plotTrace(iVolume);
+    tracePoint.XData=iVolume;
 end
+
+xlim(handles.axes3,[max(iVolume-100,1),min(length(plotTrace),iVolume+100)]);
+
 
 
 
@@ -497,38 +478,22 @@ function goBack_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 step=str2double(get(handles.timeStep,'String'));
-    moveFrame(hObject,eventdata,handles,-step);
+moveFrame(hObject,eventdata,handles,-step);
 
-
-function moveFrame(hObject,eventdata,handles,move)
-set(handles.slider1,'value',get(handles.slider1,'value')+move);
-currentSlide=get(handles.zSlider,'value');
+%moves from the current frame to current frame + step. The program will try
+%its best to keep the same Z level or stay on the same neuron. 
+function moveFrame(~,eventdata,handles,step)
+set(handles.slider1,'value',get(handles.slider1,'value')+step);
 currentFrame=round(get(handles.slider1,'value'));
-previousFiducials=[];
-currentFiducials=[];
 fiducialsAll=getappdata(handles.figure1,'fiducialPoints');
-steps=getappdata(handles.figure1,'stepCounter');
-
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
-    
-        currentPlotIdx=find(any(cell2mat((cellfun(@(x) ~isempty(x),...
-            fiducialsAll{currentFrame},'uniformoutput',0))),2));
-        
-        currentFiducials=cell2mat(fiducialsAll{currentFrame}(:,1:4));
-        
-        
-             if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
-                newZ=fiducialsAll{currentFrame}{currentTarget,3};
-            else
-                newZ=[];
-            end
+if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
+    newZ=fiducialsAll{currentFrame}{currentTarget,3};
+else
+    newZ=[];
+end
+set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
 
-    
-    %   fiducialPoints=getappdata(handles.figure1,'fiducials');
-    %    currentFiducials=fiducialPoints{currentFrame};
-    
-    set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
-    
 
 plotter(handles.slider1,eventdata)
 
@@ -540,13 +505,12 @@ function goForward_Callback(hObject, eventdata, handles)
 % hObject    handle to goForward (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-%FPS=getappdata(handles.figure1,'FPS');
 step=str2double(get(handles.timeStep,'String'));
 moveFrame(hObject,eventdata,handles,step)
 
 
 % --- Executes on selection change in plotChannel.
-function plotChannel_Callback(hObject, eventdata, handles)
+function plotChannel_Callback(~, ~, handles)
 % hObject    handle to plotChannel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -556,7 +520,7 @@ plotter(handles.slider1,'eventdata');
 
 
 % --- Executes during object creation, after setting all properties.
-function plotChannel_CreateFcn(hObject, eventdata, handles)
+function plotChannel_CreateFcn(hObject, ~, ~)
 % hObject    handle to plotChannel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -653,10 +617,8 @@ function adjustContrast_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % display the base image, calculate the display image;
-baseImg = getappdata(handles.figure1,'baseImg');
 imageHandle = findobj('Parent',handles.axes1,'type','image');
-storedImage = get(imageHandle);
-set(imageHandle,'cdata',baseImg,'cdataMapping','scaled');
+set(imageHandle,'CData',imageHandle.CData,'cdataMapping','scaled');
 
 
 contrastWindow = imcontrast(handles.axes1);
@@ -667,16 +629,6 @@ baseImg(baseImg>newContrast(2)) = newContrast(2);
 baseImg = (baseImg-newContrast(1))./diff(newContrast);
 setappdata(handles.figure1,'displayImg',baseImg);
 setappdata(handles.figure1,'newContrast',newContrast);
-
-% --- Executes on button press in alignmentSelect.
-function alignmentSelect_Callback(hObject, eventdata, handles)
-% hObject    handle to alignmentSelect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-[rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\');
-registration=load([parent filesep rpath]);
-setappdata(0,'registration',registration);
-
 
 % --- Executes on slider movement.
 function zSlider_Callback(hObject, eventdata, handles)
@@ -698,10 +650,6 @@ function zSlider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
-
-% --- Executes on button press in centerlineSelect.
-
 
 
 function maxTime_Callback(hObject, eventdata, handles)
@@ -748,29 +696,6 @@ set(handles.slider1,'Value',minFrame);
 % --- Executes during object creation, after setting all properties.
 function minTime_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to minTime (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function timeOffset_Callback(hObject, eventdata, handles)
-% hObject    handle to timeOffset (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of timeOffset as text
-%        str2double(get(hObject,'String')) returns contents of timeOffset as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function timeOffset_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to timeOffset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -837,44 +762,17 @@ switch getappdata(handles.figure1,'show')
         display('Show only from current User');
 end
 
-                    
+
 plotter(handles.slider1,eventdata)
 
-
-% --- Executes on button press in loadFiducials.
-function loadFiducials_Callback(hObject, eventdata, handles)
-% hObject    handle to loadFiducials (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-imFiles=getappdata(handles.figure1,'imFiles');
-if ~isdir(imFiles)
-    parent=fileparts(imFiles);
+function statusWarning(handles,statusString)
+if isempty(statusString)
+    handles.status.BackgroundColor=[0 1 0];
+    handles.status.String='All Good!';
 else
-    parent=imFiles;
+    handles.status.String=statusString;
+    handles.status.BackgroundColor=[.9 0 0];
 end
-fiducialFile=uipickfiles('filterspec',parent,...
-   'Prompt', 'Select botFiducials Folder' );
-
-fiducialFile=fiducialFile{1};
-%fiducialData=load(fiducialFile);
-timeOffset=load([fiducialFile filesep 'timeOffset']);
-timeOffset=timeOffset.timeOffset;
-
-setappdata(handles.figure1,'timeOffset',timeOffset)
-
-%setappdata(handles.figure1,'fiducialsData', fiducialData2)
-set(handles.currentFiducialFile,'String',fiducialFile)
-userList=dir([fiducialFile filesep '*.mat']); %get all user files
-userList={userList.name};
-userList=userList(~strcmp(userList,'timeOffset.mat'));
-userList=cellfun(@(x) x(1:end-4),userList,'uniform',0);
-fiducialPoints=load([fiducialFile filesep userList{1}]);
-fiducialPoints=fiducialPoints.fiducialPoints;
-setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
-stop(handles.timer)
-
-start(handles.timer);
 
 
 % --- Executes on mouse press over figure background.
@@ -1007,13 +905,13 @@ function loadHeatData_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 mostRecent=getappdata(0,'mostRecent');
 heatDataFile=uipickfiles('FilterSpec',mostRecent,...
-   'Prompt', 'Select the heatData.mat file' );
+    'Prompt', 'Select the heatData.mat file' );
 heatDataFile=heatDataFile{1};
 heatData=load(heatDataFile);
 setappdata(handles.figure1,'heatData',heatData);
 
 % --- Executes on selection change in pointShowType.
-function pointShowType_Callback(hObject, eventdata, handles)
+function pointShowType_Callback(~, ~, ~)
 % hObject    handle to pointShowType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1023,7 +921,7 @@ function pointShowType_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function pointShowType_CreateFcn(hObject, eventdata, handles)
+function pointShowType_CreateFcn(hObject, ~, ~)
 % hObject    handle to pointShowType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1036,7 +934,48 @@ end
 
 
 % --- Executes on mouse press over axes background.
-function axes1_ButtonDownFcn(hObject, eventdata, handles)
+function axes1_ButtonDownFcn(~, ~, ~)
 % hObject    handle to axes1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in flagNeuron.
+function flagNeuron_Callback(hObject, ~, handles)
+% hObject    handle to flagNeuron (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+currentTarget=str2double(get(handles.trackedNeuron,'String'));
+flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
+flagged_neurons=[flagged_neurons, currentTarget];
+setappdata(handles.figure1,'flagged_volumes',flagged_neurons);
+
+
+% --- Executes on button press in flagTime.
+function flagTime_Callback(hObject, eventdata, handles)
+% hObject    handle to flagTime (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[~,iVolume]=getHiResIdx(handles);
+flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
+flagged_volumes=[flagged_volumes, iVolume];
+setappdata(handles.figure1,'flagged_volumes',flagged_volumes);
+
+
+% --- Executes on button press in saveHeatMap.
+function saveHeatMap_Callback(hObject, eventdata, handles)
+% hObject    handle to saveHeatMap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.currentFolder,'String',dataFolder);
+flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
+flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
+%%% load heatmap data
+heatDataFile=[dataFolder filesep 'heatData'];
+if exist(heatDataFile,'file')
+    save(heatDataFile,'flagged_volumes','flagged_neurons','-append')
+else
+    statusWarning('No neural activity found! Has the fiducialCropper run?')
+end
+

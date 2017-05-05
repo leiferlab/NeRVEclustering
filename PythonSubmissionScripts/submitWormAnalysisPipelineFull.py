@@ -143,13 +143,24 @@ def submitScript(master=None):
     #submit the command list to della
     commands = "\n".join(commandList)
     stdin, stdout, stderr = client.exec_command(commands)
-    
-    print('stdOutput:')
     returnedOutput = stdout.readlines()
+    returnedErr = stderr.readlines()
+    
+    returnedOutput=['#### OUTPUT \n']+returnedOutput
+    returnedErr=['#### ERROR \n']+returnedErr
+    
+    slurm.write_input(returnedOutput,client,fullPath)
+    slurm.write_input(returnedErr,client,fullPath)
+
+
+    print('stdOutput:')
     print(' '.join(returnedOutput))
     print('stdError:')
-    print(stderr.readlines())
+    print(' '.join(returnedErr))
+    
     print('Done submitting job.\n\n')
+    
+    
     
     print('''
         The following output files will be produced and saved in
