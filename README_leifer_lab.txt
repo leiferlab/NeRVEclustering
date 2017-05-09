@@ -7,7 +7,8 @@ This repository hold the code used for the analyzing movies from the Leifer Lab'
 
 
 #########################################################################
-SETUP 
+SETUP
+
 #########################################################################
 
 All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
@@ -46,7 +47,9 @@ You can then run any GUI typing the name of the .m file into the command line.
 
 		
 ######################################################################
-ANALYSIS PIPELINE
+
+ANALYSIS PIPELIN
+E
 ######################################################################
 
 
@@ -251,5 +254,41 @@ alignments.mat -matlab structure with fields containing the affine transforms fo
 	S2AHiRes	- affine transformation between the RFP channel and the Gcamp6s channel of the hi magnification image along the the cropping rectangles for each of them.
 	Hi2LowResFluor	- affine transformation between the RFP hi magnification image (before cropping) and the hi magnification fluorescent images
 
+
+
+======Output Files ========
+The result of the pipeline is various .mat files that contain neural signals and coordinates. The main output is heatData.mat
+
+heatData.mat 
+Signal vairables
+	rRaw - an N neurons x T volumes matrix with the raw red signal from each of the neurons. Signals are averaged pixel values around each tracked neuron with no other processing except for flash removal. 
+	gRaw - same as rRaw but for the green signal. 
+
+	rPhotoCorr - the rRaw signal after photobleaching correction for each neuron. No other smoothing or normalization is applied. Photobleaching correction is applied by fitting an exponential curve to a wide 20th percentile filter, and then subtraction the exponential from the raw signal.
+	gPhotoCorr - same as above but with the green signal. Exponential curves are fit independently. 
+
+	R2 - Smoothed and normalized version of rPhotoCorr.Normalization is done as delta F/ F0, where F0 is the lower 20th percentile signal. 
+	G2 - Same as above but with gPhotoCorr.
+
+	Ratio2 - The ratio signal is defined as gPhotoCorr/rPhotoCorr, the Ratio is then normalized as delta R/ R0. is the same way as R2 and G2. 
+
+
+
+Other fields:
+behavior - structure with 
+    ethogram: t Volumes by 1 vector of behaviors, -1 for reverse, 0 pause, 1 forward, 2 turn. Behaviors determined automatically using the centerlines.
+       x_pos: t Volumes by 1 vector of x coordinates in the reference frame of the plate.
+       y_pos: t Volumes by 1 vector of y coordinates in the reference frame of the plate.
+           v: t Volumes by 1 vector of worm center of mass velocities in the reference frame of the plate. Positive is forward, negative reverse.
+       pc1_2: t Volumes by 2 vector of the projections onto the first two eigenworms. 
+        pc_3: t Volumes by 1 vector of the projections onto the third eigenworm. 
+
+XYZcoord - N neurons x 3 XYZ coordinates for the neurons. The coordinates are taken by a random straightened volume from the recording to serve as an example.
+
+acorr - a n Neurons x n Neurons pearson correlation matrix of Ratio2
+
+cgIdx - ordered indices derived from heirarchically clustering the correlation matrix. To show organized traces, use Ratio2(cgIdx,:)
+
+hasPointsTime- a t volumes by 1 vector of time for each volume. 
 
 

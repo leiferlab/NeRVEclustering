@@ -9,7 +9,7 @@ function fiducialCropper3( dataFolder)
 % into a heatData.mat file in the dataFolder
 
 
-%write to status file
+%write to status file if we're on della (only newer versions of matlab)
 hostname = char( getHostName( java.net.InetAddress.getLocalHost ) );
 if contains(hostname,'della')
     Fid=fopen([dataFolder filesep 'status.txt'],'a');
@@ -19,12 +19,7 @@ if contains(hostname,'della')
 end
 
 
-%% create some Gaussian Kernals
-
-
-filterKernal2=makeGaussKernel(500);
-
-
+%% Extract signal from neurons
 [RvalAll,GvalAll]=extractSignal(dataFolder);
 
 %% makes photobleaching corrected, spatially corrected heatmaps, saves result
@@ -39,7 +34,7 @@ load([dataFolder filesep 'heatData'])
 pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
 pointStats=load(pointStatsFile);
 pointStats=pointStats.pointStatsNew;
-XYZcoord=getSampleCoordinates(pointStats);
+XYZcoord=getSampleCoordinates(pointStats); %will be saved
 
 hasPoints=1:length(pointStats);
 hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
@@ -64,7 +59,7 @@ hiResCLbehavior=interp1(clTime,CLbehavior,hiResData.frameTime,'nearest',0);
 
 
 %% Calculate worm velocities
-
+filterKernal2=makeGaussKernel(500);
 filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
 xV=imfilter((xPos),filterKernal2)./filterFactor2;
 yV=imfilter((yPos),filterKernal2)./filterFactor2;
