@@ -55,7 +55,7 @@ function VisualizeWorm3dAnalysis_OpeningFcn(hObject, eventdata, handles, varargi
 % Choose default command line output for VisualizeWorm3dAnalysis
 handles.output = hObject;
 hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
-    @goForward_Callback);
+    @plotSlide);
 setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'SliderStep',[1,1]);
 
@@ -63,14 +63,6 @@ hlistener2=addlistener(handles.slider2,'ContinuousValueChange',...
     @plotSlide);
 setappdata(handles.slider2,'hlistener',hlistener2);
 set(handles.slider2,'SliderStep',[1,1]);
-
-
-% 
-% [rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\','Select Registration File');
-% registration=load([parent filesep rpath]);
-% 
-
-%setappdata(0,'registration',registration);
 
 playt.TimerFcn = {@TmrFcn,handles};
 playt.BusyMode = 'Queue';
@@ -114,34 +106,42 @@ mostRecent=getappdata(0,'mostRecent');
 dataFolder=uipickfiles('filterspec',mostRecent,...
     'Prompt', 'Select Data Folder');
 dataFolder=dataFolder{1};
+setappdata(0,'mostRecent',fileparts(dataFolder));
 
-    pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
-    
-    psFolder=dir([dataFolder filesep 'CLstraight*']);
-    imFolder=[dataFolder filesep psFolder(end).name];
-    imFiles=dir([imFolder filesep  '*.tif']);
-
-    isDigits=isstrprop(imFiles(1).name,'digit');
-    nDigits=sum(isDigits);
-    fileNameRoot=imFiles(1).name(1:find(isDigits,1,'first')-1);  
+%get CLstraight folder with the individual volume data and images
+psFolder=dir([dataFolder filesep 'CLstraight*']);
+imFolder=[dataFolder filesep psFolder(end).name];
+imFiles=dir([imFolder filesep  '*.tif']);
+isDigits=isstrprop(imFiles(1).name,'digit');
+nDigits=sum(isDigits);
+fileNameRoot=imFiles(1).name(1:find(isDigits,1,'first')-1);
 
 
-display('Select mat file with points');
+display('Loading mat file with neuron coordinates');
+pointStatsFile=[dataFolder filesep 'pointStatsNew.mat'];
 dataMat=load(pointStatsFile);
-
 fieldName=fieldnames(dataMat);
 dataMat=getfield(dataMat,fieldName{1});
+%save the pointStats file
 setappdata(handles.figure1,'TrackData',dataMat);
+
+display('Loading mat file with centerlines');
 [centerline, offset]=loadCLBehavior(dataFolder);
 CLdata.centerline=centerline;
 CLdata.offset=offset;
+%save centerline
 setappdata(handles.figure1,'CLdata',CLdata);
 
+
+display('Loading mat file with neural signals');
 heatFile=[dataFolder filesep 'heatData.mat'];
 heatData=load(heatFile);
+%save centerline
 setappdata(handles.figure1,'heatData',heatData);
 
-% ethogramColormap
+%display the ethogram
+
+% define ethogramColormap
 fcolor=[0 1 0];%[27 158 119]/256;
 bcolor=[1 0 0];%[217 95 2]/256;
 turncolor=[0 0 1];%[117 112 179]/256;
@@ -161,6 +161,7 @@ colormap(handles.axes5,ethocolormap);
 axis(handles.axes5,'off');
 hold(handles.axes5,'on');
 
+%draw verticle line for current time
 ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
 setappdata(handles.figure1,'ethoPlot',ethoPlot);
 hold(handles.axes5,'off');
@@ -169,10 +170,10 @@ hold(handles.axes5,'off');
 
 
 imageInfo=imfinfo([imFolder filesep imFiles(1).name]);
-setappdata(0,'imFiles',imFiles);
-setappdata(0,'imFolder',imFolder);
-setappdata(0,'ndigits',nDigits);
-setappdata(0,'fileNameRoot',fileNameRoot);
+setappdata(handles.figure1,'imFiles',imFiles);
+setappdata(handles.figure1,'imFolder',imFolder);
+setappdata(handles.figure1,'ndigits',nDigits);
+setappdata(handles.figure1,'fileNameRoot',fileNameRoot);
 %setting slider parameters
 set(handles.slider1,'Min',1)
 
@@ -204,17 +205,6 @@ function slider1_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 setappdata(handles.figure1,'currentFrame',get(handles.slider1,'value'));
 
-% --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
 
 % --- Executes on selection change in channelSelect.
 function channelSelect_Callback(hObject, eventdata, handles)
@@ -226,166 +216,54 @@ plotter(handles.slider1,eventdata);
 %        contents{get(hObject,'Value')} returns selected item from channelSelect
 
 
-% --- Executes during object creation, after setting all properties.
-function channelSelect_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to channelSelect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+%pull the slice from the stack specified by the sliders
+function baseImg= getImage(handles)
 
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+fileNameRoot=getappdata(handles.figure1,'fileNameRoot');
+ndigits=getappdata(handles.figure1,'ndigits');
+imFolder=getappdata(handles.figure1,'imFolder');
 
-
-
-
-
-
-function plotter(hObject,eventdata)
-% function does the actual plotting of image and points
-
-%get globals and gui settings
-handles=guidata(get(hObject,'Parent'));
-currentFrame=round(getappdata(handles.figure1,'currentFrame'));
-dataFrame=getappdata(handles.figure1,'dataFrame');
-timeStep=str2double(get(handles.timeStep,'string'));
-smoothWindow=str2double(get(handles.smoothingWindow,'String'));
-startTime=str2double(get(handles.startTime,'String'));
-normalizeFlag=get(handles.normalizeButton,'value');
-displayRange=str2double(get(handles.displayRange,'String'));
-ndigits=getappdata(0,'ndigits');
-fileNameRoot=getappdata(0,'fileNameRoot');
-imFolder=getappdata(0,'imFolder');
 iImage=round(get(handles.slider1,'Value'));
 iSlice=round(get(handles.slider2,'Value'));
-imFiles=getappdata(0,'imFiles');
-
-ethoPlot=getappdata(handles.figure1,'ethoPlot');
-ethoPlot.XData=[currentFrame currentFrame];
-
-if isempty(iSlice)
-    iSlice=1;
-    set(handles.slider2,'Value',1);
-end
-
-TrackData=getappdata(handles.figure1,'TrackData');
 imageName=[fileNameRoot num2str(iImage,['%6.' num2str(ndigits) 'd'])];
-nIdx=(cellfun(@(x) str2double(x), cellstr(imageName')));
-nIdx=find(~isnan(nIdx) & ~imag(nIdx));
-set(handles.currentFolder,'string', imageName);
-imageNumber=str2double(imageName(nIdx));
-
-% try
-% neuronId=round(str2double(get(handles.trackNeuron,'String')));
-% pointsi=TrackData{iImage};
-% neuronInfo=pointsi(pointsi(:,4)==neuronId,:);
-% iSlice=round(neuronInfo(3));
-% catch
-% end
 
 
-% plot points if they're there
-trackRange={TrackData.stackIdx}';
-trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
-iTrack=find(cell2mat(trackRange)==imageNumber);
-set(handles.FrameIdx,'string',['t=' num2str(TrackData(iTrack).stackIdx,'%6.2f')]);
-heatData=getappdata(handles.figure1,'heatData');
-colorOrder='rygb';
-
-%color ball based on behavior, or if no ethotrack, just use default
-if isfield(heatData,'ethoTrack')
-    currentcolor=colorOrder(heatData.ethoTrack(currentFrame)+2); 
-else
-    currentcolor='b';
+if get(handles.channelSelect,'Value')==2 || get(handles.channelSelect,'Value')==3
+    dataFrame=getappdata(handles.figure1,'dataFrame');
+    if any(dataFrame==iImage)
+        ps=getappdata(handles.figure1,'ps');
+    else
+        ps=load([imFolder filesep 'pointStats' imageName(6:end) '.mat']);
+        ps=ps.pointStats;
+        setappdata(handles.figure1,'ps',ps);
+    end
+    baseMask=ps.baseImg(:,:,iSlice);
+    contour(handles.axes1,baseMask,'black','LineWidth',.4);
 end
 
-if exist([imFolder filesep imageName '.tif'],'file') && any(iTrack)
-shapeVector='xso^d<>';
-%show only points that have been assigned an ID
-pointsi=TrackData(iTrack).straightPoints;
-   nselect=str2double(get(handles.trackNeuron,'String'));
-          regionSelect=(nselect);
- %plot the type of points selected
-switch get(handles.pointShowType,'Value')
-    case 1
-pointID=TrackData(iTrack).trackIdx;
-    case 2
-pointID=1:length(TrackData(iTrack).straightPoints);
-    case 3
-pointID=TrackData(iTrack).matchIdx;
-    case 4
-pointID=TrackData(iTrack).trackIdx;
-if ~isempty(heatData) %relabel with clustered labels
-pointID(~isnan(pointID))=heatData.cgIdxRev(pointID(~isnan(pointID)));
-regionSelect=heatData.cgIdxRev(regionSelect);
+if get(handles.channelSelect,'Value')==3
+    baseImg=bwlabeln(ps.baseImg,6);
+    baseImg=baseImg/max(baseImg(:));
+    baseImg=baseImg(:,:,iSlice);
+    return
+elseif get(handles.channelSelect,'Value')==2
+    baseImg=ps.baseImg;
+    baseImg=baseImg(:,:,iSlice);
+    return
 end
 
-    otherwise
-pointID=TrackData(iTrack).trackIdx;
+
+if ~exist([imFolder filesep imageName '.tif'],'file')
+    %% add some sort of error
+    return
 end
-pointID=pointID(:);
-
-%plot the selected heatmap data if present
-if ~isempty(heatData) && regionSelect>0
- switch get(handles.plotDisplay,'Value')
-     case 1
-         plotTrace=heatData.Ratio2(regionSelect,:);
-     case 2
-         plotTrace=heatData.R2(regionSelect,:);
-     case 3
-         plotTrace=heatData.G2(regionSelect,:);
-     case 4
-         plotTrace=heatData.rRaw(regionSelect,:);
-     case 5
-         plotTrace=heatData.gRaw(regionSelect,:);
- end
-
- oldNeuron=getappdata(handles.figure1,'regionSelect');
- if ~any(oldNeuron==regionSelect)
- plot(handles.axes3,plotTrace);
- hold(handles.axes3,'on')
- tracePoint=scatter(handles.axes3,currentFrame,plotTrace(currentFrame),currentcolor,'filled');
- setappdata(handles.figure1,'tracePoint',tracePoint);
- hold(handles.axes3,'off');
- else
-     tracePoint=getappdata(handles.figure1,'tracePoint');
-     tracePoint.XData=currentFrame;
-     tracePoint.YData=plotTrace(currentFrame);
- end
- xRange=currentFrame+[-100,100];
- xRange=xRange-min(xRange(1),0);
- xlim(handles.axes3,xRange);
- ylim(handles.axes3,nanmean(plotTrace)+[-.5 1]*(nanstd(plotTrace)*4));
-end
-% if any(regionSelect)
-%     iSlice=round(pointsi(regionSelect,3));
-%     
-% end
-set(handles.sliceIdx,'string',['z=' num2str(iSlice,'%6.2f')]);
-
-
-%show image 
-stackSize=get(handles.slider2,'max');
-
-
-if mod(iImage,2)==1 && get(handles.flipOdd,'Value')
-    imSlice=stackSize-iSlice+1;
-elseif mod(iImage,2)==0 && get(handles.flipEven,'Value')
-        imSlice=stackSize-iSlice+1;
-else
-    imSlice=iSlice;
-end
- 
+%read actual image
 baseImg=double(imread([imFolder filesep imageName],'tif',...
-    'Index',imSlice));
+    'Index',iSlice));
 
-
-%clear current axes
-%arrayfun(@(x) delete(x),get(handles.axes1,'children'))
-
+% apply contrast, may change how I do this
 setappdata(handles.figure1,'baseImg',baseImg);
+
 newContrast=getappdata(handles.figure1,'newContrast');
 if isempty(newContrast)
     newContrast=[min(baseImg(:)),max(baseImg(:))];
@@ -393,117 +271,238 @@ end
 baseImg(baseImg<newContrast(1)) = newContrast(1);
 baseImg(baseImg>newContrast(2)) = newContrast(2);
 baseImg = (baseImg-newContrast(1))./diff(newContrast);
-hold(handles.axes1,'on')
-objCounter=1;
-while objCounter<length(handles.axes1.Children)
-    if ~isa(handles.axes1.Children(objCounter),'matlab.graphics.primitive.Image')
-        delete(handles.axes1.Children(objCounter))
-    else
-        objCounter=objCounter+1;
-    end
-end
 
-if isempty(getappdata(handles.figure1,'ax'))
-ax1=imagesc(baseImg,'parent',handles.axes1);
-setappdata(handles.figure1,'ax',ax1);
+
+
+
+%%%% get the current coordinates for the volume in the straightened
+%%%% coordinate system, also get the requested IDs
+function[ XYZcoord,pointID]=getPoints(handles)
+displayRange=str2double(get(handles.displayRange,'String'));
+iSlice=round(get(handles.slider2,'Value'));
+iImage=round(get(handles.slider1,'Value'));
+TrackData=getappdata(handles.figure1,'TrackData');
+% plot points if they're there
+trackRange={TrackData.stackIdx}';
+trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
+iTrack=find(cell2mat(trackRange)==iImage);
+%show only points that have been assigned an ID
+XYZcoord=TrackData(iTrack).straightPoints;
+%display
+set(handles.FrameIdx,'string',['t=' num2str(TrackData(iTrack).stackIdx,'%6.2f')]);
+
+%plot the type of points selected
+switch get(handles.pointShowType,'Value')
+    case 1
+        pointID=TrackData(iTrack).trackIdx;
+    case 2
+        pointID=1:length(TrackData(iTrack).straightPoints);
+    case 3
+        pointID=TrackData(iTrack).matchIdx;
+    case 4
+        pointID=TrackData(iTrack).trackIdx;
+        if ~isempty(heatData) %relabel with clustered labels
+            pointID(~isnan(pointID))=heatData.cgIdxRev(pointID(~isnan(pointID)));
+        end
+    otherwise
+        pointID=TrackData(iTrack).trackIdx;
+end
+pointID=pointID(:);
+
+%only leave points that are in or close to the current slice being
+%displayed
+if ~get(handles.showAllPoints,'Value')
+    showPoints=abs(XYZcoord(:,3)-iSlice)<=displayRange & ~isnan(pointID(:,end));
 else
-    ax1=(getappdata(handles.figure1,'ax'));
-  %  ax1=imagesc(baseImg,'parent',handles.axes1);
-
-    set(ax1,'CData',baseImg);
-setappdata(handles.figure1,'ax',ax1);
+    showPoints=abs(XYZcoord(:,3)-iSlice)<=displayRange ;
 end
 
-caxis(handles.axes1,[0 1]);
-
-if get(handles.channelSelect,'Value')==3 || get(handles.channelSelect,'Value')==4
-
-if dataFrame==currentFrame || isempty(dataFrame);
-    ps=getappdata(handles.figure1,'ps');
-else
-    ps=load([imFolder filesep 'pointStats' imageName(6:end) '.mat']);
-    ps=ps.pointStats;
-    setappdata(handles.figure1,'ps',ps);
-end
-    baseMask=ps.baseImg(:,:,imSlice);
-
-    contour(handles.axes1,baseMask,'black','LineWidth',.4);
-end
- if get(handles.channelSelect,'Value')==4
-    baseImg=bwlabeln(ps.baseImg,6);
-    baseImg=baseImg(:,:,imSlice);
-  set(ax1,'CData',baseImg);
-
- end
-    if ~get(handles.showAllPoints,'Value')
-showPoints=abs(pointsi(:,3)-iSlice)<=displayRange & ~isnan(pointID(:,end));
-    else
-   showPoints=abs(pointsi(:,3)-iSlice)<=displayRange ;
-    end
-
-pointsi=pointsi(showPoints,[2 1 3:end]);
+XYZcoord=XYZcoord(showPoints,[2 1 3:end]);
 pointID=pointID(showPoints);
-    if isfield('TrackData','regionLabel')
- pointsRegion=TrackData(iTrack).regionLabel;
-pointsRegion=pointsRegion(showPoints);
-    else
-        pointsRegion=ones(1,length(pointID));
-    end
-    
-pointIDstr=cellstr(num2str(pointID));
-pointIDstr=cellfun(@(x) strrep(x,'   ','-'),pointIDstr,'uniform',0);
-pointIDstr=cellfun(@(x) strrep(x,'NaN',''),pointIDstr,'uniform',0);
-pointsIdx=0:5;
-for i=1:length(pointsIdx);
-    regionSelect=pointsRegion==pointsIdx(i);
-    if any(regionSelect)
-scatter(handles.axes1,pointsi(regionSelect,1),pointsi(regionSelect,2),shapeVector(1));
-text(pointsi(regionSelect,1),pointsi(regionSelect,2),pointIDstr(regionSelect),...
-    'color','w','parent',handles.axes1);
-    end
 
-if any(pointID(regionSelect)==nselect)
-    nSelectIdx=pointID(regionSelect)==nselect;
-    text(pointsi(nSelectIdx,1),pointsi(nSelectIdx,2),pointIDstr(nSelectIdx),...
-    'color','g','parent',handles.axes1);
-    
-    
+
+function plotTrace= plotSignal(handles)
+heatData=getappdata(handles.figure1,'heatData');
+iImage=round(get(handles.slider1,'Value'));
+
+%get target neuron
+regionSelect=str2double(get(handles.trackNeuron,'String'));
+%%% WILL NEED TO ADD THIS BACK IN WHEN FOLLOWING CLUSTER IDX
+%regionSelect=heatData.cgIdxRev(regionSelect);
+
+%plot the selected heatmap data if present
+switch get(handles.plotChannel,'Value')
+    case 1
+        plotTrace=heatData.Ratio2(regionSelect,:);
+    case 2
+        plotTrace=heatData.R2(regionSelect,:);
+    case 3
+        plotTrace=heatData.G2(regionSelect,:);
+    case 4
+        plotTrace=heatData.rRaw(regionSelect,:);
+    case 5
+        plotTrace=heatData.gRaw(regionSelect,:);
 end
 
-end
-if isfield(TrackData(iImage),'errIdx')
-errIdx=TrackData(iImage).errIdx;
-errIdx=errIdx(showPoints);
-text(pointsi(errIdx,1),pointsi(errIdx,2),pointID(errIdx),...
-    'color','r','parent',handles.axes1);
-   
-end
-   
-% 
-%    text(pointsi(:,1),pointsi(:,2),pointID,...
-%     'color','r','parent',handles.axes1); 
-hold(handles.axes1,'off')
+switch get(handles.plotChannel2,'Value')
+    case 2
+        plotTrace2=heatData.Ratio2(regionSelect,:);
+    case 3
+        plotTrace2=heatData.R2(regionSelect,:);
+    case 4
+        plotTrace2=heatData.G2(regionSelect,:);
+    case 5
+        plotTrace2=heatData.rRaw(regionSelect,:);
+    case 6
+        plotTrace2=heatData.gRaw(regionSelect,:);
+    otherwise
+        plotTrace2=[];
 end
 
-% plot the centerline 
+%plot the selected heatmap data if present
+if isempty(plotTrace) || regionSelect<0
+    plotTrace=[];
+    return
+end
 
+colorOrder='rygb';
+%color ball based on behavior, or if no ethotrack, just use default
+if isfield(heatData,'ethoTrack')
+    currentcolor=colorOrder(heatData.ethoTrack(iImage)+2);
+else
+    currentcolor='b';
+end
+
+%if the neurontracked was changed, replot the signal, otherwise, just move
+%the dot
+ oldNeuron=getappdata(handles.figure1,'regionSelect');
+ if ~any(oldNeuron==regionSelect)
+ plot(handles.axes3,plotTrace);
+ hold(handles.axes3,'on')
+scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
+ hold(handles.axes3,'off');
+ else
+     tracePoint=findobj(handles.axes3,'type','Scatter');
+     tracePoint(1).XData=iImage;
+     tracePoint(1).YData=plotTrace(iImage);
+ end
+ 
+ if ~isempty(plotTrace2) && ~any(oldNeuron==regionSelect)
+     hold(handles.axes3,'on')
+     plot(handles.axes3,plotTrace2);
+     scatter(handles.axes3,iImage,plotTrace2(iImage),currentcolor,'filled');
+     hold(handles.axes3,'off');
+ elseif ~isempty(plotTrace2)
+     tracePoint(2).XData=iImage;
+     tracePoint(2).YData=plotTrace(iImage);
+ else
+     tracePoint(2).XData=[];
+     tracePoint(2).YData=[];
+ end
+ 
+ 
+%slide the window around the current time
+ xRange=iImage+[-100,100];
+ xRange=xRange-min(xRange(1),0);
+ xlim(handles.axes3,xRange);
+ ylim(handles.axes3,nanmean(plotTrace)+[-.5 1]*(nanstd(plotTrace)*4));
+
+ 
+ %%% Also plot centerlines
 CLdata=getappdata(handles.figure1,'CLdata');
 if ~isempty(CLdata)
-    %%%%FIX, lookup no longer used ####
     
 lookup=getappdata(handles.figure1,'lookup');
-CLidx=lookup(currentFrame);
+CLidx=lookup(iImage);
 currentCL=CLdata.centerline(:,:,round(CLidx));
 currentCL=bsxfun(@minus,currentCL,mean(currentCL));
+
+
+CL_handle=findobj(handles.axes4,'type','Line');
+head_handle=findobj(handles.axes4,'type','Scatter');
+if isempty(CL_handle) && isempty(head_handle)
 plot(handles.axes4,currentCL(:,1),currentCL(:,2),'linewidth',4);
 hold(handles.axes4,'on')
 scatter(handles.axes4,currentCL(1,1),currentCL(1,2),['o' currentcolor],'filled')
 hold(handles.axes4,'off');
 axis(handles.axes4,[-400 400 -400 400],'off');
+else
+    CL_handle.XData=currentCL(:,1);
+    CL_handle.YData=currentCL(:,2);
+    head_handle.XData=currentCL(1,1);
+    head_handle.YData=currentCL(1,2);
+    head_handle.MarkerFaceColor=currentcolor;
+end
+
 end
 
 
-setappdata(handles.figure1,'dataFrame',currentFrame)
+function plotter(hObject,eventdata)
+% function does the actual plotting of image and points
+
+%get globals and gui settings
+handles=guidata(get(hObject,'Parent'));
+regionSelect=str2double(get(handles.trackNeuron,'String'));
+
+%get slider values
+iImage=round(get(handles.slider1,'Value'));
+if iImage>handles.slider1.Max
+    iImage=handles.slider1.Max;
+    handles.slider1.Value=handles.slider1.Max;
+end
+
+iSlice=round(get(handles.slider2,'Value'));
+if isempty(iSlice)
+    iSlice=1;
+    set(handles.slider2,'Value',1);
+end
+set(handles.sliceIdx,'string',['z=' num2str(iSlice,'%6.2f')]);
+
+%update line position on ethogram
+ethoPlot=findobj(handles.axes5,'type','Line');
+ethoPlot.XData=[iImage iImage];
+
+%get images and points, plot the signal
+baseImg= getImage(handles);
+[ pointsi,pointID]=getPoints(handles);
+plotSignal(handles);
+
+%display the image by updating axes handle
+im_handle=findobj(handles.axes1,'type','Image');
+if isempty(im_handle)
+    imagesc(baseImg,'parent',handles.axes1);
+else
+    set(im_handle,'CData',baseImg);
+end
+caxis(handles.axes1,[0 1]);
+
+%delete previous text and scatter objects, slower, but this time is small
+%compared to time to load images. 
+scatterObjs=findobj(handles.axes1,'type','Scatter');
+textObjs=findobj(handles.axes1,'type','Text');
+delete(scatterObjs);
+delete(textObjs);
+
+%get the numbers of the points being displayed, create a cell array of them
+hold(handles.axes1,'on')
+pointIDstr=cellstr(num2str(pointID));
+pointIDstr=cellfun(@(x) strrep(x,'   ','-'),pointIDstr,'uniform',0);
+pointIDstr=cellfun(@(x) strrep(x,'NaN',''),pointIDstr,'uniform',0);
+
+%plot points and text
+scatter(handles.axes1,pointsi(:,1),pointsi(:,2),'xr');
+text(pointsi(:,1),pointsi(:,2),pointIDstr(:),...
+    'color','w','parent',handles.axes1);
+
+% show the tracked point in green.
+if any(pointID==regionSelect)
+    nSelectIdx=pointID(:)==regionSelect;
+    text(pointsi(nSelectIdx,1),pointsi(nSelectIdx,2),pointIDstr(nSelectIdx),...
+    'color','g','parent',handles.axes1);
+end
+
+hold(handles.axes1,'off')
+
 
 
 
@@ -517,19 +516,6 @@ function smoothingWindow_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of smoothingWindow as a double
 
 
-% --- Executes during object creation, after setting all properties.
-function smoothingWindow_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to smoothingWindow (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 
 function startTime_Callback(hObject, eventdata, handles)
 % hObject    handle to startTime (see GCBO)
@@ -538,19 +524,6 @@ function startTime_Callback(hObject, eventdata, handles)
  plotter(handles.slider1,eventdata);
 % Hints: get(hObject,'String') returns contents of startTime as text
 %        str2double(get(hObject,'String')) returns contents of startTime as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function startTime_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to startTime (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 % --- Executes on selection change in cmapping.
@@ -566,17 +539,67 @@ colormap(handles.axes1,Cstyle);
 %        contents{get(hObject,'Value')} returns selected item from cmapping
 
 
-% --- Executes during object creation, after setting all properties.
-function cmapping_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to cmapping (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+function moveFrame(handles, step)
+%moves from current frame to next frame
+%get slider values for image and slice
+iImage=round(get(handles.slider1,'Value'));
+iSlice=round(get(handles.slider2,'Value'));
 
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+if isempty(iSlice)
+    iSlice=1;
+    set(handles.slider2,'Value',1);
 end
+
+%if we're tracking a neuron, try to go to its slice
+TrackData=getappdata(handles.figure1,'TrackData');
+
+
+%get the neuron being tracked
+neuronId=round(str2double(get(handles.trackNeuron,'String')));
+% get the data for the neurons in the frame about to be shown
+TrackDatai=TrackData(iImage+step);
+%get the type of index being used for tracking
+switch get(handles.pointShowType,'Value')
+    case 1
+pointID=TrackDatai.trackIdx;
+    case 2
+pointID=TrackDatai.pointIdx;
+    case 3
+pointID=TrackDatai.matchIdx;
+    case 4
+pointID=TrackDatai.trackIdx;
+heatData=getappdata(handles.figure1,'heatData');
+if ~isempty(heatData)
+    pointID(~isnan(pointID))=heatData.cgIdxRev(pointID(~isnan(pointID)));
+end
+    otherwise
+pointID=TrackDatai.trackIdx;
+end
+
+% get the neuron whose index matches the tracked neuron
+neuronIdx=(pointID==neuronId);
+neuronIdx=find(neuronIdx,1,'first');
+
+if any(neuronIdx)
+    set(handles.trackNeuron,'backgroundColor',[1 1 1]);
+    %if its there, set the slice to be shown to be the position in the next
+    %volume
+    iSliceTemp=round(TrackDatai.straightPoints(neuronIdx,3));
+    if ~isnan(iSliceTemp)
+        iSlice=iSliceTemp;
+    end
+    
+else
+    %if the neuron is missing, show a red background on the tracked neuron
+    set(handles.trackNeuron,'backgroundColor',[1 0 0]);
+end
+
+%set new slider positions
+set(handles.slider1,'value',iImage+step);
+set(handles.slider2,'value',iSlice);
+
+plotter(handles.slider1)
+
 
 
 % --- Executes on button press in goBack.
@@ -585,68 +608,9 @@ function goBack_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 FPS=getappdata(handles.figure1,'FPS');
+handles=guidata(get(hObject,'Parent'));
 
-iImage=round(get(handles.slider1,'Value'));
-iSlice=round(get(handles.slider2,'Value'));
-set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
-imFiles=getappdata(0,'imFiles');
-if isempty(iSlice)
-    iSlice=1;
-    set(handles.slider2,'Value',1);
-end
-
-TrackData=getappdata(handles.figure1,'TrackData');
-trackRange={TrackData.stackIdx}';
-trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
-iTrack=find(cell2mat(trackRange)==iImage);
-
-TrackData=getappdata(handles.figure1,'TrackData');
-heatData=getappdata(handles.figure1,'heatData');
-try
-neuronId=round(str2double(get(handles.trackNeuron,'String')));
-TrackDatai=TrackData(iTrack-FPS);
-
-switch get(handles.pointShowType,'Value')
-    case 1
-pointID=TrackDatai.trackIdx;
-    case 2
-pointID=TrackDatai.pointIdx;
-    case 3
-pointID=TrackDatai.matchIdx;
-    case 4
-pointID=TrackDatai.trackIdx;
-if ~isempty(heatData)
-    pointID(~isnan(pointID))=heatData.cgIdxRev(pointID(~isnan(pointID)));
-end
-    otherwise
-pointID=TrackDatai.trackIdx;
-end
-
-
-
-neuronIdx=(pointID==neuronId);
-neuronIdx=find(neuronIdx,1,'first');
-
-if any(neuronIdx)
-        set(handles.trackNeuron,'backgroundColor',[1 1 1]);
-
-iSliceTemp=round(TrackDatai.straightPoints(neuronIdx,3));
-if ~isnan(iSliceTemp)
-iSlice=iSliceTemp;
-end
-
-else
-    set(handles.trackNeuron,'backgroundColor',[1 0 0]);
-    
-end
-catch
-end
-
-
-set(handles.slider1,'value',iImage-FPS);
-set(handles.slider2,'value',iSlice);
-setappdata(handles.figure1,'currentFrame',get(handles.slider1,'value'));
-plotter(handles.slider1,eventdata)
+moveFrame(handles, -FPS)
 
 
 % --- Executes on button press in goForward.
@@ -655,68 +619,9 @@ function goForward_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles=guidata(get(hObject,'Parent'));
-
 FPS=getappdata(handles.figure1,'FPS');
 
-iImage=round(get(handles.slider1,'Value'));
-iSlice=round(get(handles.slider2,'Value'));
-set(handles.FrameIdx,'string',['t=' num2str(iImage,'%6.2f')]);
-imFiles=getappdata(0,'imFiles');
-if isempty(iSlice)
-    iSlice=1;
-    set(handles.slider2,'Value',1);
-end
-
-TrackData=getappdata(handles.figure1,'TrackData');
-trackRange={TrackData.stackIdx}';
-trackRange(cellfun(@(x) isempty(x),trackRange))={-1};
-iTrack=find(cell2mat(trackRange)==iImage);
-
-
-TrackData=getappdata(handles.figure1,'TrackData');
-try
-neuronId=round(str2double(get(handles.trackNeuron,'String')));
-TrackDatai=TrackData(iTrack+FPS);
-heatData=getappdata(handles.figure1,'heatData');
-switch get(handles.pointShowType,'Value')
-    case 1
-pointID=TrackDatai.trackIdx;
-    case 2
-pointID=TrackDatai.pointIdx;
-    case 3
-pointID=TrackDatai.matchIdx;
-    case 4
-pointID=TrackDatai.trackIdx;
-if ~isempty(heatData)
-    pointID(~isnan(pointID))=heatData.cgIdxRev(pointID(~isnan(pointID)));
-end
-    otherwise
-pointID=TrackDatai.trackIdx;
-end
-
-
-neuronIdx=(pointID==neuronId);
-neuronIdx=find(neuronIdx,1,'first');
-if any(neuronIdx)
-        set(handles.trackNeuron,'backgroundColor',[1 1 1]);
-iSliceTemp=round(TrackDatai.straightPoints(neuronIdx,3));
-if ~isnan(iSliceTemp)
-iSlice=iSliceTemp;
-end
-else
-    set(handles.trackNeuron,'backgroundColor',[1 0 0]);
-    
-end
-catch
-end
-
-set(handles.slider1,'value',iImage+FPS);
-set(handles.slider2,'value',iSlice);
-
-setappdata(handles.figure1,'currentFrame',get(handles.slider1,'value'));
-plotter(handles.slider1,eventdata)
-
-
+moveFrame(handles, FPS)
 
 % --- Executes on button press in goUp.
 function goUp_Callback(hObject, eventdata, handles)
@@ -788,20 +693,6 @@ setappdata(handles.figure1,'FPS',FPS)
 %        str2double(get(hObject,'String')) returns contents of framesPerSecond as a double
 
 
-% --- Executes during object creation, after setting all properties.
-function framesPerSecond_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to framesPerSecond (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
 function TmrFcn(src,event,handles)
 % pull appdata from the handles structure
  
@@ -847,112 +738,8 @@ function plotChannel_Callback(hObject, eventdata, handles)
 % hObject    handle to plotChannel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-plotter(handles.slider1,'eventdata');
-% Hints: contents = cellstr(get(hObject,'String')) returns plotChannel contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from plotChannel
+plotter(handles.slider1,eventdata);
 
-
-% --- Executes during object creation, after setting all properties.
-function plotChannel_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to plotChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in selectNeuron1.
-function selectNeuron1_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',1);
-cursorNeuronSelect(hObject,eventdata)
-displayIdx=get(handles.DisplayIdx,'data');
-displayIdx{1,1}=round(get(handles.slider2,'value'));
-set(handles.slider2,'value',displayIdx{1,1});
-
-
-% --- Executes on button press in selectNeuron2.
-function selectNeuron2_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',2);
-cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron3.
-function selectNeuron3_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',3);
-cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron4.
-function selectNeuron4_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',4);
-cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron5.
-function selectNeuron5_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',5);
-cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron6.
-function selectNeuron6_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',6);
-cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron7.
-function selectNeuron7_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',7);
-cursorNeuronSelect(hObject,eventdata)
-
-% --- Executes on button press in selectNeuron8.
-function selectNeuron8_Callback(hObject, eventdata, handles)
-% hObject    handle to selectNeuron8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-setappdata(handles.figure1,'cursorTarget',8);
-cursorNeuronSelect(hObject,eventdata)
-
-function cursorNeuronSelect(hObject,eventdata)
-handles=guidata(get(hObject,'Parent'));
-plotIdx=getappdata(handles.figure1,'cursorTarget');
-currentCentroids=getappdata(handles.figure1,'currentCentroids');
-
-[xselect,yselect]=ginput(1);
-xRange=xlim(handles.axes1);
-yRange=ylim(handles.axes1);
-if xselect>xRange(1) && xselect< xRange(2) && yselect>yRange(1) && yselect<yRange(2);
-minD=pdist2([xselect,yselect],currentCentroids(:,1:2),'euclidean','smallest',1);
-pointIdx=find(minD==min(minD),1,'first');
-pointIdx=currentCentroids(pointIdx,3);
-else
-    pointIdx=nan;
-end
-
-displayIdx=get(handles.DisplayIdx,'data');
-displayIdx{plotIdx,1}=pointIdx;
-set(handles.DisplayIdx,'data',displayIdx);
-plotter(handles.slider1,'eventdata');
 
 
 % --- Executes on slider movement.
@@ -965,32 +752,19 @@ function slider2_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 
-% --- Executes during object creation, after setting all properties.
-function slider2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
 
 
 function plotSlide(hObject,eventdata)
-handles=guidata(get(hObject,'Parent'));
-displayIdx=get(handles.DisplayIdx,'data');
-displayIdx{1,1}=round(get(handles.slider2,'value'));
-set(handles.DisplayIdx,'data',displayIdx);
-plotter(handles.slider1,'eventdata');
 
+handles=guidata(get(hObject,'Parent'));
+moveFrame(handles,0)
 
 % --- Executes on button press in goForward2.
 function goForward2_Callback(hObject, eventdata, handles)
 % hObject    handle to goForward2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)set(handles.slider1,'value',get(handles.slider1,'value')+1);
+% handles    structure with handles and user data (see GUIDATA)
+% set(handles.slider1,'value',get(handles.slider1,'value')+1);
 set(handles.slider2,'value',min(get(handles.slider2,'value')+1,get(handles.slider2,'max')));
 plotSlide(hObject,eventdata)
 
@@ -1006,18 +780,6 @@ plotter(handles.slider1,'eventdata');
 %        contents{get(hObject,'Value')} returns selected item from plotChannel2
 
 
-% --- Executes during object creation, after setting all properties.
-function plotChannel2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to plotChannel2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 
 function movieTitle_Callback(hObject, eventdata, handles)
@@ -1029,19 +791,6 @@ function movieTitle_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of movieTitle as a double
 
 
-% --- Executes during object creation, after setting all properties.
-function movieTitle_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to movieTitle (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in makeMovie.
 function makeMovie_Callback(hObject, eventdata, handles)
 % hObject    handle to makeMovie (see GCBO)
@@ -1051,7 +800,7 @@ button_state=get(hObject,'value');
 ax1movie=[get(handles.movieTitle,'String') '1'];
 ax2movie=[get(handles.movieTitle,'String') '2'];
 startTime=str2double(get(handles.startTime,'String'));
-imFolder=getappdata(0,'imFolder');
+imFolder=getappdata(handles.figure1,'imFolder');
 
 if button_state
 writerObj=VideoWriter([imFolder filesep ax1movie]);
@@ -1100,19 +849,6 @@ function timeStep_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of timeStep as a double
 
 
-% --- Executes during object creation, after setting all properties.
-function timeStep_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to timeStep (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --------------------------------------------------------------------
 function adjustContrast_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to adjustContrast (see GCBO)
@@ -1120,7 +856,7 @@ function adjustContrast_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % display the base image, calculate the display image;
 baseImg = getappdata(handles.figure1,'baseImg');
-imageHandle = findobj('Parent',handles.axes1,'type','image');
+imageHandle = findobj(handles.axes1,'type','image');
 storedImage = get(imageHandle);
 set(imageHandle,'cdata',baseImg,'cdataMapping','scaled');
 
@@ -1128,79 +864,13 @@ set(imageHandle,'cdata',baseImg,'cdataMapping','scaled');
 % imshow(baseImg,[]);
 contrastWindow = imcontrast(handles.axes1);
 waitfor(contrastWindow);
-newContrast = getDisplayRange(getimagemodel(findobj('parent',handles.axes1,'type','image')));
+newContrast = getDisplayRange(getimagemodel(findobj(handles.axes1,'type','image')));
 baseImg(baseImg<newContrast(1)) = newContrast(1);
 baseImg(baseImg>newContrast(2)) = newContrast(2);
 baseImg = (baseImg-newContrast(1))./diff(newContrast);
 setappdata(handles.figure1,'displayImg',baseImg);
 setappdata(handles.figure1,'newContrast',newContrast);
 
-% currentColorMask = double(repmat(baseImg,[1,1,3]));
-% currentColorMask = currentColorMask*0.8+coloredLabels.*0.2.*(1/255);
-% set(imageHandle,'cdataMapping','direct');
-% set(imageHandle,'cdata',currentColorMask);
-
-
-% --- Executes on button press in showAll.
-function showAll_Callback(hObject, eventdata, handles)
-% hObject    handle to showAll (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-trackData=getappdata(0,'trackOutput');
-smoothWindow=str2double(get(handles.smoothingWindow,'String'));
-startTime=str2double(get(handles.startTime,'string'));
-normalizeFlag=get(handles.normalizeButton,'value');
-
-
-switch get(handles.plotChannel,'value')
-    case 1
-        output=trackData(:,4);
-    case 2
-        output=trackData(:,3);
-      
-    case 3
-        output=trackData(:,3)./trackData(:,4);
-end
-
-output(trackData(:,end-1)<startTime)=nan;
- output=normalizeRange(output);
- %output=output/median(output);
-nTracks=max(trackData(:,end));
-nTime=max(trackData(:,end-1));
-activityMat=zeros(nTracks,nTime);
-for i=1:nTracks
-    t=trackData((trackData(:,end)==i),end-1);
-    a=output((trackData(:,end)==i));
-    a=a(t>startTime);
-    t=t(t>startTime);        
-    a=(smooth(a,smoothWindow));
-    if normalizeFlag
-        a=normalizeRange(a);
-    end
-    
-    activityMat(i,t)=a;
-    
-end
- setappdata(handles.figure1,'activityMat',activityMat);
- cla(handles.axes2);
- plotter(handles.slider1,eventdata);
-   
-% Hint: get(hObject,'Value') returns toggle state of showAll
-
-
-% --- Executes on button press in alignmentSelect.
-function alignmentSelect_Callback(hObject, eventdata, handles)
-% hObject    handle to alignmentSelect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-
-[rpath,parent]=uigetfile('Y:\CommunalCode\3dbrain\');
-registration=load([parent filesep rpath]);
-
-
-setappdata(0,'registration',registration);
 
 
 % --- Executes on mouse press over axes background.
@@ -1221,22 +891,30 @@ function figure1_KeyPressFcn(hObject, evnt, handles)
 
 
 
-        %Forward
-        if strcmp(evnt.Key,'rightarrow')|| strcmp(evnt.Key,'d')
-            goForward_Callback(handles.slider1,evnt,handles);
-            
-        %Backward
-        elseif strcmp(evnt.Key,'backspace') || strcmp(evnt.Key,'leftarrow')|| strcmp(evnt.Key,'a')
-            goBack_Callback(handles.slider1,evnt,handles);
-        %Up
-        elseif  strcmp(evnt.Key,'uparrow')|| strcmp(evnt.Key,'w')
-            goUp_Callback(handles.slider2,evnt,handles);
-        %Down
-        elseif strcmp(evnt.Key,'downarrow')|| strcmp(evnt.Key,'s')
-            goDown_Callback(handles.slider2,evnt,handles);
-  
-        end
-        
+%Forward
+if strcmp(evnt.Key,'rightarrow')|| strcmp(evnt.Key,'d')
+    goForward_Callback(handles.slider1,evnt,handles);
+    
+    %Backward
+elseif strcmp(evnt.Key,'backspace') || strcmp(evnt.Key,'leftarrow')|| strcmp(evnt.Key,'a')
+    goBack_Callback(handles.slider1,evnt,handles);
+    %Up
+elseif  strcmp(evnt.Key,'uparrow')|| strcmp(evnt.Key,'w')
+    goUp_Callback(handles.slider2,evnt,handles);
+    %Down
+elseif strcmp(evnt.Key,'downarrow')|| strcmp(evnt.Key,'s')
+    goDown_Callback(handles.slider2,evnt,handles);
+    
+elseif strcmp(evnt.Key,'shift')
+    %toggle between mask and image
+    currentChannel=handles.channelSelect.Value;
+    if currentChannel<3
+        handles.channelSelect.Value=3-currentChannel;
+    end
+    plotter(handles.slider1);
+    
+end
+
 
 
 % --- Executes on button press in selectPoints.
@@ -1245,8 +923,7 @@ function selectPoints_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
-imFolder=getappdata(0,'imFolder');
+imFolder=getappdata(handles.figure1,'imFolder');
 
 display('Select mat file with points');
 matFile=uipickfiles('Filterspec',fileparts(imFolder),...
@@ -1266,38 +943,6 @@ setappdata(handles.figure1,'CLdata',CLdata);
 
 setappdata(handles.figure1,'lookup',lookup);
 
-
-% --- Executes on button press in flipOdd.
-function flipOdd_Callback(hObject, eventdata, handles)
-% hObject    handle to flipOdd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of flipOdd
-plotter(hObject,eventdata);
-
-
-% --- Executes on button press in flipEven.
-function flipEven_Callback(hObject, eventdata, handles)
-% hObject    handle to flipEven (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of flipEven
-plotter(hObject,eventdata);
-
-
-% --- Executes on button press in showAllPoints.
-function showAllPoints_Callback(hObject, eventdata, handles)
-% hObject    handle to showAllPoints (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of showAllPoints
-plotter(hObject,eventdata);
-
-
-
 function displayRange_Callback(hObject, eventdata, handles)
 % hObject    handle to displayRange (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1306,18 +951,6 @@ function displayRange_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of displayRange as text
 %        str2double(get(hObject,'String')) returns contents of displayRange as a double
 
-
-% --- Executes during object creation, after setting all properties.
-function displayRange_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to displayRange (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 
@@ -1331,17 +964,6 @@ function trackNeuron_Callback(hObject, eventdata, handles)
 plotter(handles.slider1);
 
 
-% --- Executes during object creation, after setting all properties.
-function trackNeuron_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to trackNeuron (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 % --- Executes on selection change in pointShowType.
@@ -1354,25 +976,13 @@ function pointShowType_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from pointShowType
 
 
-% --- Executes during object creation, after setting all properties.
-function pointShowType_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to pointShowType (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in loadHeat.
 function loadHeat_Callback(hObject, eventdata, handles)
 % hObject    handle to loadHeat (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-mostRecent=getappdata(0,'imFolder');
+mostRecent=getappdata(0,'mostRecent');
 heatFile=uipickfiles('filterspec',mostRecent,...
     'Prompt','Select the heatData.mat file');
 heatData=load(heatFile{1});
@@ -1395,29 +1005,3 @@ hold(handles.axes5,'on');
 ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
 setappdata(handles.figure1,'ethoPlot',ethoPlot);
 hold(handles.axes5,'off');
-
-
-% --- Executes on selection change in plotDisplay.
-function plotDisplay_Callback(hObject, eventdata, handles)
-% hObject    handle to plotDisplay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns plotDisplay contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from plotDisplay
-setappdata(handles.figure1,'oldNeuron',0);
- plotter(handles.slider1,eventdata);
-
-
-
-% --- Executes during object creation, after setting all properties.
-function plotDisplay_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to plotDisplay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end

@@ -22,7 +22,7 @@ function varargout = VisualizeTrackedData(varargin)
 
 % Edit the above text to modify the response to help VisualizeTrackedData
 
-% Last Modified by GUIDE v2.5 05-May-2017 15:35:56
+% Last Modified by GUIDE v2.5 05-May-2017 16:19:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,9 +57,9 @@ function VisualizeTrackedData_OpeningFcn(hObject, ~, handles, varargin)
 %set up slider
 handles.output = hObject;
 hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
-    @plotter);
+    @moveFrame);
 hlistenerz=addlistener(handles.zSlider,'ContinuousValueChange',...
-    @plotter);
+    @moveFrame);
 setappdata(handles.zSlider,'hlistener',hlistenerz);
 set(handles.zSlider,'SliderStep',[1,1]);
 
@@ -151,6 +151,34 @@ set(handles.zSlider,'min',minZ);
 set(handles.zSlider,'max', maxZ);
 set(handles.zSlider,'value',(maxZ+minZ)/2);
 
+%%% prepare image object
+baseImg=getImage(handles,1);
+delete(findobj(handles.axes1,'type','image'))
+imagesc(handles.axes1,baseImg)
+hold(handles.axes1,'on')
+
+
+
+%%% prepare text object
+delete(findobj(handles.axes1,'type','text'))
+for i=100:-1:1 %text objects are added in a stack, so count backwards
+text( -20,-20,... %hide them off axis
+    cellstr(num2str(i)),...  %premake the numbers 
+    'VerticalAlignment','bottom',...
+    'HorizontalAlignment','right',...
+    'color',[1 1 1],...
+    'fontsize',10,...
+    'parent',handles.axes1);
+end
+
+
+%%% prepare scatter objects
+
+delete(findobj(handles.axes1,'type','scatter'))
+scatter(handles.axes1,[],[],'xr')
+scatter(handles.axes1,[],[],'o')
+hold(handles.axes1,'off')
+
 %%% load fiducial points
 fiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
 
@@ -166,16 +194,25 @@ setappdata(handles.figure1,'timeOffset',timeOffset)
 fiducialPoints=fiducialPoints.fiducialPoints;
 setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
 else
-    statusWarning('No neuron locations found! Has the botCheckCompiler run?')
+    statusWarning(handles.neuronCoordStatus,...
+        'No neuron locations found! Has the botCheckCompiler run?',1)
 end
 
 %%% load heatmap data
-heatDataFile=[dataFolder filesep 'heatData'];
+heatDataFile=[dataFolder filesep 'heatData.mat'];
 if exist(heatDataFile,'file')
 heatData=load(heatDataFile);
 setappdata(handles.figure1,'heatData',heatData);
+if isfield(heatData,'behavior')
+ statusWarning(handles.signalStatus,...
+     'Neural Data Loaded',0);
 else
-    statusWarning('No neural activity found! Has the fiducialCropper run?')
+ statusWarning(handles.signalStatus,...
+     ' Warning: Signal found, but behavior missing!',0.5)
+end
+else
+    statusWarning(handles.signalStatus,...
+        'No neural activity found! Has the fiducialCropper run?',1)
 end
 
 
@@ -205,6 +242,10 @@ function [hiResIdx,iVolume]=getHiResIdx(handles)
 %get slider positions, for time and Z
 iVolume=round(get(handles.slider1,'Value'));
 zPos=(get(handles.zSlider,'Value'));
+if isempty(zPos)
+    set(handles.zSlider,'Value',0)
+    zPos=0;
+end
 zPos=zPos(1);
 if isempty(zPos)
     zPos=1;
@@ -226,7 +267,7 @@ if iVolume~=getappdata(handles.figure1,'currentFrame') || isempty(zVoltages)
     vol_frame_list=...
         vol_frame_list(vol_frame_list>(-offset)...
         & vol_frame_list<length(hiResData.stackIdx));
-    zVoltages=hiResData.Z(vol_frame_list);
+    zVoltages=hiResData.Z(vol_frame_list+offset);
     [zVoltages,~,ia]=unique(zVoltages);
     vol_frame_list=vol_frame_list(ia);
     [~,ib]=sort(zVoltages,'ascend');
@@ -289,7 +330,7 @@ Rsegment=R.Rsegment;
 if get(handles.channelSelect,'Value')==1
     baseImg=fullImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 else
-    activity=temp((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+    activity=fullImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
     baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
 end
 
@@ -299,6 +340,8 @@ function plotter(hObject,~)
 %recover main handle
 handles=guidata(get(hObject,'Parent'));
 
+
+
 %get the frame index and the volume number
 [hiResIdx,iVolume]=getHiResIdx(handles);
 
@@ -306,10 +349,13 @@ handles=guidata(get(hObject,'Parent'));
 baseImg=getImage(handles,hiResIdx);
 
 % plot the actual image
-hold(handles.axes1,'off')
 ax1=findobj(handles.axes1,'type','Image');
 if isempty(ax1)
+    hold(handles.axes1,'on')
     imagesc(baseImg,'Parent',handles.axes1);
+    axis(handles.axes1,'equal');
+    hold(handles.axes1,'off')
+
 else
     ax1.CData=baseImg;
 end
@@ -318,81 +364,99 @@ newContrast=getappdata(handles.figure1,'newContrast');
 if ~isempty(newContrast)
     caxis(handles.axes1, newContrast);
 end
-axis(handles.axes1,'equal');
+
+
+
+%remove current scatter and text objects from axes
+
+pointPlotter(handles)
+
+tracePlotter(handles);
+
+function pointPlotter(handles)
+
+%get flagged volumes and neurons
+flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
+flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
+
+text_handles=findobj(handles.axes1,'type','text');
+[hiResIdx,iVolume]=getHiResIdx(handles);
 
 %get neuron points
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
-if ~isempty(fiducialPoints)
+if ~isempty(fiducialPoints) && length(fiducialPoints)>=iVolume
     currentFiducials=fiducialPoints{iVolume};
+    
+    if ~isempty(currentFiducials)
     setappdata(handles.figure1,'fiducials',currentFiducials);
-    plotIdx=find(cell2mat((cellfun(@(x) ~isempty(x),currentFiducials(:,1),'uniformoutput',0))));
-    currentPoints=cell2mat(currentFiducials(:,1:4));
-end
+   statusWarning(handles.neuronCoordStatus,'Neurons Present',0)
+    else
+        statusWarning(handles.neuronCoordStatus,'Warning, no neuron locations found!',.5)
+        return
+    end
 
-if ~isempty(currentPoints)
-    hold(handles.axes1,'on')
+else
+        statusWarning(handles.neuronCoordStatus,'Warning, no neuron locations found!',.5)
+
+    return
+end
 
     % will will show the neuron currently being tracked, along with other
     % neurons that are either in the same plane or in a plane close by. 
-    currentTarget=str2double(get(handles.trackedNeuron,'String'));
-    trackedPoint=currentPoints(currentTarget,:);
-        
-    textColor=[1 1 1] ;
+
+currentTarget=str2double(get(handles.trackedNeuron,'String'));
+currentTarget=round(currentTarget);
     % closeSlices are within +/- 2 frames of the currently shown frame,
     % these neurons will be shown in black
-    closePointIDS=abs(currentPoints(:,4)-hiResIdx)<3;
-    closePointIDS(currentTarget)=0; % no need to highlight twice
-    closePoints=currentPoints(closePointIDS,:);
-    % perfectSlice neurons lie in the exact plane being visualized, they
-    % will be shown with a red x
-    inSlicePointIDs=currentPoints(:,4)==hiResIdx;
-    inSlicePoints=currentPoints(inSlicePointIDs,:);
+closePoints=cellfun(@(x) abs(x-hiResIdx)<3,currentFiducials(:,4),'uniform',0);
+inSlicePoints=cellfun(@(x) x==hiResIdx,currentFiducials(:,4),'uniform',0);
 
-    %remove current scatter and text objects from axes
-    delete(findobj(handles.axes1,'type','scatter'))
-    delete(findobj(handles.axes1,'type','text'))
-    
-    if closeSlice(currentTarget)
-        %show the currently tracked neuron in green
-        text( trackedPoint(1), trackedPoint(2),num2str(currentTarget),...
-            'VerticalAlignment','bottom', ...
-            'HorizontalAlignment','right',...
-            'color',[0 1 0],...
-            'fontsize',11,...
-            'parent',handles.axes1);
+
+%move text around, if the points are not close, move them off the screen
+%rather than destroying them
+for iNeuron=1:100
+    if closePoints{iNeuron}
+        text_handles(iNeuron).Position(1)=currentFiducials{iNeuron,1};
+        text_handles(iNeuron).Position(2)=currentFiducials{iNeuron,2};
         
-        scatter(handles.axes1,...
-            trackedPoint(1),...
-            trackedPoint(2),'green');
+        if any(iVolume==flagged_volumes) || any(flagged_neurons==iNeuron)
+            text_handles(iNeuron).Color=[.94 0 0];
+        elseif iNeuron==currentTarget && ~all(text_handles(iNeuron).Color==[0 1 0])
+            text_handles(iNeuron).Color=[0 1 0];
+        elseif ~all(text_handles(iNeuron).Color==1)
+            text_handles(iNeuron).Color=[1 1 1];
+        end
+    elseif any(text_handles(iNeuron).Position>0)
+        text_handles(iNeuron).Position=[-10,-10,0];
     end
     
-    %show the rest of the points, the ones that are close are shown 
-    scatter(handles.axes1,...
-        closePoints(1),closePoints(2),'black');
-    scatter(handles.axes1,...
-        inSlicePoints(1),inSlicePoints(2),'xr');
-    
-    text( closePoints(1), closePoints(2),...
-        cellstr(num2str(plotIdx(closeSlice))),...
-        'VerticalAlignment','bottom',...
-        'HorizontalAlignment','right',...
-        'color',textColor,...
-        'fontsize',10,...
-        'parent',handles.axes1);
-    hold(handles.axes1,'off')
-else
-    statusWarning(handles,'Warning, no neuron locations found!')
 end
 
-tracePlotter(handles,currentTarget);
-drawnow;
+closePointsIds=cellfun(@(x) any(x),closePoints);
+
+inSlicePointsIds=cellfun(@(x) any(x),inSlicePoints);
+closeXY=cell2mat(currentFiducials(closePointsIds,1:2));
+inSliceXY=cell2mat(currentFiducials(inSlicePointsIds,1:2));
+scat_handles=findobj(handles.axes1,'type','scatter');
+if  any(closePointsIds)
+scat_handles(1).XData=closeXY(:,1);
+scat_handles(1).YData=closeXY(:,2);
+end
+if any(inSlicePointsIds)
+scat_handles(2).XData=inSliceXY(:,1);
+scat_handles(2).YData=inSliceXY(:,2);
+end
+
+
 
 %plot the trace of the activity
-function tracePlotter(handles,target)
+function tracePlotter(handles)
+target=str2double(get(handles.trackedNeuron,'String'));
+target=round(target);
 heatData=getappdata(handles.figure1,'heatData');
 
 %if heatdata is missing, skip all of this
-if ~isempty(heatData) && target>0
+if isempty(heatData) || target<0
     return
 end
 
@@ -413,11 +477,21 @@ end
 
 iVolume=round(get(handles.slider1,'Value'));
 
+if length(plotTrace)<iVolume
+    statusWarning(handles.signalStatus, 'No signal found',.5)
+    return
+end
+
 colorOrder='rygb';
 %draw dot with colour based on behavior, if behavior is missing, use blue
 if isfield(heatData,'behavior')
     currentBehavior=heatData.behavior.ethogram(iVolume);
+    
+    if isnan(currentBehavior)
+        currentcolor=[ 1 1 1];% make occasional nans white
+    else
     currentcolor=colorOrder(currentBehavior+2);
+    end
 else
     currentcolor='black';
 end
@@ -440,6 +514,7 @@ else
     tracePoint.YData=plotTrace(iVolume);
     tracePoint.XData=iVolume;
 end
+    statusWarning(handles.signalStatus, 'Signal found',0)
 
 xlim(handles.axes3,[max(iVolume-100,1),min(length(plotTrace),iVolume+100)]);
 
@@ -478,20 +553,34 @@ function goBack_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 step=str2double(get(handles.timeStep,'String'));
-moveFrame(hObject,eventdata,handles,-step);
+moveFrame(hObject,eventdata,-step);
 
 %moves from the current frame to current frame + step. The program will try
 %its best to keep the same Z level or stay on the same neuron. 
-function moveFrame(~,eventdata,handles,step)
+function moveFrame(hObject,eventdata,step)
+if nargin==2
+    step=0;
+end
+
+handles=guidata(get(hObject,'Parent'));
+hiResData=getappdata(handles.figure1,'hiResData');
+
 set(handles.slider1,'value',get(handles.slider1,'value')+step);
 currentFrame=round(get(handles.slider1,'value'));
 fiducialsAll=getappdata(handles.figure1,'fiducialPoints');
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
+if length(fiducialsAll)>currentFrame
 if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
-    newZ=fiducialsAll{currentFrame}{currentTarget,3};
+    newIdx=fiducialsAll{currentFrame}{currentTarget,4};
+    newZ=hiResData.Z(newIdx);
 else
-    newZ=[];
+    newZ=get(handles.zSlider,'value');
 end
+else
+    newZ=get(handles.zSlider,'value');
+end
+%newZ=get(handles.zSlider,'value');
+
 set(handles.zSlider,'value',min(newZ,get(handles.zSlider,'max')));
 
 
@@ -506,7 +595,7 @@ function goForward_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 step=str2double(get(handles.timeStep,'String'));
-moveFrame(hObject,eventdata,handles,step)
+moveFrame(hObject,eventdata,step)
 
 
 % --- Executes on selection change in plotChannel.
@@ -765,14 +854,17 @@ end
 
 plotter(handles.slider1,eventdata)
 
-function statusWarning(handles,statusString)
-if isempty(statusString)
-    handles.status.BackgroundColor=[0 1 0];
-    handles.status.String='All Good!';
+function statusWarning(hObject,statusString,fail)
+if fail==1
+    hObject.BackgroundColor=[.9 0 0];
+elseif fail==0
+        hObject.BackgroundColor=[0 1 0];
 else
-    handles.status.String=statusString;
-    handles.status.BackgroundColor=[.9 0 0];
+    hObject.BackgroundColor=[.9 .9 0];
 end
+
+hObject.String=statusString;
+
 
 
 % --- Executes on mouse press over figure background.
@@ -948,7 +1040,7 @@ function flagNeuron_Callback(hObject, ~, handles)
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
 flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
 flagged_neurons=[flagged_neurons, currentTarget];
-setappdata(handles.figure1,'flagged_volumes',flagged_neurons);
+setappdata(handles.figure1,'flagged_neurons',flagged_neurons);
 
 
 % --- Executes on button press in flagTime.
@@ -970,12 +1062,12 @@ function saveHeatMap_Callback(hObject, eventdata, handles)
 
 set(handles.currentFolder,'String',dataFolder);
 flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
-flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
+flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
 %%% load heatmap data
 heatDataFile=[dataFolder filesep 'heatData'];
 if exist(heatDataFile,'file')
     save(heatDataFile,'flagged_volumes','flagged_neurons','-append')
 else
-    statusWarning('No neural activity found! Has the fiducialCropper run?')
+    statusWarning(handles.signalStatus, ...
+        'No neural activity found! Has the fiducialCropper run?')
 end
-

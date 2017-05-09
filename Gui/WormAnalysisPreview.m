@@ -75,15 +75,22 @@ bfTime=bfAll.frameTime;
 bfIdx=interp1(bfTime,1:length(bfTime),hiResData.frameTime(hiResIdx),'nearest');
 bfIdx(isnan(bfIdx))=1;
 
+%Use to load all 4 images
 function  [redImage,greenImage,image0,image1]=getImages(handles,hiResIdx,bfIdx)
+%get alignments
 alignments=getappdata(handles.figure1,'alignments');
 rect1=alignments.S2AHiRes.rect1;
 rect2=alignments.S2AHiRes.rect2;
+
+%load the himag image
+%get name of .dat file
 dataFolder=getappdata(handles.figure1,'dataFolder');
-Fid=getappdata(handles.figure1,'fileID');
 sCMOSfile=dir([dataFolder filesep '*.dat']);
 sCMOSfile=sCMOSfile.name;
 sCMOSfile=[dataFolder filesep sCMOSfile ];
+
+%get FileID
+Fid=getappdata(handles.figure1,'fileID');
 if isempty(Fid)
     Fid=fopen( sCMOSfile);
     setappdata(handles.figure1,'fileID',Fid);
@@ -91,17 +98,22 @@ elseif Fid<=0
     Fid=fopen(sCMOSfile );
     setappdata(handles.figure1,'fileID',Fid);
 end
+
+%load the image
 [row,col]=getdatdimensions(sCMOSfile);
 status=fseek(Fid,2*hiResIdx*row*col,-1);
 temp=fread(Fid,row*col,'uint16',0,'l');
 temp=(reshape(temp,row,col));
-background=getappdata(0,'background');
-%temp=temp-background;
+background=getappdata(handles.figure1,'background');
+temp=temp-background;
 temp(temp<0)=0;
 
-redImage=temp(rect1(2):(rect1(2)+rect1(4)-1),rect1(1):(rect1(1)+rect1(3)-1));
-greenImage=temp(rect2(2):(rect2(2)+rect2(4)-1),rect2(1):(rect2(1)+rect2(3)-1));
+%crop red and green himag images
+redImage=temp(rect1(2):(rect1(4)),rect1(1):(rect1(3)));
+greenImage=temp(rect2(2):(rect2(4)),rect2(1):(rect2(3)));
 
+
+%load lowmag images
 cam0Obj=getappdata(handles.figure1,'cam0Obj');
 cam1Obj=getappdata(handles.figure1,'cam1Obj');
 if isempty(cam0Obj)
@@ -124,35 +136,44 @@ end
 
 
 
-
+%%% main plotting function for displaying all for plots
 function plotter(hObject,eventdata)
+
 handles=guidata(get(hObject,'Parent'));
+
+%get relavent timings
 [hiResIdx,bfIdx]=getTimes(handles);
+%get centerline and images
 CL=getCenterline(handles,bfIdx);
 [redImage,greenImage,image0,image1]=getImages(handles,hiResIdx,bfIdx);
 
-
-            
+%Check viewMode, if it is 1, we will show a single plot on top of the 4
+%subplots. The plot will be the different images aligned to the himagred
+%image
 if handles.viewMode.Value
+    %load required alignment file
     alignments=getappdata(handles.figure1,'alignments');
     Rsegment=alignments.S2AHiRes.Rsegment;
     
+    %display the image selected
     switch handles.imageType.Value
-        case 1
+        case 1 %normal red image
             bigImage=redImage;
-        case 2
+        case 2 % green himag image aligned to red
             tform=alignments.S2AHiRes.t_concord;
             bigImage=imwarp(greenImage,tform,'OutputView',Rsegment);
-        case 3
-    tform1=alignments.lowResFluor2BF.t_concord;
-    tform2=alignments.Hi2LowResF.t_concord;
-    tform1.T=tform1.T\tform2.T;
-    bigImage=imwarp(image1,tform1,'OutputView',Rsegment);
-        case 4
+            bigImage=pedistalSubtract(bigImage);
+        case 3 %warp lowMag behavior image
+            
+            tform1=alignments.lowResFluor2BF.t_concord;
+            tform2=alignments.Hi2LowResF.t_concord;
+            tform1.T=tform1.T\tform2.T;
+            bigImage=imwarp(image1,tform1,'OutputView',Rsegment);
+        case 4 %warp lowMag fluor image
             tform=alignments.Hi2LowResF.t_concord;
             bigImage=imwarp(image0,tform,'OutputView',Rsegment);
     end
-    
+    %plot it on the big plot covering the 4 subplots
     bigPlot_handle=findobj(handles.bigPlot,'Type','Image');
     if ~isempty(bigPlot_handle)
         bigPlot_handle.CData=bigImage;
@@ -160,10 +181,13 @@ if handles.viewMode.Value
         imagesc(bigImage,'Parent',handles.bigPlot);
     end
     
+    %transform the centerline coordinates
     tform_lo2hi=alignments.lowResFluor2BF.t_concord;
     tform2=alignments.Hi2LowResF.t_concord;
     CL_hi=transformPointsInverse(tform_lo2hi,CL(:,[2,1]));
     CL_hi=transformPointsForward(tform2,CL_hi);
+    
+    %plot the centerline
     plot_handle=findobj(handles.bigPlot,'Type','Line');
     if ~isempty(plot_handle)
         plot_handle.XData=CL_hi(:,1);
@@ -175,7 +199,7 @@ if handles.viewMode.Value
     end
     
 else
- 
+ %in the other plotting mode, we update the 4 plots
 r40_handle=findobj(handles.r40,'Type','Image');
 r40_handle.CData=redImage;
 
@@ -184,6 +208,11 @@ g40_handle.CData=greenImage;
 
 dark10_handle=findobj(handles.dark10,'Type','Image');
 dark10_handle.CData=image1;
+
+fluor10_handle=findobj(handles.fluor10,'Type','Image');
+fluor10_handle.CData=image0;
+
+%update centerline plot
 plot_handle=findobj(handles.dark10,'Type','Line');
 if ~isempty(plot_handle)
     plot_handle.XData=CL(:,2);
@@ -196,8 +225,7 @@ else
 end
 
 
-fluor10_handle=findobj(handles.fluor10,'Type','Image');
-fluor10_handle.CData=image0;
+
 end
 
 % --- Outputs from this function are returned to the command line.
