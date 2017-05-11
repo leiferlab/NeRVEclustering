@@ -243,7 +243,8 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     matlabDirName = fullPath + "/" +  PS_NAME1
     matlabDirName2 = fullPath + "/" + PS_NAME2
     
-    stepSize=int(np.ceil(totalRuns/1500)) #Calculate how many volumes each parallel thread should handle serially. This is currently capped so that a maximium of 1500 threads are run in this section. 
+    nRuns=totalRuns//1000+1
+    stepSize=nRuns #Calculate how many volumes each parallel thread should handle serially. This is currently capped so that a maximium of 1500 threads are run in this section. 
     input1= "makePointStatsRef('"+ fullPath +"',"+ str(nRef) + ")"
     qsubCommand0 = ("sbatch --mem=2000 " 
         + MIN_TIME_STR 
@@ -261,7 +262,6 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     #get jobID number to set up dependency for next job
     dependencyString=" --dependency=afterok:${q1##* }"
     
-    nRuns=totalRuns//1000+1
 
     for i in range(nRuns):
         #number of jobs capped at 1000, work around by submitting many batches with length 1000. 
