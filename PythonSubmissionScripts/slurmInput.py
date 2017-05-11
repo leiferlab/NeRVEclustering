@@ -448,7 +448,7 @@ def make_ouputfolder(client,fullPath):
     if socket.gethostname()=='tigressdata.princeton.edu':
         if not os.path.exists(outputFilePath):
             os.makedirs(outputFilePath)
-            os.chmod(outputFile Path,06775)
+            os.chmod(outputFilePath,06775)
     else:
         ftp = client.open_sftp()
         try:
