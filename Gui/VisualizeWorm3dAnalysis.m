@@ -60,7 +60,7 @@ setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'SliderStep',[1,1]);
 
 hlistener2=addlistener(handles.slider2,'ContinuousValueChange',...
-    @plotSlide);
+    @plotter);
 setappdata(handles.slider2,'hlistener',hlistener2);
 set(handles.slider2,'SliderStep',[1,1]);
 

@@ -59,7 +59,7 @@ handles.output = hObject;
 hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
     @moveFrame);
 hlistenerz=addlistener(handles.zSlider,'ContinuousValueChange',...
-    @moveFrame);
+    @plotter);
 setappdata(handles.zSlider,'hlistener',hlistenerz);
 set(handles.zSlider,'SliderStep',[1,1]);
 
@@ -156,7 +156,7 @@ baseImg=getImage(handles,1);
 delete(findobj(handles.axes1,'type','image'))
 imagesc(handles.axes1,baseImg)
 hold(handles.axes1,'on')
-
+axis(handles.axes1,'tight');
 
 
 %%% prepare text object

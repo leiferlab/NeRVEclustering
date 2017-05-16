@@ -545,7 +545,7 @@ end
 
 function addPoint(location,xselect,yselect,handles)
 
-currentFrame=get(handles.slider1,'Value');
+currentFrame=round(get(handles.slider1,'Value'));
 switch location
     case 'head'
         head_pts=getappdata(handles.figure1,'head_pts');

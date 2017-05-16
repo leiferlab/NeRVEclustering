@@ -20,5 +20,6 @@
 3dbrain/PointMatchGMMREG_jn/sourcecode/MATLAB/registration/
 3dbrain/PointMatchGMMREG_jn/sourcecode/MATLAB/GaussTransform/
 3dbrain/PointMatchGMMREG_jn/sourcecode/MATLAB/auxilliary/
-3dbrain_other/
-3dbrain_other/ActivityAnalysis/
+3dbrain/MindControlAccessUtils/
+
+

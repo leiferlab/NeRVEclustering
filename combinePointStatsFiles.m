@@ -24,17 +24,25 @@ end
 
 pointStats=repmat(struct(),1,psLength);
 %progressbar(0);
-for iFile=1:length(pList);
+for iFile=1:length(pList)
     %   progressbar(iFile/length(pList));
     if ~mod(iFile,100)
         display([ 'Completed frame ' num2str(iFile) ' of ' num2str(psLength)])
     end
     
     idx=str2double(pList(iFile).name(11:15));
-    input=load([psFolder filesep pList(iFile).name]);
-    input=input.pointStats;
+    %addint trycatch loop because matfile occasionally is corrupted during
+    %saving
+    try
+        input=load([psFolder filesep pList(iFile).name]);
+        input=input.pointStats;
+        good_vol_flag= length(input.straightPoints)<200;
+    catch me
+        fprintf([me.message '\n'])
+        good_vol_flag=0;
+    end
     
-    if length(input.straightPoints)<200
+    if good_vol_flag
         pointStats(idx).stackIdx=input.stackIdx;
         pointStats(idx).straightPoints=input.straightPoints;
         pointStats(idx).rawPoints=input.rawPoints;
