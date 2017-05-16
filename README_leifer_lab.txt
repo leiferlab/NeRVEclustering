@@ -14,43 +14,72 @@ SETUP
 All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
 
 
+
 TO RUN THE CODE FROM TIGRESSDATA
+
+
 Once you have access to della and tigressdata, open a VNC connection by following the instructions on https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/. 
 
 Open a terminal window by going to Applications->System Tools -> Terminal
 
 Run the following commands:
 
-	/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
+
+
+/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
 	
+
+
 #####TO RUN A PYTHON SCRIPT#####:
 
-From Terminal navigate to the code location with:
 
-	cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
+
+Most of the anlaysis is run via Python submission scripts. From Terminal navigate to the code location with:
+
+	
+
+cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
+
+
 
 You can then run the Python submission codes by entering:
+
 	module load anaconda
-	python <python submission code name>.py
+
+python <python submission code name>.py
 	
+
+
+
 #####TO RUN A MATLAB SCRIPT#####:
+
+
 If running from tigressdata, matlab can be found by typing this into terminal:
 
 	/usr/licensed/matlab-R2016a/bin/matlab
 
+
+
 In the matlab command line, set up the paths to use these programs with:
 
+
+
 	cd /tigress/LEIFER/communalCode
+	
 	path(pathdef)
+
+
 
 You can then run any GUI typing the name of the .m file into the command line.
 
-		
+
+
 ######################################################################
 
-ANALYSIS PIPELIN
+ANALYSIS PIPELINE
 E
-######################################################################
+#####################################################################
+
 
 
 STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
@@ -59,7 +88,7 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 		submitWormFlashFinder.py
 
-	Matlab analysis code:
+	Matlab analysis code called by python:
 
 		highResTimeTraceAnalysisTriangle4.m
 
@@ -67,14 +96,18 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 
 	File Outputs:
+
 			hiResData.mat file -data for timing of .dat file
+
 			cam0flashtrack.mat
+
 			cam1flashtrack.mat
 
 
 
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
-(done locally for point matching, does not depend on timing)
+(done on tigressdata VNC with Matlab, does not depend on timing)
+
 After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 
@@ -112,7 +145,9 @@ Python submission code:
 
 		submitWormAnalysisPipelineFull.py
 
-	Matlab analysis code:
+
+	Matlab analysis code called by python:
+
 
 		clusterStraightenStart.m
 
@@ -129,7 +164,10 @@ STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
 
 		submitWormAnalysisPipelineFull.py
 
-	Matlab analysis code:
+
+	Matlab analysis code called by python:
+
+
 
 		clusterWormTracker.m
 
@@ -145,7 +183,8 @@ STEP 4: ERROR CORRECTION
 
 		submitWormAnalysisPipelineFull.py
 
-	Matlab analysis code:
+
+	Matlab analysis code called by python:
 
 		clusterBotChecker.m
 
@@ -161,7 +200,9 @@ STEP 5: SIGNAL EXTRACTION
 
 		submitWormAnalysisPipelineFull.py
 
-	Matlab analysis code:
+
+	Matlab analysis code called by python:
+
 
 		fiducialCropper3.m
 
@@ -172,14 +213,19 @@ STEP 5: SIGNAL EXTRACTION
 #########################################################################
 USEFUL GUIS FOR VISUALIZATION
 
+
 These guis use wasd gaming controls, ie a for left, d for right, w for up, s for down:
 
-GUI to Check Data Before any analysis
+GUI to Check Data 
+Before any analysis
+
 ------------------------------------
 ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
 
+
 GUIs for post-centerlines
+
 -------------------------
 wormCLviewer.m - Gui to view darkfield worm images along with the centerline
 
@@ -193,6 +239,9 @@ GUIs for post-pipeline to make sure things worked
 VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons. 
 
 VisualizeTrackedData.m - Check to see that tracking works well. Works on unstraightened .dat file. 
+
+
+
 
 
 #########################################################################

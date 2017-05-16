@@ -176,7 +176,7 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
 #since we can only submit up to 1000 jobs, we have to submit nRuns number of seperate sbatch jobs
     nRuns=totalRuns//1000+1
     #arbitrary stepsize, these jobs are fairly fast, but for counting, limit to 300 jobs
-    stepSize=totalRuns//300
+    stepSize=totalRuns//300+1
     
     
     for i in range(0,int(nRuns)):
