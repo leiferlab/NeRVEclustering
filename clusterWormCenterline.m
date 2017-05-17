@@ -26,35 +26,49 @@ eigbasis=eigbasis.eigvecs;
 setappdata(0,'eigbasis',eigbasis);
 
 %% get folders that have the avi files
-%Lowmag folder only exist for new set
-d= dir([dataFolder filesep 'LowMagBrain*']);
-if isempty(d)
-    %for old
-    aviFolder=dataFolder;
-else
-    %for new
-    aviFolder=[dataFolder filesep d(1).name];
+
+%% find CL workspace with masks and initial centerlines
+
+workspace_file=dir([dataFolder filesep 'CLworkspace*']);
+
+if isempty(workspace_file)
+    workspace_file=dir([dataFolder filesep '*' filesep 'CLworkspace*']);
+    if isempty(workspace_file)
+       error(...
+            'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
+    end
+    
 end
-display(aviFolder);
+
+workspace_file=workspace_file(1);
+workspace_file=[workspace_file.folder filesep workspace_file.name];
+low_mag_folder=fileparts(workspace_file);
+%%
+
 
 %% load initial variables from CLworkspace
-workSpaceFile=[aviFolder filesep 'CLworkspace.mat'];
 
-
-
-CLworkspace=load(workSpaceFile);
+CLworkspace=load(workspace_file);
 bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
 mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
 f_background=CLworkspace.f_background;  %f_background fluorBackground
 initial_cl=CLworkspace.initial_cl; % initial_cl clStart
 flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
 frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
+
+%setup paths to movies
+fluormovie=CLworkspace.fluormovie;
+behaviormovie=CLworkspace.behaviormovie;
+
+
+%set up centerline fitting parameters
 cline_para=CLworkspace.cline_para;
 if isfield(CLworkspace,'bf2fluor_lookup')
     bf2fluor_lookup=CLworkspace.bf2fluor_lookup; %for old setup of avi files
 else
-    bf2fluor_lookup=[];
+    bf2fluor_lookup=[]; %otherwise, behavior and fluor videos are in sync
 end
+
 refIdx=cline_para.refIdx;
 cline_para.showFlag=00;
 
@@ -63,6 +77,7 @@ cl_all=zeros(100,2,length(framelist)); %cl_all CLall
 cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll
 
 
+%load tip data and interpolate missing values
 if isfield(CLworkspace,'tips')
     if isfield(CLworkspace.tips,'head_pts')
     head_pts=CLworkspace.tips.head_pts;
@@ -94,25 +109,11 @@ end
 
 
 %% select files video files and load avi files
-if isempty(bf2fluor_lookup)
-    %for the newer setup, avi files are in seperate folder
-    fluor_movie_file=[aviFolder filesep 'cam0.avi'];
-    behavior_movie_file=[aviFolder filesep 'cam1.avi'];
-else
-    %for older setup
-    aviFiles=dir([aviFolder filesep '*.avi']);
-    aviFiles={aviFiles.name}';
-    aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
-    aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
-    behavior_movie_file=[aviFolder filesep aviFiles{~aviFluorIdx}];
-    fluor_movie_file=[aviFolder filesep aviFiles{aviFluorIdx}];
-end
-
-behavior_vidobj = VideoReader(behavior_movie_file);
-fluor_vidobj= VideoReader(fluor_movie_file);
+behavior_vidobj = VideoReader(behaviormovie);
+fluor_vidobj= VideoReader(fluormovie);
 
 %% create output folder
-outputFolder=[aviFolder filesep 'CL_files'];
+outputFolder=[low_mag_folder filesep 'CL_files'];
 if ~exist(outputFolder,'dir')
     mkdir(outputFolder)
 end
@@ -124,7 +125,7 @@ alignments=alignments.alignments;
 lowResFluor2BF=alignments.lowResFluor2BF;
 
 %% main loop
-for iframe=1:length(framelist);
+for iframe=1:length(framelist)
     %%
     %get frame from framelist
     itime=framelist(iframe);

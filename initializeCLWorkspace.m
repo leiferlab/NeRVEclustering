@@ -1,4 +1,4 @@
-function initializeCLWorkspace
+function initializeCLWorkspace(dataFolder)
 % This script is used for initializing parameters and data for centerline
 % detection. This script can be run cell by cell, with a few or the cells
 % running for or parfor loops over every frame of the video, and some cells
@@ -8,10 +8,12 @@ function initializeCLWorkspace
 
 
 %% Select datafolder for analysis
+if nargin==0
 mostRecent=getappdata(0,'mostRecent');
 dataFolder=uipickfiles('FilterSpec',mostRecent,...
     'Prompt', 'Select the BrainScanner Folder or the LowMag Folder');
 dataFolder=dataFolder{1};
+end
 setappdata(0,'mostRecent',fileparts(dataFolder));
 
 display(['Data Folder: ', dataFolder]);
@@ -42,10 +44,12 @@ if ~oldFlag
     %get movie length
     bf2fluor_lookup=[];
 else
+    low_mag_folder=dataFolder;
+
     aviFiles=aviFiles(cellfun(@(x) isempty(strfind(x,'HUDS')),aviFiles));
     aviFluorIdx=cellfun(@(x) ~isempty(strfind(x,'fluor')),aviFiles);
-    behaviormovie=[dataFolder filesep name filesep aviFiles{~aviFluorIdx}];
-    fluormovie=[dataFolder filesep name filesep aviFiles{aviFluorIdx}];
+    behaviormovie=[dataFolder filesep aviFiles{~aviFluorIdx}];
+    fluormovie=[dataFolder filesep aviFiles{aviFluorIdx}];
     %% set up timing alignments and lookups
     
     %get timing sync for old data movies, folders were hard saved at
@@ -90,6 +94,7 @@ for ichunk=1:nCells+1
     hiframe=min(nSteps*ichunk,nframes);
     %read the lower frame
     BFFrameRaw = double(read(behavior_vidobj,lowframe));
+    BFFrameRaw=BFFrameRaw(:,:,1); %for old videos images come out as RGB, but we only need one
     %select centerline points
     display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1) ', showing frame ' num2str(lowframe)]);
     imagesc(BFFrameRaw);
@@ -172,7 +177,7 @@ masks.fluor_mask=fluor_mask;
 masks.worm_mask=worm_mask;
 masks.bubble_mask=bubble_mask;
 
-%%
+%% save all outputs
 
 display('Done! if you need tips, run wormCL_tip_clicker, otherwise, move the file:')
 display([low_mag_folder filesep 'CLworkspace'])
@@ -180,6 +185,7 @@ display('into the same folder in /tigress/LEIFER/PanNeuronal')
 save([low_mag_folder filesep 'CLworkspace'],...
     'clStartI',...
     'masks',...
-    'nCells');
-
+    'nCells',...
+    'fluormovie',...
+    'behaviormovie');
 
