@@ -46,30 +46,30 @@ cline_para.memForce=.05;
 smoothkernal=gausswin(1000, 4);
 smoothkernal=smoothkernal/sum(smoothkernal);
 
-%% get low mag folder
-if strfind(dataFolder,'LowMag')
-    low_mag_folder=dataFolder;
-else
-    low_mag_folder=dir([dataFolder filesep 'LowMag*']);
-    if isempty(low_mag_folder)
-        
-        error(...
+
+%% find CL workspace with masks and initial centerlines
+
+workspace_file=dir([dataFolder filesep 'CLworkspace*']);
+
+if isempty(workspace_file)
+    workspace_file=dir([dataFolder filesep '*' filesep 'CLworkspace*']);
+    if isempty(workspace_file)
+       error(...
             'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
     end
-    low_mag_folder=[dataFolder filesep low_mag_folder(1).name];
-end
-%% load CL workspace with masks and initial centerlines
-
-workspace_file=[dataFolder filesep 'CLworkspace'];
-if ~exist(workspace_file,'file')
-    workspace_file=[low_mag_folder filesep 'CLworkspace'];
+    
 end
 
+workspace_file=workspace_file(1);
+workspace_file=[workspace_file.folder filesep workspace_file.name];
+low_mag_folder=fileparts(workspace_file);
 
+%% load the CL workspace
 cl_workspace=load(workspace_file);
 masks=cl_workspace.masks;
 clStartI=cl_workspace.clStartI;
 nCells=cl_workspace.nCells;
+
 %% load tip file if present
 
 display('Load tip file if present, otherwise, cancel')
@@ -82,19 +82,19 @@ else
     display('No tips found!');
 end
 
-%%
+%% get video files
 
 %setup paths to movies
-fluormovie=[low_mag_folder filesep 'cam0.avi'];
-behaviormovie=[low_mag_folder filesep 'cam1.avi'];
-
-
+fluormovie=cl_workspace.fluormovie;
+behaviormovie=cl_workspace.behaviormovie;
 %initialize video objects
 fluor_vidobj= VideoReader(fluormovie);
 behavior_vidobj = VideoReader(behaviormovie);
 
 %get video data
 nframes=round(behavior_vidobj.Duration*behavior_vidobj.FrameRate);
+nframes_fluors=round(fluor_vidobj.Duration*fluor_vidobj.FrameRate);
+
 bf_imsize=[behavior_vidobj.Height,behavior_vidobj.Width];
 
 %% take subsample of ref pointsfrom each behavior frame
@@ -147,17 +147,17 @@ mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_list));
 %
 parfor i_bg=1:length(frame_bg_list)
     time_list=find(frame_bg_lvl==frame_bg_list(i_bg));
-    fluor=zeros(bf_imsize);
+    mean_bf=zeros(bf_imsize);
     behavior_vidobj_par = VideoReader(behaviormovie);
     
     %add up each frame in a certain level
     for i_time=1:length(time_list)
         currentTime=time_list(i_time);
         bf_frame = read(behavior_vidobj_par,currentTime);
-        fluor=fluor+double(bf_frame(:,:,1));
+        mean_bf=mean_bf+double(bf_frame(:,:,1));
     end
     %calculate average.
-    mean_bf_all(:,:,i_bg)=(fluor/length(time_list));
+    mean_bf_all(:,:,i_bg)=(mean_bf/length(time_list));
 end
 
 % remove worm if worm is present and not moving
@@ -176,10 +176,10 @@ display('finished!')
 %take average
 progressbar(0);
 fluor_stack=0;
-skip=max(20,round(nframes/1000)); %don't need to do every frame, only do 1 every skip.
+skip=max(20,round(nframes_fluors/1000)); %don't need to do every frame, only do 1 every skip.
 counter=0;
-for itime=1:skip:nframes
-    progressbar(itime/nframes);
+for itime=1:skip:nframes_fluors
+    progressbar(itime/nframes_fluors);
     fluor_frame = read(fluor_vidobj,itime);
     fluor_stack=fluor_stack+double(fluor_frame(:,:,1));
     counter=counter+1;
