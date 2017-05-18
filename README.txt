@@ -1,4 +1,4 @@
-﻿ 
+ 
 Worm analysis protocol:
 
 
@@ -47,13 +47,11 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
-(done on tigressdata VNC with Matlab, does not depend on timing)
 
-After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. . Use alignment_gui.m on the data folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the data folders for analysis. 
 
 
 STEP 1: WORM CENTERLINE DETECTION
-(done locally or on tigressdata VNC for manual centerline initialization)
 
 	wormCL_tip_clicker.m
 		- this is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail. 
@@ -247,6 +245,41 @@ alignments.mat -matlab structure with fields containing the affine transforms fo
 
 
 ======Output Files ========
+
+EARLY OUTPUT FILES
+
+Along the way, the pipeline produces some useful alignment files for timing and image alignment. 
+
+hiResData.mat - 	data for each frame of HiMag video. This contains the information about the imaging plane, position of the stage, timing, and which volume each frame belongs to. 
+Fields:
+	Z - 		z voltage from piezo for each frame, indicating the imaging plane. 
+	frameTime -	time of each frame after flash alignment in seconds.
+	stackIdx -	number of the stack each frame belongs to. Each volume recorded is given an increasing number starting at 1 for the first volume. For example, the first 40 images will belong to stackIdx=1, then the next 40 will have stackIdx=2 etc etc…
+	imSTD - 	standard dev of each frame
+	xpos and ypos - stage position for each frame
+	flashLoc -	index of the frame of each flash
+
+*note some of these fields have an extra point at the end, just remove it to make everything the same size
+
+
+*flashTrack.mat - 1xN vector where N is the number of frames in the corresponding video. The values of flashTrack are the mean of each image. It will show a clear peak when a flash is triggered. This can be used to align the videos. 
+
+*YAML.mat - 1xN vector where N is the number of frames in the corresponding video. Each element of the mcdf has all of the metadata for each frame of the video. Using this requires code from https://github.com/leiferlab/MindControlAccessUtils.git github repo. 
+
+
+
+
+alignments.mat - 	set of affine transformations between videos feeds. Each has a "tconcord" field that works 
+with matlab’s imwarp function.
+Fields:
+	lowresFluor2BF-	Alignment from low mag fluorescent video to low mag behavior video
+	S2AHiRes -	Alignment from HiMag Red channel to HiMag green channel. This alignment is prior to cropping of the HiMag Red channel. 
+	Hi2LowResF -	Alignment from HiMag Red to low mag fluorescent video
+	
+
+
+FINAL OUTPUT FILES
+
 The result of the pipeline is various .mat files that contain neural signals and coordinates. The main output is heatData.mat
 
 heatData.mat 
