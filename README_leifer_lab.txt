@@ -2,7 +2,7 @@
 Worm analysis protocol:
 
 
-This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2017. 
+This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2017.  The paper can be found at https://doi.org/10.1371/journal.pcbi.1005517
 
 
 
@@ -56,7 +56,7 @@ python <python submission code name>.py
 
 If running from tigressdata, matlab can be found by typing this into terminal:
 
-	/usr/licensed/matlab-R2016a/bin/matlab
+	/usr/licensed/matlab-R2017a/bin/matlab
 
 
 
@@ -77,9 +77,10 @@ You can then run any GUI typing the name of the .m file into the command line.
 ######################################################################
 
 ANALYSIS PIPELINE
-E
+
 #####################################################################
 
+To start, you must put the LowMag folder which has the .avi videos inside the corresponding BrainScanner folder. Run each of the Python submission codes as described above. 
 
 
 STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
