@@ -1,8 +1,9 @@
 #!/bin/sh
 #
 # File:   runWormBotChecker.sh
-# Author: benbratton
+# Author: jnguyen
 #
+# Runs the error correction step fro the NeRVE clustering algorithm for tracking neruons.
 # Created on May 26, 2015, 11:56:37 AM
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence
 export PATH=/usr/local/matlab-R2013a/bin/:$PATH
@@ -29,5 +30,4 @@ echo $1
 echo $2
 
 # run the job
-# if 3rd input is 1, run on with slurm task array ID, otherwise, use SGE (old cetus)
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterBotChecker('$1',$SLURM_ARRAY_TASK_ID, $2);exit;"

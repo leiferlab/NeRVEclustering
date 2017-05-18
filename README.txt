@@ -2,77 +2,17 @@
 Worm analysis protocol:
 
 
-This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2017.  The paper can be found at https://doi.org/10.1371/journal.pcbi.1005517
-
-
-
 #########################################################################
-SETUP
+Intro
 
 #########################################################################
 
-All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
+
+This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2017.  The paper can be found at https://doi.org/10.1371/journal.pcbi.1005517. The data associated with this code can be found at the IEEE DataPort repository http://dx.doi.org/10.21227/H2901H
 
 
 
-TO RUN THE CODE FROM TIGRESSDATA
-
-
-Once you have access to della and tigressdata, open a VNC connection by following the instructions on https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/. 
-
-Open a terminal window by going to Applications->System Tools -> Terminal
-
-Run the following commands:
-
-
-
-/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
-	
-
-
-#####TO RUN A PYTHON SCRIPT#####:
-
-
-
-Most of the anlaysis is run via Python submission scripts. From Terminal navigate to the code location with:
-
-	
-
-cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
-
-
-
-You can then run the Python submission codes by entering:
-
-	module load anaconda
-
-python <python submission code name>.py
-	
-
-
-
-#####TO RUN A MATLAB SCRIPT#####:
-
-
-If running from tigressdata, matlab can be found by typing this into terminal:
-
-	/usr/licensed/matlab-R2017a/bin/matlab
-
-
-
-In the matlab command line, set up the paths to use these programs with:
-
-
-
-	cd /tigress/LEIFER/communalCode
-	
-	path(pathdef)
-
-
-
-You can then run any GUI typing the name of the .m file into the command line.
-
-
+All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. For public usage, some paths and commands will need to be changed in order to run on local machines or home institution computing clusters. You can run this code on the example files provided at 
 
 ######################################################################
 

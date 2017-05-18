@@ -27,7 +27,12 @@ import getpass
 import socket
 import time
 
-CODE_PATH='/tigress/LEIFER/communalCode/3dbrain' #path to the code repo
+#YOU MUST SET THE PATH TO THE CODE HERE 
+CODE_PATH='' #path to the code repo
+#YOU MUST SET THE LOCAL HOST NAME, this was for different text file saving methods. 
+LOCAL_HOST = ''
+EMAIL_DOMAIN='@princeton.edu'
+
 MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
@@ -36,7 +41,7 @@ NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
 # construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
 def get_email_script(mail_type='end,fail'):
     user= getpass.getuser()
-    user_email=user+'@princeton.edu'
+    user_email=user+EMAIL_DOMAIN
     mail_script= ' --mail-type=' + mail_type +' --mail-user=' + user_email
     return mail_script
 
@@ -421,7 +426,7 @@ def write_input(commandList,client,fullPath):
     outputFilePath=make_output_path(fullPath)
     fileName=outputFilePath+'/input.txt'
 #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
-    if socket.gethostname()=='tigressdata.princeton.edu':
+    if socket.gethostname()==LOCAL_HOST:
         with open(fileName,'a') as f:
             for command in commandList:
                 f.write(command)
@@ -445,7 +450,7 @@ def write_input(commandList,client,fullPath):
 def make_ouputfolder(client,fullPath):
     outputFilePath=make_output_path(fullPath)
     
-    if socket.gethostname()=='tigressdata.princeton.edu':
+    if socket.gethostname()==LOCAL_HOST:
         if not os.path.exists(outputFilePath):
             os.makedirs(outputFilePath)
             os.chmod(outputFilePath,06775)

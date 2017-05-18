@@ -2,6 +2,7 @@
 #
 # File:   runWormCellTracking.sh
 # Author: jnguyen
+# Runs the Neuron Registration Vector encoding by doing point-set registration. 
 #
 # Created on May 26, 2015, 11:56:37 AM
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence
@@ -30,5 +31,4 @@ echo $1
 echo $2
 echo $3
 # run the job
-# if 3rd input is 1, run on with slurm task array ID
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormTracker('$1',$SLURM_ARRAY_TASK_ID+$2, $3);exit;"

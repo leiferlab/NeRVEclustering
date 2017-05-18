@@ -28,16 +28,14 @@ def make_gui():
     master = gu.submitTK(rows=12,cols=2)
     #variables will be stored in a dict in master.e
     master.addGuiField("User Name",'user_name',defaultName)
-    master.addGuiField("Parent Path",'parent_path','/tigress/LEIFER/PanNeuronal')
+    master.addGuiField("Parent Path",'parent_path','')
     master.addGuiField("Date of data",'date',defaultDate)
     master.addGuiField("DataFolderName",'folder_name',defaultFolder)
     master.addGuiCheck("Start Workspace",'start_flag',1)
     master.addGuiCheck("Email",'email_flag',1)
     
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
-    if  socket.gethostname()=='tigressdata.princeton.edu':
-        master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
-    return master
+    master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     
 
 def submitScript(master=None):
@@ -143,9 +141,9 @@ if __name__ == '__main__':
         
         For a quick test, run this code as follows:
         User Name: <your username>
-        Parent Path:/tigress/LEIFER/PanNeuronal
-        Date of Data: testing_sets
-        Data Folder Name: Brain_working_dataset
+        
+        Press the "SELECT FOLDER" button and add navigate to the dataset folder.
+
         <Check box>
         
         ''')

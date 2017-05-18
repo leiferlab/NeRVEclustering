@@ -1,8 +1,9 @@
 #!/bin/sh
 #
 # File:   runWormCellTracking.sh
-# Author: benbratton
+# Author: jnguyen
 #
+# Runs the straightening codes prior to point-set registration. 
 # Created on May 26, 2015, 11:56:37 AM
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence
 export PATH=/usr/local/MATLAB/R2015a/bin/:$PATH

@@ -1,8 +1,11 @@
 #!/bin/sh
 #
-# File:   runWormCellTracking.sh
-# Author: benbratton
+# File:   runWormBotCheckCompiler.sh
+# Author: jnguyen
 #
+
+# Compiles the results from the clusterBotchecker
+
 # Created on May 26, 2015, 11:56:37 AM
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence
 export PATH=/usr/local/matlab-R2013a/bin/:$PATH
@@ -31,5 +34,4 @@ echo $SGE_TASK_ID
 echo $2
 
 # run the job
-# if 3rd input is 1, run on with slurm task array ID
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterBotCheckCompiler('$1');exit;"

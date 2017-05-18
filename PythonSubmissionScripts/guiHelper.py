@@ -16,10 +16,9 @@ import os
 import pickle
 
 
-#server jobs willb e submitted to
-SERVER ='della.princeton.edu'
-#location of the ssh key file shared by lefierdata
-KEYPATH='/tigress/LEIFER/.ssh/id_rsa'
+#YOU MUST SET THE SEVER HOST NAME, at princeton, della.princeton.edu was used. 
+SERVER =''
+
 
 #load the pickle files for default values to put into fields. The pickle files store your previous entries in the pickles2.p file in ~. 
 def pickle_load():
@@ -78,12 +77,7 @@ def get_nframes(client,fullPath):
     
 
 def dellaConnect(username,password=None):
-    #use the username to connect to della, if password is provided, use it, otherwise, use ssh keys
-    if socket.gethostname()=='tigressdata.princeton.edu':
-        #if on tigressdata, use path to key file file in /tigress/LEIFEr
-        key = paramiko.RSAKey.from_private_key_file(KEYPATH)
-    else:
-        key=None
+    #use the username to connect to della, if password is provided, use it,
     # connect and submit job via sbatch
     client = paramiko.SSHClient()
     client.load_system_host_keys()
