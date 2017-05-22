@@ -109,8 +109,8 @@ temp=temp-background;
 temp(temp<0)=0;
 
 %crop red and green himag images
-redImage=temp(rect1(2):(rect1(4)),rect1(1):(rect1(3)));
-greenImage=temp(rect2(2):(rect2(4)),rect2(1):(rect2(3)));
+redImage=temp(rect1(2):(rect1(2)+rect1(4)-1),rect1(1):(rect1(3)));
+greenImage=temp(rect2(2):(rect2(2)+rect2(4)-1),rect2(1):(rect2(3)));
 
 
 %load lowmag images
@@ -281,9 +281,18 @@ end
 %load timing data
 try
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
+if length(bfAll.flashLoc)>1 && lenght(hiResData.flashLoc)>1
         set(handles.timingStatus,'String', 'Timing Good');
         handles.timingStatus.BackgroundColor=[0,.94,0];
     set(handles.timingStatus,'Enable','off');
+else
+        set(handles.timingStatus,'String', 'Flashes Missing');
+        handles.timingStatus.BackgroundColor=[.94,0,0];
+        handles.timingStatus.Callback={@popupForCallbacks,...
+            {'Less than 2 flashes found in some of the movies, timing alignment might be bad'}};
+    set(handles.timingStatus,'Enable','on');    
+end
+
 catch me
         set(handles.timingStatus,'String', me.identifier);
         handles.timingStatus.BackgroundColor=[.94,0,0];

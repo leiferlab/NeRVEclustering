@@ -22,7 +22,7 @@ function varargout = wormCL_tip_clicker(varargin)
 
 % Edit the above text to modify the response to help wormCL_tip_clicker
 
-% Last Modified by GUIDE v2.5 24-Apr-2017 15:15:10
+% Last Modified by GUIDE v2.5 18-May-2017 11:12:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -106,29 +106,6 @@ end
 
 
 
-
-% --- Executes on slider movement.
-function slider1_Callback(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
 % --- Executes on button press in selectFolder.
 function selectFolder_Callback(hObject, eventdata, handles)
 % hObject    handle to selectFolder (see GCBO)
@@ -176,10 +153,16 @@ show_image(hObject)
 
 
 function show_image(hObject,eventdata)
-
+%get current image from slider
 handles=guidata(get(hObject,'Parent'));
 frameNumber=get(handles.slider1,'Value');
+
+%force it to be a multiple of the stepsize
+stepSize=str2double(get(handles.stepSize,'String'));
+frameNumber=ceil(frameNumber/stepSize)*stepSize;
 frameNumber=max(1,round(frameNumber));
+set(handles.slider1,'Value',frameNumber);
+
 set(handles.currentFrame,'String',num2str(frameNumber));
 
 Fid=getappdata(handles.figure1,'Fid');
@@ -442,8 +425,10 @@ elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
     %Up
     
 elseif strcmp(eventdata.Key,'w')
+    handles.get_head.Value=~handles.get_head.Value;
     get_head_Callback(handles.get_head,eventdata,handles);
 elseif strcmp(eventdata.Key,'s')
+    handles.get_tail.Value=~handles.get_tail.Value;
     get_tail_Callback(handles.get_tail,eventdata,handles);
 elseif  strcmp(eventdata.Key,'space')
     snapshot_Callback(handles.slider1,eventdata,handles);
@@ -522,7 +507,8 @@ end
 
 if get(handles.get_tail,'Value');
     handles.get_tail.BackgroundColor=[0.9400 0.9400 0.9400];
-    handles.get_tail.Value=0;end
+    handles.get_tail.Value=0;
+end
 
 
 % --- Executes on button press in get_tail.
@@ -655,4 +641,3 @@ currentFrame=str2double(get(hObject,'String'));
 currentFrame=max(currentFrame,handles.slider1.Min);
 currentFrame=min(currentFrame,handles.slider1.Max);
 handles.slider1.Value=round(currentFrame);
-

@@ -336,6 +336,7 @@ sliceZY = squeeze(permute(sliceYZ, [2 1 3]));
 
 sp1 = subplot(2,2,1);
 %colorbar;
+clims=double(clims);
 imagesc(sliceXY, clims);
 title('Slice XY');
 ylabel('X');xlabel('Y');

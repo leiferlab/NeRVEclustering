@@ -50,7 +50,7 @@ end
 im_smooth=normalizeRange(im_smooth);
 
 %% initial threshold
-im_bw=im_smooth>thresh1;
+im_bw=im_smooth>max(graythresh(im_smooth(:)),thresh1);
 %remove small objects
 im_bw=AreaFilter(im_bw,minObjSize,[],6);
 
@@ -67,7 +67,7 @@ blobStats=regionprops(cc,'Area','BoundingBox','Centroid');
 
 
 im_bw_out=zeros(size(im_bw));
-for iblob=1:cc.NumObjects;
+for iblob=1:cc.NumObjects
     %crop out object with pad
     box=floor(blobStats(iblob).BoundingBox);
     box(1:3)=box(1:3)-[pad,pad,pad];

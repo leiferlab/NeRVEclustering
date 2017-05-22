@@ -20,31 +20,6 @@ if contains(hostname,'della')
 end
 
 
-%% Initialize fitting parameters for centerline, 
-
-cline_para.refIdx=10;
-cline_para.tipRegion=45;
-cline_para.endRepulsion=.3;
-cline_para.repulsionD=20;
-cline_para.heat=3;
-cline_para.CLalpha=5;
-cline_para.CLbeta=100;
-cline_para.gamma=25;  
-cline_para.kappa=60;
-cline_para.endkappa=5;
-cline_para.gradient_force=20;
-cline_para.showFlag=0;
-cline_para.iterations=400;
-
-cline_para.stretching_force_factor=[.3 .3];
-cline_para.refSpring=.01;
-cline_para.stretch_ends_flag=1;
-cline_para.refL=6;
-cline_para.memForce=.05;
-
-
-smoothkernal=gausswin(1000, 4);
-smoothkernal=smoothkernal/sum(smoothkernal);
 
 
 %% find CL workspace with masks and initial centerlines
@@ -69,7 +44,7 @@ cl_workspace=load(workspace_file);
 masks=cl_workspace.masks;
 clStartI=cl_workspace.clStartI;
 nCells=cl_workspace.nCells;
-
+cline_para=cl_workspace.cline_para;
 %% load tip file if present
 
 display('Load tip file if present, otherwise, cancel')

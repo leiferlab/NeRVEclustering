@@ -71,5 +71,5 @@ bfAll.frameTime=time;
 fluorAll.frameTime=time;
 bfAll.flashTrack=bfFlash;
 fluorAll.flashTrack=fluorFlash;
-bfAll.flashLoc=union(bfFlashloc,fluorFlashloc);
-fluorAll.flashLoc=union(bfFlashloc,fluorFlashloc);
+bfAll.flashLoc=bfFlashloc;
+fluorAll.flashLoc=bfFlashloc;

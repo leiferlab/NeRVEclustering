@@ -37,7 +37,6 @@ if isempty(workspace_file)
        error(...
             'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
     end
-    
 end
 
 workspace_file=workspace_file(1);
@@ -82,6 +81,11 @@ if isfield(CLworkspace,'tips')
     if isfield(CLworkspace.tips,'head_pts')
     head_pts=CLworkspace.tips.head_pts;
     tail_pts=CLworkspace.tips.tail_pts;
+    
+    tip_mat_length=min(size(head_pts,1),size(tail_pts,1));
+    head_pts=head_pts(1:tip_mat_length,:);
+    tail_pts=tail_pts(1:tip_mat_length,:);
+    
     same_pt=all(head_pts==tail_pts,2);
     
 
@@ -147,14 +151,15 @@ for iframe=1:length(framelist)
             %scale background for best match before subtraction.
             c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
             bf_frame_raw=bf_frame_raw-background_raw*c;
-            bf_frame_raw=abs(bf_frame_raw);
+            bf_frame_raw(bf_frame_raw<0)=0;
+            
             % afew filter steps
             bf_frame=imtophat(bf_frame_raw,strel('disk',50));
             bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
             bf_frame_std=normalizeRange(bf_frame_std);
             bfstdthresh=(bf_frame_std>graythresh(bf_frame_std));
             bf_frame(bfstdthresh)=abs(bf_frame(bfstdthresh));
-            bf_frame_std=bpass((bf_frame_std),1,80);
+       %     bf_frame_std=bpass((bf_frame_std),1,80);
             bf_frame=bpass(bf_frame,4,80)/10;
             
             %% filter fluor images

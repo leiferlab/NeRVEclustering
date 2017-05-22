@@ -1,3 +1,4 @@
+
 function initializeCLWorkspace(dataFolder)
 % This script is used for initializing parameters and data for centerline
 % detection. This script can be run cell by cell, with a few or the cells
@@ -5,6 +6,32 @@ function initializeCLWorkspace(dataFolder)
 % require user inpurts to initialize centerlines or crop out image regions.
 % Prior to running this script, you may run wormCL_tip_clicker.m for a GUI
 % that allows the user to click centerline tips.
+
+
+
+%% parameters
+
+%% Initialize fitting parameters for centerline, 
+
+cline_para.refIdx=8;
+cline_para.tipRegion=45;
+cline_para.endRepulsion=.3;
+cline_para.repulsionD=20;
+cline_para.heat=3;
+cline_para.CLalpha=5;
+cline_para.CLbeta=100;
+cline_para.gamma=40;  
+cline_para.kappa=60;
+cline_para.endkappa=5;
+cline_para.gradient_force=100;
+cline_para.showFlag=0;
+cline_para.iterations=400;
+cline_para.stretching_force_factor=[.3 .3];
+cline_para.refSpring=.01;
+cline_para.stretch_ends_flag=1;
+cline_para.refL=5.5;
+cline_para.memForce=.01;
+
 
 
 %% Select datafolder for analysis
@@ -84,7 +111,7 @@ nCells=16;
 nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
 bfCell_i=cell(nCells,1);
 clStartI=cell(nCells+1,1);
-display(['Click the points of the centerline starting at the head. When '...
+display(['Click the ~5-10 points of the centerline starting at the head. When '...
     'you are done, double click the last point.']);
 %
 sample_images=zeros(bf_imsize(1),bf_imsize(1),nCells+1);
@@ -98,6 +125,8 @@ for ichunk=1:nCells+1
     %select centerline points
     display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1) ', showing frame ' num2str(lowframe)]);
     imagesc(BFFrameRaw);
+    set(gcf,'Name',['Select Points for frame ' num2str(ichunk) ])
+
     [xpts,ypts]=getpts();
     clStartI{ichunk}=[xpts,ypts];
     pause(.3)
@@ -140,7 +169,7 @@ while strcmp(button,'Yes')
 end
 
 %% Remove worm for background calculation if it doesnt move much
-button = questdlg('Is the worm moving??');
+button = questdlg('Is the worm moving a lot??');
 if strcmp(button,'No')
     display('Crop out the worm!')
     imagesc(mean_sample)
@@ -186,6 +215,7 @@ save([low_mag_folder filesep 'CLworkspace'],...
     'clStartI',...
     'masks',...
     'nCells',...
+    'cline_para',...
     'fluormovie',...
     'behaviormovie');
 

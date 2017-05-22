@@ -330,7 +330,9 @@ Rsegment=R.Rsegment;
 if get(handles.channelSelect,'Value')==1
     baseImg=fullImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 else
-    activity=fullImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+%    activity=fullImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+    activity=fullImage((rect2(2)+1):rect2(2)+rect2(4)-1,...
+        (1+rect2(1)):rect2(1)+rect2(3)-1);
     baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
 end
 

@@ -22,7 +22,7 @@ function varargout = VisualizeWorm3dAnalysis(varargin)
 
 % Edit the above text to modify the response to help VisualizeWorm3dAnalysis
 
-% Last Modified by GUIDE v2.5 07-Jan-2016 14:09:56
+% Last Modified by GUIDE v2.5 18-May-2017 14:43:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -309,6 +309,11 @@ switch get(handles.pointShowType,'Value')
 end
 pointID=pointID(:);
 
+if isempty(pointID)
+display('No Points Found!')
+return
+end
+
 %only leave points that are in or close to the current slice being
 %displayed
 if ~get(handles.showAllPoints,'Value')
@@ -464,17 +469,19 @@ ethoPlot.XData=[iImage iImage];
 
 %get images and points, plot the signal
 baseImg= getImage(handles);
-[ pointsi,pointID]=getPoints(handles);
 plotSignal(handles);
+[ pointsi,pointID]=getPoints(handles);
 
 %display the image by updating axes handle
 im_handle=findobj(handles.axes1,'type','Image');
 if isempty(im_handle)
     imagesc(baseImg,'parent',handles.axes1);
+    
 else
     set(im_handle,'CData',baseImg);
 end
 caxis(handles.axes1,[0 1]);
+
 
 %delete previous text and scatter objects, slower, but this time is small
 %compared to time to load images. 
@@ -482,7 +489,7 @@ scatterObjs=findobj(handles.axes1,'type','Scatter');
 textObjs=findobj(handles.axes1,'type','Text');
 delete(scatterObjs);
 delete(textObjs);
-
+if ~isempty(pointID)
 %get the numbers of the points being displayed, create a cell array of them
 hold(handles.axes1,'on')
 pointIDstr=cellstr(num2str(pointID));
@@ -493,7 +500,7 @@ pointIDstr=cellfun(@(x) strrep(x,'NaN',''),pointIDstr,'uniform',0);
 scatter(handles.axes1,pointsi(:,1),pointsi(:,2),'xr');
 text(pointsi(:,1),pointsi(:,2),pointIDstr(:),...
     'color','w','parent',handles.axes1);
-
+end
 % show the tracked point in green.
 if any(pointID==regionSelect)
     nSelectIdx=pointID(:)==regionSelect;
@@ -1005,3 +1012,24 @@ hold(handles.axes5,'on');
 ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
 setappdata(handles.figure1,'ethoPlot',ethoPlot);
 hold(handles.axes5,'off');
+
+
+% --- Executes on button press in selectPSfile.
+function selectPSfile_Callback(hObject, eventdata, handles)
+% hObject    handle to selectPSfile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+mostRecent=getappdata(0,'mostRecent');
+pointStatsFile=uipickfiles('filterspec',mostRecent,...
+    'Prompt', 'Select Data Folder');
+pointStatsFile=pointStatsFile{1};
+dataMat=load(pointStatsFile);
+
+display('Loading mat file with neuron coordinates');
+fieldName=fieldnames(dataMat);
+dataMat=getfield(dataMat,fieldName{1});
+%save the pointStats file
+setappdata(handles.figure1,'TrackData',dataMat);
+
+

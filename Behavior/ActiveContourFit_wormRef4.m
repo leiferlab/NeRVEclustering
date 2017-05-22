@@ -17,6 +17,8 @@ function [xyzs_avg,Is,EOut] = ActiveContourFit_wormRef4(im,tip_image, cline_para
 xyzs = distanceInterp(cline_initial(2:end-1,:),100);
 [m, n ] = size(xyzs);
 
+%intializing this value for later
+ftail=0;
 
 %use of eigenworms 20160402
 eigbasis=getappdata(0,'eigbasis');
@@ -252,8 +254,8 @@ for i=1:cline_para.iterations;
             tail_I_10=mean(Is(end-10:end));
             tail_I_5=mean(Is(end-5:end));
             
-            if tail_I_20<tail_I_init ||  tail_I_10<tail_I_init
-                ftail=-cline_para.endkappa*tail_I_init-deltaS;
+            if tail_I_20<tail_I_init ||  tail_I_5<tail_I_init
+                ftail=-cline_para.endkappa*tail_I_init;
             else
                 ftail=cline_para.endkappa*(tail_I_5-tail_I_init)-deltaS;
             end
@@ -354,7 +356,9 @@ end
 %do some averageing at the end to smooth out the snake.
 xyzs_avg = xyzs_avg / counter;
 xyzs_avg=distanceInterp(xyzs_avg,100);
-
+if ftail<-.1
+    xyzs_avg=distanceInterp(xyzs_avg(1:97,:),100);
+end
 %caluclate the internal energy of the snake for output
 EOut=1/2*(cline_para.CLalpha*(sum(sum(diff(xyzs_avg,1,1).^2))) + ...
     cline_para.CLbeta*(sum(sum(diff(xyzs_avg,2,1).^2))));
