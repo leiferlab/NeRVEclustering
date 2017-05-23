@@ -62,6 +62,7 @@ fluorFlashloc(diff(fluorFlashloc)<3)=[];
 
 camData=importdata([aviFolder filesep 'CamData.txt']);
 time=camData.data(:,2);
+
 %add fix to deal with occasional repeat times, unique times are required
 %for alignments, this will tend to make then unique
 time=time+mean(diff(time))*.001*(1:length(time))';
@@ -73,3 +74,14 @@ bfAll.flashTrack=bfFlash;
 fluorAll.flashTrack=fluorFlash;
 bfAll.flashLoc=bfFlashloc;
 fluorAll.flashLoc=bfFlashloc;
+
+%recently added stage positions, add them to the datastructure
+if size(camData.data,2)>3
+stageX=camData.data(:,3);
+stageY=camData.data(:,4);
+
+fluorAll.stageX=stageX;
+fluorAll.stageY=stageY;
+bfAll.stageX=stageX;
+bfAll.stageY=stageY;
+end

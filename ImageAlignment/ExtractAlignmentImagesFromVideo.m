@@ -13,6 +13,7 @@ if ~isempty(h)
     [rows, cols]=getdatdimensions(datFile);
     
     camData=importdata([imFolder filesep 'CameraFrameData.txt']);
+    labJackData=importdata([imFolder filesep 'LabJackData.txt']);
     frameno=camData.data(:,1);
     savedFrames=camData.data(:,2);
     time=frameno(diff(savedFrames)>0);

@@ -47,6 +47,7 @@ low_mag_folder=fileparts(workspace_file);
 
 %% load initial variables from CLworkspace
 
+try
 CLworkspace=load(workspace_file);
 bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
 mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
@@ -62,6 +63,11 @@ behaviormovie=CLworkspace.behaviormovie;
 
 %set up centerline fitting parameters
 cline_para=CLworkspace.cline_para;
+catch me
+    error('Files are missing from the CLworkspace, did you run clusterCL_start?')
+end
+
+
 if isfield(CLworkspace,'bf2fluor_lookup')
     bf2fluor_lookup=CLworkspace.bf2fluor_lookup; %for old setup of avi files
 else

@@ -103,7 +103,7 @@ setappdata(handles.figure1,'imFolder',imFolder);
 
 red_images=dat_images(1:512,:,:);
 green_images=dat_images(513:end,:,:);
-nFrames=size(red_images,3);
+nFrames=min(size(avi0_images,3),size(red_images,3));
 all_images=repmat(struct(),1,nFrames);
 setappdata(handles.figure1,'nFrames',nFrames);
 for iFrame=1:nFrames

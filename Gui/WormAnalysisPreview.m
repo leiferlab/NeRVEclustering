@@ -281,7 +281,7 @@ end
 %load timing data
 try
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
-if length(bfAll.flashLoc)>1 && lenght(hiResData.flashLoc)>1
+if length(bfAll.flashLoc)>1 && length(hiResData.flashLoc)>1
         set(handles.timingStatus,'String', 'Timing Good');
         handles.timingStatus.BackgroundColor=[0,.94,0];
     set(handles.timingStatus,'Enable','off');

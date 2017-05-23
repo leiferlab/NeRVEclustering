@@ -151,6 +151,27 @@ set(handles.zSlider,'min',minZ);
 set(handles.zSlider,'max', maxZ);
 set(handles.zSlider,'value',(maxZ+minZ)/2);
 
+%%% load fiducial points
+fiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
+
+%get all mat files in the fiducials folder. We used to have multiple users,
+%but now there should only ever be one. 
+fiducialFile=dir([fiducialFolder filesep '*.mat']);
+fiducialFile=[fiducialFolder filesep fiducialFile(1).name];
+if exist(fiducialFile,'file')
+fiducialPoints=load(fiducialFile);
+timeOffset=load([fiducialFolder filesep 'timeOffset']);
+timeOffset=timeOffset.timeOffset;
+if isempty(timeOffset),timeOffset=0;end
+setappdata(handles.figure1,'timeOffset',timeOffset)
+fiducialPoints=fiducialPoints.fiducialPoints;
+setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
+else
+    statusWarning(handles.neuronCoordStatus,...
+        'No neuron locations found! Has the botCheckCompiler run?',1)
+end
+
+
 %%% prepare image object
 baseImg=getImage(handles,1);
 delete(findobj(handles.axes1,'type','image'))
@@ -179,24 +200,7 @@ scatter(handles.axes1,[],[],'xr')
 scatter(handles.axes1,[],[],'o')
 hold(handles.axes1,'off')
 
-%%% load fiducial points
-fiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
 
-%get all mat files in the fiducials folder. We used to have multiple users,
-%but now there should only ever be one. 
-fiducialFile=dir([fiducialFolder filesep '*.mat']);
-fiducialFile=[fiducialFolder filesep fiducialFile(1).name];
-if exist(fiducialFile,'file')
-fiducialPoints=load(fiducialFile);
-timeOffset=load([fiducialFolder filesep 'timeOffset']);
-timeOffset=timeOffset.timeOffset;
-setappdata(handles.figure1,'timeOffset',timeOffset)
-fiducialPoints=fiducialPoints.fiducialPoints;
-setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
-else
-    statusWarning(handles.neuronCoordStatus,...
-        'No neuron locations found! Has the botCheckCompiler run?',1)
-end
 
 %%% load heatmap data
 heatDataFile=[dataFolder filesep 'heatData.mat'];
@@ -267,7 +271,7 @@ if iVolume~=getappdata(handles.figure1,'currentFrame') || isempty(zVoltages)
     vol_frame_list=...
         vol_frame_list(vol_frame_list>(-offset)...
         & vol_frame_list<length(hiResData.stackIdx));
-    zVoltages=hiResData.Z(vol_frame_list+offset);
+    zVoltages=hiResData.Z(vol_frame_list);
     [zVoltages,~,ia]=unique(zVoltages);
     vol_frame_list=vol_frame_list(ia);
     [~,ib]=sort(zVoltages,'ascend');
@@ -281,7 +285,7 @@ zSlice=interp1(zVoltages,1:length(zVoltages),zPos,'nearest','extrap');
 zVoltageOut=zVoltages(zSlice);
 set(handles.zSlider,'Value',zVoltageOut);
 
-hiResIdx=vol_frame_list(zSlice)+offset;
+hiResIdx=vol_frame_list(zSlice);
 setappdata(handles.figure1,'currentHiResIdx',hiResIdx);
 setappdata(handles.figure1,'currentFrame',iVolume);
 set(handles.FrameIdx,'string',[num2str(iVolume,'%6.2f'), ...
@@ -311,9 +315,12 @@ elseif Fid<=0
     Fid=fopen([imFiles filesep sCMOSfile] );
     setappdata(handles.figure1,'fileID',Fid);
 end
+offset=getappdata(handles.figure1,'timeOffset');
+imageIdx=hiResIdx+offset;
+
 
 %move the pointer to the image and read it in
-status=fseek(Fid,2*hiResIdx*row*col,-1);
+status=fseek(Fid,2*imageIdx*row*col,-1);
 fullImage=fread(Fid,row*col,'uint16',0,'l');
 fullImage=(reshape(fullImage,row,col));
 
@@ -383,7 +390,8 @@ flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
 
 text_handles=findobj(handles.axes1,'type','text');
 [hiResIdx,iVolume]=getHiResIdx(handles);
-
+offset=getappdata(handles.figure1,'timeOffset');
+imageIdx=hiResIdx+offset;
 %get neuron points
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
 if ~isempty(fiducialPoints) && length(fiducialPoints)>=iVolume
@@ -410,8 +418,8 @@ currentTarget=str2double(get(handles.trackedNeuron,'String'));
 currentTarget=round(currentTarget);
     % closeSlices are within +/- 2 frames of the currently shown frame,
     % these neurons will be shown in black
-closePoints=cellfun(@(x) abs(x-hiResIdx)<3,currentFiducials(:,4),'uniform',0);
-inSlicePoints=cellfun(@(x) x==hiResIdx,currentFiducials(:,4),'uniform',0);
+closePoints=cellfun(@(x) abs(x-imageIdx)<3,currentFiducials(:,4),'uniform',0);
+inSlicePoints=cellfun(@(x) x==imageIdx,currentFiducials(:,4),'uniform',0);
 
 
 %move text around, if the points are not close, move them off the screen
@@ -423,7 +431,7 @@ for iNeuron=1:100
         
         if any(iVolume==flagged_volumes) || any(flagged_neurons==iNeuron)
             text_handles(iNeuron).Color=[.94 0 0];
-        elseif iNeuron==currentTarget && ~all(text_handles(iNeuron).Color==[0 1 0])
+        elseif iNeuron==currentTarget
             text_handles(iNeuron).Color=[0 1 0];
         elseif ~all(text_handles(iNeuron).Color==1)
             text_handles(iNeuron).Color=[1 1 1];
@@ -507,7 +515,9 @@ if ~all(ismember(oldPlotState,newPlotState)) || isempty(oldPlotState)
     hold(handles.axes3,'on')
     tracePoint=scatter(handles.axes3,...
         iVolume,plotTrace(iVolume),...
-    currentcolor,'filled');
+        [],...
+        currentcolor,...
+    'filled');
     setappdata(handles.figure1,'tracePoint',tracePoint);
     hold(handles.axes3,'off');
     setappdata(handles.figure1,'oldPlot',newPlotState)
@@ -566,6 +576,7 @@ end
 
 handles=guidata(get(hObject,'Parent'));
 hiResData=getappdata(handles.figure1,'hiResData');
+offset=getappdata(handles.figure1,'timeOffset');
 
 set(handles.slider1,'value',get(handles.slider1,'value')+step);
 currentFrame=round(get(handles.slider1,'value'));
@@ -573,7 +584,7 @@ fiducialsAll=getappdata(handles.figure1,'fiducialPoints');
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
 if length(fiducialsAll)>currentFrame
 if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
-    newIdx=fiducialsAll{currentFrame}{currentTarget,4};
+    newIdx=fiducialsAll{currentFrame}{currentTarget,4}-offset;
     newZ=hiResData.Z(newIdx);
 else
     newZ=get(handles.zSlider,'value');
