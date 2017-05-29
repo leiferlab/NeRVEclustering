@@ -29,7 +29,7 @@ end
 if strfind(datFile, '.dat');
     Fid=fopen(datFile);
 status=fseek(Fid,0,1);
-stackSize=floor(ftell(Fid)/(2*rows*cols)-1);
+stackSize=floor(ftell(Fid)/(2*rows*cols));
 status=fseek(Fid,0,-1);
 else
     error('File must be a .dat binary file in uint16 form');

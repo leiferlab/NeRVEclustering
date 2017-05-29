@@ -1,5 +1,49 @@
 
-function heatMapGeneration(dataFolder,RvalAll,GvalAll)
+function heatMapGeneration(dataFolder,rRaw,gRaw)
+
+%heatMapGeneration takes takes raw Red and Green signals from whole brain
+%imaging and does processing to create ratiometric signals
+
+
+%%% INPUTS
+%dataFolder - destination folder for saving nerual signal results
+%rRaw - an N by T matrix of red fluor signals for N neurons and T times
+%gRaw - same as above but for the green signal.
+
+
+%%%OUTPUTS
+% inside dataFolder, a heatdata.mat file will be saved with signal at
+% various parts of the processing. 
+
+%	rRaw - an N neurons x T volumes matrix with the raw red signal from each
+%of the neurons. Signals are averaged pixel values around each tracked 
+%neuron with no other processing except for flash removal. 
+
+%	gRaw - same as rRaw but for the green signal. 
+
+%	rPhotoCorr - the rRaw signal after photobleaching correction for each 
+%neuron. No other smoothing or normalization is applied. Photobleaching 
+%correction is applied by fitting an exponential curve to a wide 20th 
+%percentile filter, and then subtraction the exponential from the raw signal.
+
+%	gPhotoCorr - same as above but with the green signal. 
+%Exponential curves are fit independently. 
+
+%	R2 - Smoothed and normalized version of rPhotoCorr. Normalization is %
+%done as delta F/ F0, where F0 is the lower 20th percentile signal. 
+%	G2 - Same as above but with gPhotoCorr.
+
+%	Ratio2 - The ratio signal is defined as gPhotoCorr/rPhotoCorr, 
+%the Ratio is then normalized as delta R/ R0. is the same way as R2 and G2. 
+
+% cgIdx - indices used to organize output, obtained by doing heirarchical
+% clustering of the correlation matrix of Ratio2.
+% cgIdxRev - used to go back from organized output to original one. Not
+% really necessary anymore. 
+
+%In our current setup, it works out to a fwhm of about 5 steps, or slightly
+%less than a second
+
 
 
 % take a datafolder, loading the wormFiducialIntensities to produce
@@ -26,24 +70,24 @@ min_quant=30;
 %% PHOTOBLEACHING CORRECTION
 
 % intialize photobleaching corrections
-photoBleachingR=zeros(size(RvalAll));
-photoBleachingG=zeros(size(RvalAll));
+photoBleachingR=zeros(size(rRaw));
+photoBleachingG=zeros(size(gRaw));
 
 % do photobleaching correction, correction is done by first running each R
 % and G trace through an ordfilt function, filtering values to a 30th value
 % out of 150 value window. 
-for i=1:size(RvalAll,1)
+for i=1:size(rRaw,1)
     try
         %%
         %initialize x values for fitting y=f(x)
-        xVals=(1:size(RvalAll,2))';
+        xVals=(1:size(rRaw,2))';
         % only take values where bot R and G are present
-        present=(~isnan(RvalAll(i,:)+GvalAll(i,:))') ;
-        present=present & (RvalAll(i,:)~=0)' & (GvalAll(i,:) ~=0)';
+        present=(~isnan(rRaw(i,:)+gRaw(i,:))') ;
+        present=present & (rRaw(i,:)~=0)' & (gRaw(i,:) ~=0)';
         xVals=xVals(present);
         % get R and G traces
-        rVals=RvalAll(i,:)';
-        gVals=GvalAll(i,:)';
+        rVals=rRaw(i,:)';
+        gVals=gRaw(i,:)';
         gVals=gVals(present);
         rVals=rVals(present);
         % do ord filtering 
@@ -81,13 +125,13 @@ for i=1:size(RvalAll,1)
         
         [g,gout]=fit(xVals,gVals,Fexponent,fitOptions);
         
-        if f(1)>(max(RvalAll(i,:))+100)
+        if f(1)>(max(rRaw(i,:))+100)
             f=fit(xVals,rVals,'poly1');
             if f.p1>0
                 f.p1=0;
             end
         end
-        if g(1)>(max(GvalAll(i,:))+1000)
+        if g(1)>(max(gRaw(i,:))+1000)
             g=fit(xVals,gVals,'poly1');
             if g.p1>0
                 g.p1=0;
@@ -96,14 +140,14 @@ for i=1:size(RvalAll,1)
         %plot some of the results, turned off for now
         if 0
             subplot(2,1,1);
-            plot(GvalAll(i,:))
+            plot(gRaw(i,:))
             hold on
             plot(g)
             ylim([0 g(0)+100])
             
             hold off
             subplot(2,1,2);
-            plot(RvalAll(i,:))
+            plot(rRaw(i,:))
             hold on
             
             plot(f)
@@ -113,10 +157,10 @@ for i=1:size(RvalAll,1)
             pause(.1)
         end
         
-        limit=min(3000,size(RvalAll,2));
+        limit=min(3000,size(rRaw,2));
         %calculating photobleaching correction from exponential fits
-        photoBleachingR(i,:)=f((1:size(RvalAll,2)))-f(limit);
-        photoBleachingG(i,:)=g((1:size(RvalAll,2)))-g(limit);
+        photoBleachingR(i,:)=f((1:size(rRaw,2)))-f(limit);
+        photoBleachingG(i,:)=g((1:size(rRaw,2)))-g(limit);
     catch me
         me
     end
@@ -126,13 +170,13 @@ end
 %%
 %apply photobleaching correction, nan the values that are very bright or
 %dark 
-rPhotoCorr=RvalAll-photoBleachingR ;
+rPhotoCorr=rRaw-photoBleachingR ;
 RvalstempZ=bsxfun(@minus,rPhotoCorr,nanmean(rPhotoCorr,2));
 RvalstempZ=bsxfun(@rdivide,RvalstempZ,nanstd(RvalstempZ,[],2));
 rPhotoCorr(RvalstempZ<-2|RvalstempZ>5|rPhotoCorr<40)=nan;
 
 
-gPhotoCorr=GvalAll-photoBleachingG ;
+gPhotoCorr=gRaw-photoBleachingG ;
 GvalstempZ=bsxfun(@minus,gPhotoCorr,nanmean(gPhotoCorr,2));
 GvalstempZ=bsxfun(@rdivide,GvalstempZ,nanstd(GvalstempZ,[],2));
 gPhotoCorr(GvalstempZ>5|gPhotoCorr<0)=nan;
@@ -140,65 +184,21 @@ gPhotoCorr(GvalstempZ>5|gPhotoCorr<0)=nan;
 
 %% apply smoothing and fold change over baseline calculation
 
-%Apply it to red
-A=rPhotoCorr';
-Asmooth=smooth2a(A,50,0);
-Asmooth=colNanFill(Asmooth);
-A0=quantile(Asmooth,.2,1);
-A=bsxfun(@minus, A,A0);
-A=bsxfun(@rdivide,A,A0);
-A2=colNanFill(A);
-A2=imfilter(A2, gausswin(5,1)/sum( gausswin(5,1)));
-A2(A2<-1)=-nan;
-R2=A2';
-
-%then to green
-A=(gPhotoCorr)';
-Asmooth=smooth2a(A,50,0);
-Asmooth=colNanFill(Asmooth);
-A0=quantile(Asmooth,.2,1);
-A=bsxfun(@minus, A,A0);
-A=bsxfun(@rdivide,A,A0);
-A2=colNanFill(A);
-A2=imfilter(A2, gausswin(5,1)/sum( gausswin(5,1)));
-A2(A2<-1)=-nan;
-G2=A2';
+%Process red and green signals, functions below. 
+R2=processSignal(rPhotoCorr);
+G2=processSignal(gPhotoCorr);
 
 %chop out flashes or other strange values
-
-rmean=nanmean(R2(:));
-rstd=nanstd(R2(:));
-nanmapr=R2>4|isnan(R2);%(rmean+3*rstd);
-gmean=nanmean(G2(:));
-gstd=nanstd(G2(:));
-nanmapg=G2>4|isnan(G2);%(gmean+3*gstd);
+nanmapr=R2>4|isnan(R2);
+nanmapg=G2>4|isnan(G2);
 G2(nanmapg)=nan;
 gPhotoCorr(nanmapg)=nan;
 rPhotoCorr(nanmapr)=nan;
 
-%now do it for the ratio of  R to G
-gfilt=@(x,h) imfilter(x, gausswin(h,1)/sum( gausswin(h,1)));
+%now, process the ratio
+Ratio2=processRatio(rPhotoCorr,gPhotoCorr);
 
-%fill in nans, smooth both R and G, then take ratio
-Gsmooth=colNanFill(gPhotoCorr');
-Rsmooth=colNanFill(rPhotoCorr');
-Gsmooth=gfilt(Gsmooth,5);
-Rsmooth=gfilt(Rsmooth,5);
-A=Gsmooth./Rsmooth;
-A0=quantile(A,.2,1);
-A=bsxfun(@minus, A,A0);
-A=bsxfun(@rdivide,A,A0);
-A2=colNanFill(A);
-Ratio2=A2';
 
-%reinsert nans into Ratio, filling in some of the isolated nans. 
-nan_map=isnan(gPhotoCorr+rPhotoCorr);
-bad_col=mean(nan_map)>.3;
-nan_map(:,bad_col)=1;
-nan_map=imopen(nan_map,[ 1 1 1 ]);
-nan_map(:,bad_col)=1;
-nan_map=imclose(nan_map,ones(1,10));
-Ratio2(nan_map)=nan;
 
 %% sort rows of correlation matrix  using heirarchical clustering,
 
@@ -214,11 +214,79 @@ cgIdx=str2double(get(cg,'RowLabels'));
 %close annoying clustergram plot
 close all hidden
 
-rRaw=RvalAll;
-gRaw=GvalAll;
 
 
 %%
 save([dataFolder filesep 'heatData'],'G2','R2','gRaw','rRaw',...
     'rPhotoCorr','gPhotoCorr','Ratio2','acorr','cgIdx','cgIdxRev');
 
+
+function A_out=processSignal(A)
+
+%do smoothing and deltaF/F0 processing for red and green signals
+
+%define a filtering function. h will be the fwhm of the gaussian
+gfilt=@(x,h) imfilter(x, gausswin(15,15/h)/sum( gausswin(15,15/h)));
+
+%start with transpose for colNanFill to work
+A=A';
+
+%for finding the baseline, smooth and then take 20% quantile, this is not
+%the smoothing used for the output.
+Asmooth=smooth2a(A,50,0);
+Asmooth=colNanFill(Asmooth);
+A0=quantile(Asmooth,.2,1);
+
+%take deltaF/F0
+A=bsxfun(@minus, A,A0);
+A=bsxfun(@rdivide,A,A0);
+
+%fill in nans and smooth
+A2=colNanFill(A);
+A2=gfilt(A2,5);
+%very negative signals are likely bad
+A2(A2<-1)=-nan;
+
+A_out=A2';
+
+
+function Aout=processRatio(R,G)
+%same as above, but for Ratio. 
+gfilt=@(x,h) imfilter(x, gausswin(15,15/h)/sum( gausswin(15,15/h)));
+
+%fill in nans, smooth both R and G, then take ratio
+Gsmooth=colNanFill(G');
+Rsmooth=colNanFill(R');
+
+Gsmooth=gfilt(Gsmooth,5);
+Rsmooth=gfilt(Rsmooth,5);
+
+A=Gsmooth./Rsmooth;
+
+%find lower percentile for deltaR/R0
+A0=quantile(A,.2,1);
+A=bsxfun(@minus, A,A0);
+A=bsxfun(@rdivide,A,A0);
+
+A2=colNanFill(A);
+
+Aout=A2';
+
+%reinsert nans into Ratio, filling in some of the isolated nans. 
+
+%find nans
+nan_map=isnan(G+R);
+
+%if more than .3 of the data in a col are nan, trash the col
+bad_col=mean(nan_map)>.3;
+nan_map(:,bad_col)=1;
+
+%do morphological open, removing isolated nans, I'm ok 
+%interpolating through some of these
+nan_map=imopen(nan_map,[ 1 1 1 ]);
+nan_map(:,bad_col)=1;
+
+%if man nans appear, merge them. 
+nan_map=imclose(nan_map,ones(1,10));
+
+Aout(nan_map)=nan;
