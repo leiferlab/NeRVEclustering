@@ -97,6 +97,21 @@ CL_Isum=CL_Isum-wc2;
 
 %% add something to downweight stuck frames
 
+for iCell=1:size(CLcell_2,2)
+CL1=CLcell_2{1,iCell};
+CL2=CLcell_2{2,iCell};
+I1=(squeeze(mean(sqrt(sum(diff(CL1,[],3).^2,2)))));
+I2=(squeeze(mean(sqrt(sum(diff(CL2,[],3).^2,2)))));
+
+I1=[0;cumsum(I1)];
+I2=[cumsum(I2,'reverse');0];
+I3=squeeze(mean(sqrt(sum((CL1-CL2).^2,2))));
+[~,loc]=min(I1+I2+I3);
+CL_current=CL1;
+CL_current(:,:,loc:end)=CL_current(:,:,loc:end);
+CL_out{iCell}=CL_current;
+end
+
 
 %% pick out centerlines that look better
 
@@ -106,11 +121,10 @@ CL_b=cell2mat(permute(CLcell_2(2,:),[1 3 2]));
 CL_If=cell2mat(CL_I_2(1,:));
 CL_Ib=cell2mat(CL_I_2(2,:));
 CL_Iout=CL_If;
-CL=CL_f;
 
 %take only parts of CL's we like
 [~,idx]=min(CL_Isum);
-CL(:,:,idx==2)=CL_b(:,:,idx==2);
+CL=cell2mat(permute(CL_out,[1 3 2]));
 CL_Iout(:,idx==2)=CL_Ib(:,idx==2);
 
 %% save the data

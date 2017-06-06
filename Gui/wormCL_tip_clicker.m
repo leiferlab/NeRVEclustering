@@ -22,7 +22,7 @@ function varargout = wormCL_tip_clicker(varargin)
 
 % Edit the above text to modify the response to help wormCL_tip_clicker
 
-% Last Modified by GUIDE v2.5 06-Jun-2017 10:37:52
+% Last Modified by GUIDE v2.5 06-Jun-2017 14:55:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -423,21 +423,15 @@ if strcmp(eventdata.Key,'rightarrow')||strcmp(eventdata.Key,'d')%strcmp(evnt.Key
 elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
     back1_Callback(handles.slider1,eventdata,handles);
     %Up
-    
-elseif strcmp(eventdata.Key,'w')
-    handles.get_head.Value=~handles.get_head.Value;
-    get_head_Callback(handles.get_head,eventdata,handles);
-elseif strcmp(eventdata.Key,'s')
-    handles.get_tail.Value=~handles.get_tail.Value;
-    get_tail_Callback(handles.get_tail,eventdata,handles);
-elseif  strcmp(eventdata.Key,'space')
-%     while handles.figure1.CurrentCharacter==' '
-%         pause(.1)
-%     end
-%    keyboard
- %   snapshot_Callback(handles.slider1,eventdata,handles);
-  %  forward1_Callback(handles.slider1,eventdata,handles);
-    
+elseif  strcmp(eventdata.Key,'f')
+    %enter Auto Mode
+    display(['Entering Auto Mode, keep your cursor on the head or tail!']);
+    display('To exist, press the space bar');
+     while handles.figure1.CurrentCharacter=='f'
+getMousePositionOnImage(handles.axes1, eventdata)
+pause(.1)
+     end
+
 end
 
 
@@ -655,3 +649,11 @@ function figure1_WindowKeyReleaseFcn(hObject, eventdata, handles)
 %	Character: character interpretation of the key(s) that was released
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on mouse motion over figure - except title and menu.
+function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+ 
