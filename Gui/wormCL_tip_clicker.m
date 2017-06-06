@@ -22,7 +22,7 @@ function varargout = wormCL_tip_clicker(varargin)
 
 % Edit the above text to modify the response to help wormCL_tip_clicker
 
-% Last Modified by GUIDE v2.5 18-May-2017 11:12:58
+% Last Modified by GUIDE v2.5 06-Jun-2017 10:37:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -431,8 +431,12 @@ elseif strcmp(eventdata.Key,'s')
     handles.get_tail.Value=~handles.get_tail.Value;
     get_tail_Callback(handles.get_tail,eventdata,handles);
 elseif  strcmp(eventdata.Key,'space')
-    snapshot_Callback(handles.slider1,eventdata,handles);
-    forward1_Callback(handles.slider1,eventdata,handles);
+%     while handles.figure1.CurrentCharacter==' '
+%         pause(.1)
+%     end
+%    keyboard
+ %   snapshot_Callback(handles.slider1,eventdata,handles);
+  %  forward1_Callback(handles.slider1,eventdata,handles);
     
 end
 
@@ -641,3 +645,13 @@ currentFrame=str2double(get(hObject,'String'));
 currentFrame=max(currentFrame,handles.slider1.Min);
 currentFrame=min(currentFrame,handles.slider1.Max);
 handles.slider1.Value=round(currentFrame);
+
+
+% --- Executes on key release with focus on figure1 or any of its controls.
+function figure1_WindowKeyReleaseFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was released, in lower case
+%	Character: character interpretation of the key(s) that was released
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
+% handles    structure with handles and user data (see GUIDATA)

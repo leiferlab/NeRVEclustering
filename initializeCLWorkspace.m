@@ -27,7 +27,7 @@ cline_para.gradient_force=100;
 cline_para.showFlag=0;
 cline_para.iterations=400;
 cline_para.stretching_force_factor=[.3 .3];
-cline_para.refSpring=.01;
+cline_para.refSpring=1;
 cline_para.stretch_ends_flag=1;
 cline_para.refL=5.5;
 cline_para.memForce=.01;
@@ -172,11 +172,12 @@ end
 button = questdlg('Is the worm moving a lot??');
 if strcmp(button,'No')
     display('Crop out the worm!')
-    imagesc(mean_sample)
-    worm_mask=roipoly();
 else
-    worm_mask=false(bf_imsize);
+    display('The worms head is always in the center of the image, crop out that head region');
 end
+imagesc(mean_sample)
+worm_mask=roipoly();
+
 %% calculate  background for fluor
 progressbar(0);
 fluor_stack=0;

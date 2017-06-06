@@ -57,8 +57,10 @@ for i=1:2
     Heig(:,:,i)=htemp;
     if nargout==2
     for j=1:2
-        
-           HeigVec{i,j}=reshape(V(i,j,:),Hsize);
+           htemp2=zeros(Hsize);
+           htemp2(Hind)=V(i,j,:);
+           
+           HeigVec{i,j}=htemp2;
     end
     end
     

@@ -22,7 +22,7 @@ function varargout = wormCL_Viewer(varargin)
 
 % Edit the above text to modify the response to help wormCL_Viewer
 
-% Last Modified by GUIDE v2.5 03-May-2017 17:10:54
+% Last Modified by GUIDE v2.5 01-Jun-2017 13:36:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -146,6 +146,26 @@ set(handles.slider1,'Max',nFrames);
 set(handles.maxSlider,'String',num2str(nFrames));
 set(handles.minSlider,'String','1');
 setappdata(handles.figure1,'MaxValue',nFrames);
+
+
+%Also get CLworkspace if its present, useful for subtracting backgrounds
+parentFolder=fileparts(currentData);
+CLworkspace_file=[parentFolder filesep 'CLworkspace.mat'];
+if exist(CLworkspace_file,'file')
+    display('Workspace found, loading workspace')
+    CLworkspace=load(CLworkspace_file);
+    background=CLworkspace.mean_bf_all;
+    frame_bg_lvl=CLworkspace.frame_bg_lvl;
+    set(handles.backgroundSubtract,'enable','on');
+else
+    background=[];
+    frame_bg_lvl=[];
+    set(handles.backgroundSubtract,'enable','off');
+end
+setappdata(handles.figure1,'background',background);
+setappdata(handles.figure1,'frame_bg_lvl',frame_bg_lvl);
+
+
 showImage(hObject)
 
 
@@ -176,15 +196,61 @@ end
 pixelValues=fread(Fid,nPix,'uint16',0,'l');
 C=reshape(pixelValues,row,col);
 end
-if 0
-C=pedistalSubtract(C);
+
+background=getappdata(handles.figure1,'background');
+frame_bg_lvl=getappdata(handles.figure1,'frame_bg_lvl');
+
+if ~isempty(background) && handles.backgroundSubtract.Value
+    background_raw=background(:,:,frame_bg_lvl(frameNumber));
+    bg=normalizeRange(background_raw);
+    bg_mask=bg>graythresh(bg)*2;
+    bg_mask=AreaFilter(bg_mask,5000,[],8);
+    bg_mask=imclose(bg_mask,true(12));
+    bg_mask=imdilate(bg_mask,true(25));
+    cc=bwconncomp(bg_mask);
+    frame_bg_lvl(frameNumber)
+    C=double(C);
+    c=sum(sum(C.*background_raw))/sum(background_raw(:).^2);
+
+    
+  Cbot= imbothat(C,strel('disk',35));
+  Ctop= imtophat(C,strel('disk',35));
+  k=fspecial('Gaussian',5,2.5);
+C2=imfilter(C,k);
+[H,D]=hessianMatrix(C2,3);
+[Heig,HeigVec]=hessianEig(H);
+
+    C=double(C)-c*background_raw;
+    
+    se=strel('disk',11);
+se=se.Neighborhood;
+
+H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
+H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
+H=H1.^2+H2.^2;
+H=H*2000;
+if max(H(:))>max(C(:))
+    H=H*max(C(:))/max(H(:));
 end
+for iObj=1:cc.NumObjects
+        pix_list=cc.PixelIdxList{iObj};
+        topmean=mean(C(pix_list));
+        botmean=mean(Cbot(pix_list));
+       % if botmean>topmean
+            C(pix_list)=H(pix_list);
+      %  end
+    end
+    
+C(C<0)=0;
+
+end
+
 maxC=getappdata(handles.figure1,'maxC');
 setappdata(handles.figure1,'maxC',max(max(C(:)),maxC));
 
 h=imagesc(C,'Parent',handles.axes1);
 set(handles.currentFrame,'String',num2str(frameNumber));
-switch get(handles.colorMap,'Value');
+switch get(handles.colorMap,'Value')
     case 1
         colormap(handles.axes1,jet(64))
       %  caxis(handles.axes1,[0,maxC]); 
@@ -548,3 +614,13 @@ function autoCL_Callback(hObject, eventdata, handles)
 % hObject    handle to autoCL (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in backgroundSubtract.
+function backgroundSubtract_Callback(hObject, eventdata, handles)
+% hObject    handle to backgroundSubtract (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+showImage(handles.slider1,eventdata)
+
+% Hint: get(hObject,'Value') returns toggle state of backgroundSubtract

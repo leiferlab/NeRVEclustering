@@ -30,7 +30,8 @@ if isempty(workspace_file)
     workspace_file=dir([dataFolder filesep '*' filesep 'CLworkspace*']);
     if isempty(workspace_file)
        error(...
-            'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
+            ['LowMag folder is missing! ensure the Low mag folder is'...
+            ' in the BrainScanner Folder and the CLworkspace is present in it'])
     end
     
 end
@@ -103,16 +104,32 @@ flash_loc_idx=find(flash_loc);
 refintensity_mean=nanmean(refintensity(:,~flash_loc),2);
 refintensityZ=bsxfun(@minus, double(refintensity),refintensity_mean);
 refintensityZ(:,flash_loc)=0;
-refintensityZ=zscore(refintensityZ,0,2);
+refintensityZ(refintensityZ>25)=25;
+refintensityZ(refintensityZ<-25)=-25;
+
 %
 [~,score,~,~] = pca(refintensityZ');
 
 % cluster backgrounds into 11 groups, calculate a background for each of
 % them
-frame_bg_lvl=kmeans(score(:,1:2),11);
+frame_bg_lvl=kmeans(score(:,1:3),11);
 
 frame_bg_list=unique(frame_bg_lvl);
 frame_bg_list=frame_bg_list(~isnan(frame_bg_list));
+
+frames_per_bg=hist(frame_bg_lvl,1:max(frame_bg_lvl));
+
+%if some of them are underpopulated, re-classify them into another cluster
+%using simple knn.
+while any(frames_per_bg< 200 & frames_per_bg>0)
+    target=find(frames_per_bg==min(frames_per_bg));
+    trainers=frame_bg_lvl~=target;
+    mdl=fitcknn(score(trainers,1:3),frame_bg_lvl(trainers));
+    class= predict(mdl,score(~trainers,1:3));
+    frame_bg_lvl(~trainers)=class;
+    frames_per_bg=hist(frame_bg_lvl,1:max(frame_bg_lvl));
+
+end
 
 %% Now, for each cluster, go through and average all frames from that cluster
 
@@ -121,7 +138,10 @@ mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_list));
 %parfor loop over different background levels and calculate the mean image.
 %
 parfor i_bg=1:length(frame_bg_list)
+    %randomly sample 500 backgrounds, makes things quicker for longer
+    %movies
     time_list=find(frame_bg_lvl==frame_bg_list(i_bg));
+    time_list=randsample(time_list,min(500,length(time_list)),0);
     mean_bf=zeros(bf_imsize);
     behavior_vidobj_par = VideoReader(behaviormovie);
     

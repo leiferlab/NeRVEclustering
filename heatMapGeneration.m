@@ -201,7 +201,7 @@ Ratio2=processRatio(rPhotoCorr,gPhotoCorr);
 
 
 %% sort rows of correlation matrix  using heirarchical clustering,
-
+A=Ratio2';
 A(isnan(A))=0;
 acorr=corr(A);
 atemp=nancov(A)./sqrt(nanvar(A)'*nanvar(A));

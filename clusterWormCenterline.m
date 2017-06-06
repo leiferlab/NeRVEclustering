@@ -19,6 +19,10 @@ GAUSSFILTER2=fspecial('gaussian',50,15);
 cm_fluor=[26 26];
 sdev_nhood=getnhood(strel('disk',5));
 
+se=strel('disk',11);
+se=se.Neighborhood;
+k=fspecial('Gaussian',5,2.5);
+
 
 %% load eigenworms and set as global
 eigbasis=load('eigenWorms_full.mat');
@@ -157,7 +161,38 @@ for iframe=1:length(framelist)
             %scale background for best match before subtraction.
             c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
             bf_frame_raw=bf_frame_raw-background_raw*c;
+            
+            
+            
+            
+    bg=normalizeRange(background_raw);
+    bg_mask=bg>graythresh(bg)*2;
+    bg_mask=AreaFilter(bg_mask,5000,[],8);
+    bg_mask=imclose(bg_mask,true(12));
+    bg_mask=imdilate(bg_mask,true(25));
+
+
+C2=imfilter(bf_frame_raw,k);
+[H,D]=hessianMatrix(C2,3);
+[Heig,HeigVec]=hessianEig(H);
+
+    
             bf_frame_raw(bf_frame_raw<0)=0;
+
+
+H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
+H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
+H=H1.^2+H2.^2;
+
+H=H*2000;
+if max(H(:))>max(C2(:))
+    H=H*max(C2(:))/max(H(:));
+end
+bf_frame_raw(bg_mask)=H(bg_mask);
+
+                
+            
+            
             
             % afew filter steps
             bf_frame=imtophat(bf_frame_raw,strel('disk',50));
@@ -234,6 +269,12 @@ for iframe=1:length(framelist)
                 cl_old=cl_all(:,:,oldTime);
                 [cl,Is,Eout]=ActiveContourFit_wormRef4(...
                     inputImage,tip_image, cline_para, cl_old,refIdx,cm);
+                
+                cl_dist=mean(sqrt(sum((cl-cl_old).^2,2)));
+                %don't let the centerlines go too far
+                if cl_dist>25
+                    cl=cl_old;
+                end
             end
             
             %% plot some of the results if show2 is 1
