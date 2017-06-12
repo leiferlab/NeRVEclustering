@@ -182,38 +182,14 @@ try
     worm_smooth=bpass3(worm_im,.5,[20 20 3]);
     
     %% find middle plane by looking for large thresholded objects.
-    % additional boxcar smoothing in XY
-    worm_smooth_thresh=smooth3(worm_smooth,'box',[15,15,1]);
-    % thresholded smooth image
-    worm_smooth_thresh=normalizeRange(worm_smooth_thresh)>.05;
-    
-    max_dist_plot=zeros(1,zSize);
-    for i=1:zSize
-        %for each slice, find object boundary pixels
-        [midZx,midZy]=find(bwmorph(worm_smooth_thresh(:,:,i),'remove'));
-        %find max distance between those points, the slice with the largest
-        %chord is the middle
-        max_thresh_dist=max(pdist([midZx midZy]));
-        if ~isempty(max_thresh_dist)
-            max_dist_plot(i)=max_thresh_dist;
-        end
-    end
-    %find peak in plot, corresponding with slice with largest object
-    max_dist_plot=normalizeRange(max_dist_plot(:));
-    [~,midZ]=max(smooth(max_dist_plot,3));
-    %incase there are repeat vallues, just take the mean (rare)
-    midZ=(mean(midZ));
-    %round the middle plane in the direction of the middle
-    if midZ>zSize/2
-        midZ=floor(midZ);
-    else
-        midZ=ceil(midZ);
-    end
+    s=(hiResData.imSTD(hiResIdx));
+    s(s>max(s)/2)=max(s)/2;
+    s=medfilt1(s,3);
+    midZ=s'*(1:length(s))'/sum(s);
+    midZ=round(midZ);   
     %dont let middle plane be one of the end planes.
-    if midZ==1
-        midZ=2;
-    elseif midZ>=zSize;
-        midZ=zSize-1;
+    if midZ<5 || midZ>length(s)-5
+        midZ=round(length(s)/2);
     end
     
     %% try fix centerline alignemnt by looking at lowmag fluor and finding
@@ -230,7 +206,7 @@ try
     %remove boundary
     boundaryRegion=ones(size(fluor_thresh_proj));
     boundaryRegion(51:end-50,51:end-50)=0;
-    fluor_thresh_proj=fluor_thresh_proj.*~boundaryRegion;
+   % fluor_thresh_proj=fluor_thresh_proj.*~boundaryRegion;
     
     
     %% get proper centerlines to use that correspond to the hiresframes
@@ -284,12 +260,15 @@ try
     %reinterpolate centerline by length, with spacing appropriate for
     %higher mag coordinate system
     for iCL=1:CL_size(3)
-        CL2temp=CL_hi(:,:,iCL);
+        CL2temp=CL_hi(5:95,:,iCL);
         %distance steps
         ds=squeeze(sqrt(sum((diff(CL2temp,[],1)).^2,2)));
         s=[0;cumsum(ds) ];
         %reinterpolate from initial distances to pixel distances
-        CL2temp=interp1(s,CL2temp,1:1:CL_range,'linear','extrap');
+        fx=fit(s,CL2temp(:,1),'smoothingspline');
+        fy=fit(s,CL2temp(:,2),'smoothingspline');
+        CL2temp=[fx(1:CL_range),fy(1:CL_range)];
+        
         CL2_hi(:,:,iCL)=CL2temp;
         if show
             if iCL==1
@@ -302,6 +281,14 @@ try
             drawnow
         end
         
+    end
+    
+    %% if centerline jumps, just use the average centerline
+    CL_dist=diff(CL2_hi,[],3);
+    CL_dist=sqrt(sum(CL_dist.^2,2));
+    CL_dist=max(CL_dist,[],3);
+    if mean(CL_dist)>100
+        CL2_hi=repmat(median(CL2_hi,3),1,1,size(CL2_hi,3));
     end
     
     %% align centerlines parameterizations by correlation
@@ -387,10 +374,6 @@ try
     
     %serach for offset that when added to centerline, maximizes the overlap
     %between the centerline and the fluor_filt image, starting with
-    %xyOffset2
-    [xyOffset2_min,~]=fminsearch(@(x) CLsearch(fluor_filt,CL2X,...
-        CL2Y,show,x),xyOffset2);
-    
     
     % do correlation to find xy offset between images
     % z project highmag and transfrome fluor images
@@ -403,7 +386,7 @@ try
     CLoffsetY=CLoffsetY-round(size(fluor_thresh_proj,1)/2);
     
     %add together all centerline offsets.
-    xyOffset3=xyOffset2_min-[CLoffsetX CLoffsetY];
+    xyOffset3=xyOffset2-[CLoffsetX CLoffsetY];
     
     %apply offsets so that centerlines better overlap with high mag images
     CL2_hi_long(:,2,:)=CL2_hi_long(:,2,:)+xyOffset3(2);

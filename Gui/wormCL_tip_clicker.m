@@ -161,6 +161,7 @@ frameNumber=get(handles.slider1,'Value');
 stepSize=str2double(get(handles.stepSize,'String'));
 frameNumber=ceil(frameNumber/stepSize)*stepSize;
 frameNumber=max(1,round(frameNumber));
+frameNumber=min(frameNumber,handles.slider1.Max);
 set(handles.slider1,'Value',frameNumber);
 
 set(handles.currentFrame,'String',num2str(frameNumber));
@@ -427,10 +428,13 @@ elseif  strcmp(eventdata.Key,'f')
     %enter Auto Mode
     display(['Entering Auto Mode, keep your cursor on the head or tail!']);
     display('To exist, press the space bar');
-     while handles.figure1.CurrentCharacter=='f'
+    set(gcf,'Pointer','circle');
+     while (handles.figure1.CurrentCharacter=='f' ...
+             &&  str2double(handles.currentFrame.String)<handles.slider1.Max)
 getMousePositionOnImage(handles.axes1, eventdata)
 pause(.1)
      end
+    set(gcf,'Pointer','arrow');
 
 end
 

@@ -260,7 +260,7 @@ save([alignmentFolder HiResS2LoResF_name],'-struct'...
 save([alignmentFolder LowResB2F_name],'-struct'...
     ,'lowResFluor2BF')
 save([imFolder filesep 'alignments'],'alignments');
-print('Saved!')
+display('Saved!')
 
 
 function alignments=makeTransformation(handles)

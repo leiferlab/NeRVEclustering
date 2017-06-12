@@ -109,7 +109,7 @@ if isfield(CLworkspace,'tips')
     
     cline_para.stretch_ends_flag=0;
     cline_para.endkappa=0;
-    
+    cline_para.refSpring=0.01; %turn down pulling to center if tips are clicked
     else
     head_pt_list=[];
     tail_pt_list=[];  
@@ -166,7 +166,7 @@ for iframe=1:length(framelist)
             
             
     bg=normalizeRange(background_raw);
-    bg_mask=bg>graythresh(bg)*2;
+    bg_mask=bg>.5;
     bg_mask=AreaFilter(bg_mask,5000,[],8);
     bg_mask=imclose(bg_mask,true(12));
     bg_mask=imdilate(bg_mask,true(25));
@@ -182,12 +182,13 @@ C2=imfilter(bf_frame_raw,k);
 
 H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
 H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
-H=H1.^2+H2.^2;
+H=sqrt(H1.^2+H2.^2);
+%H(H>.004)=0.004;
+%H(H>max(H)/2)=max(H(H<max(H)/2));
+H=H*500;
+H=H-12;
+H(H<0)=0;
 
-H=H*2000;
-if max(H(:))>max(C2(:))
-    H=H*max(C2(:))/max(H(:));
-end
 bf_frame_raw(bg_mask)=H(bg_mask);
 
                 

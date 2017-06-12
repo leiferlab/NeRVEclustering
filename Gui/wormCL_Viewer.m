@@ -203,7 +203,7 @@ frame_bg_lvl=getappdata(handles.figure1,'frame_bg_lvl');
 if ~isempty(background) && handles.backgroundSubtract.Value
     background_raw=background(:,:,frame_bg_lvl(frameNumber));
     bg=normalizeRange(background_raw);
-    bg_mask=bg>graythresh(bg)*2;
+    bg_mask=bg>.5;
     bg_mask=AreaFilter(bg_mask,5000,[],8);
     bg_mask=imclose(bg_mask,true(12));
     bg_mask=imdilate(bg_mask,true(25));
@@ -213,8 +213,8 @@ if ~isempty(background) && handles.backgroundSubtract.Value
     c=sum(sum(C.*background_raw))/sum(background_raw(:).^2);
 
     
-  Cbot= imbothat(C,strel('disk',35));
-  Ctop= imtophat(C,strel('disk',35));
+%  Cbot= imbothat(C,strel('disk',35));
+%  Ctop= imtophat(C,strel('disk',35));
   k=fspecial('Gaussian',5,2.5);
 C2=imfilter(C,k);
 [H,D]=hessianMatrix(C2,3);
@@ -227,20 +227,13 @@ se=se.Neighborhood;
 
 H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
 H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
-H=H1.^2+H2.^2;
-H=H*2000;
-if max(H(:))>max(C(:))
-    H=H*max(C(:))/max(H(:));
-end
-for iObj=1:cc.NumObjects
-        pix_list=cc.PixelIdxList{iObj};
-        topmean=mean(C(pix_list));
-        botmean=mean(Cbot(pix_list));
-       % if botmean>topmean
-            C(pix_list)=H(pix_list);
-      %  end
-    end
-    
+H=sqrt(H1.^2+H2.^2);
+%H(H>.004)=0.004;
+%H(H>max(H)/2)=max(H(H<max(H)/2));
+H=H*500;
+H=H-12;
+H(H<0)=0;
+C(bg_mask)=H(bg_mask);
 C(C<0)=0;
 
 end

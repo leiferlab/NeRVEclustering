@@ -112,7 +112,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         
     
     qsubCommand1 = ("sbatch --mem=12000 " 
-        + MIN_TIME_STR 
+        + "--time=300" 
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
