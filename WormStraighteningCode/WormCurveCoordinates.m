@@ -4,11 +4,13 @@ function [Tv,Nv,Bv]=WormCurveCoordinates(centerline)
 % Input:
 %   centerline, an N*3 matrix of x,y,z coordinates
 cl_size=size(centerline);
-    
+if numel(cl_size)==2
+    cl_size(3)=1;
+end
   Tv=zeros(cl_size(1),3,cl_size(3));
     Bv=Tv; Nv=Tv;
     % for each centerline, make the Tangent, Normal, and Binormal vectors
-    for iSlice=1:cl_size(3);
+    for iSlice=1:cl_size(3)
         % T, N and B are first made in 2D,
         current_cl=centerline(:,:,iSlice);
         T=normr(gradient(current_cl',5)');

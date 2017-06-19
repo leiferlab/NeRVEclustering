@@ -22,7 +22,7 @@ function varargout = VisualizeWorm3dAnalysis(varargin)
 
 % Edit the above text to modify the response to help VisualizeWorm3dAnalysis
 
-% Last Modified by GUIDE v2.5 18-May-2017 14:43:06
+% Last Modified by GUIDE v2.5 19-Jun-2017 09:24:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -408,9 +408,10 @@ scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
  
 %slide the window around the current time
  xRange=iImage+[-100,100];
- xRange=xRange-min(xRange(1),0);
+ xRange=xRange-min(xRange(1)-1,1);
  xlim(handles.axes3,xRange);
- ylim(handles.axes3,nanmean(plotTrace)+[-.5 1]*(nanstd(plotTrace)*4));
+ ylim(handles.axes3,nanmean( plotTrace(xRange(1):xRange(2)))...
+     +[-.5 1]*(nanstd( plotTrace(xRange(1):xRange(2)))*4));
 
  
  %%% Also plot centerlines
@@ -1031,5 +1032,3 @@ fieldName=fieldnames(dataMat);
 dataMat=getfield(dataMat,fieldName{1});
 %save the pointStats file
 setappdata(handles.figure1,'TrackData',dataMat);
-
-

@@ -102,13 +102,18 @@ CL1=CLcell_2{1,iCell};
 CL2=CLcell_2{2,iCell};
 I1=(squeeze(mean(sqrt(sum(diff(CL1,[],3).^2,2)))));
 I2=(squeeze(mean(sqrt(sum(diff(CL2,[],3).^2,2)))));
+I1(I1<0.01)=max(I1);
+I2(I2<0.01)=max(I2);
+L1=squeeze(sum(sqrt(sum(diff(CL1,[],1).^2,2))));
+L2=squeeze(sum(sqrt(sum(diff(CL2,[],1).^2,2))));
 
 I1=[0;cumsum(I1)];
 I2=[cumsum(I2,'reverse');0];
 I3=squeeze(mean(sqrt(sum((CL1-CL2).^2,2))));
+
 [~,loc]=min(I1+I2+I3);
 CL_current=CL1;
-CL_current(:,:,loc:end)=CL_current(:,:,loc:end);
+CL_current(:,:,loc:end)=CL2(:,:,loc:end);
 CL_out{iCell}=CL_current;
 end
 

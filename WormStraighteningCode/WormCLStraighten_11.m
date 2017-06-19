@@ -200,7 +200,7 @@ try
     % cast fluor image
     fluor_trans=normalizeRange(double(fluor_trans));
     %apply automatic threshold and z project
-    fluor_thresh=(fluor_trans>(graythresh(fluor_trans(:))));
+    fluor_thresh=(fluor_trans>max(graythresh(fluor_trans(:))/2,.04));
     fluor_thresh_proj=normalizeRange(sum(fluor_thresh,3));
     
     %remove boundary
@@ -212,11 +212,25 @@ try
     %% get proper centerlines to use that correspond to the hiresframes
     hires_range=min(hiResIdx):max(hiResIdx);
     CLIdx=round(bfIdxLookup(hires_range));
+    [CLIdx,ia,ic]=unique(CLIdx);
+    if length(CLIdx)==1
+        CLIdx=CLIdx+[-1 0 1];
+        ia=[...
+        find(bfIdxLookup>CLIdx(1),1,'first');...
+        find(bfIdxLookup>CLIdx(2),1,'first');...
+        find(bfIdxLookup>CLIdx(3),1,'first')];
+        ia=ia-hires_range(1);
+    end
+    
+    
     CLIdx=CLIdx-CLoffset;
     % find unique terms, ia are the unique idx, ic is the mapping from the
     % output to the intput.
-    [CLIdx,ia,ic]=unique(CLIdx);
     CL_lo=centerline(:,:,CLIdx); %CL in lowmag coordinate
+    
+    CL_time=bfAll.frameTime(CLIdx);
+    CL_time_jump=max(diff(CL_time)/.02);
+
     %% try to fix obvious centerline errors if they're off
     %compare centerlines to median filtered centerelines, replace them if
     %they are far off
@@ -228,7 +242,7 @@ try
     
     % cl err is the squared distance from original CL and med filtered
     cl_err=sqrt(mean((clx_med-clx).^2+(cly_med-cly).^2));
-    cl_replace_idx=find(cl_err'>30 & ia>1 & ia<max(ia));
+    cl_replace_idx=find(cl_err'>30 & ia>1 & ia<max(ia) < CL_time_jump>10);
     % if distance is large, replace CL with medfiltered one.
     CL_lo(:,1,cl_replace_idx)=clx_med(:,cl_replace_idx);
     CL_lo(:,2,cl_replace_idx)=cly_med(:,cl_replace_idx);
@@ -286,11 +300,10 @@ try
     %% if centerline jumps, just use the average centerline
     CL_dist=diff(CL2_hi,[],3);
     CL_dist=sqrt(sum(CL_dist.^2,2));
-    CL_dist=max(CL_dist,[],3);
+    CL_dist=max(CL_dist,[],3)/CL_time_jump;
     if mean(CL_dist)>100
         CL2_hi=repmat(median(CL2_hi,3),1,1,size(CL2_hi,3));
     end
-    
     %% align centerlines parameterizations by correlation
     % centerlines points can be offset to each other because nothing stops
     % cls from sliding if the tips are not fixed. We need to align the
@@ -299,6 +312,7 @@ try
     % for centerline sliding.
     
     %how much to shift each centerline
+    if length(ia)>2
     shiftVec=zeros(1,length(ia)-1);
     for i=2:length(ia);
         %find best offset between consecutive centerlines.
@@ -311,7 +325,9 @@ try
     % add the offsets back
     shiftVec=cumsum(shiftVec);
     shiftVec=shiftVec-shiftVec(round(length(shiftVec)/2));
-    
+    else
+        shiftVec=0;
+    end
     %add a buffer in the size of the centerline to allow for shifting
     shift_buffer=500;
     
@@ -404,10 +420,10 @@ try
     %% crop cetnerline to retain region which is in the hi res image
     %find distance squared between centerline points in all frames and the
     %middle of the hi res image
-    CLcenter=sum(bsxfun(@minus, CL2_hi_long,rect1(3:4)/2).^2,2);
+    CLcenter=sum(bsxfun(@minus, CL2_hi_long(1:1500,:,:),rect1(3:4)/2).^2,2);
     %find the index of the closest point.
     [~,CLcenter]=min(CLcenter,[],1);
-    CLcenter=mean(CLcenter(:));
+    CLcenter=median(CLcenter(:));
     %add buffer to output length, will be cropped off later
     outputLength2=outputLength+outputLengthBuff;
     %add the output range to the closest point
@@ -415,6 +431,9 @@ try
     %interpolate to pull out CL points in that range.
     CL2_hi=interp1(CL2_hi_long,inImageRange,'*linear','extrap');
     CL2_size=size(CL2_hi);
+    if numel(CL2_size)==2
+        CL2_size(3)=1;
+    end
     %% show middle image with overlayed centerline
     
     % pickout central centerline and middle slice

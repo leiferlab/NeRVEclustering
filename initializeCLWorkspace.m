@@ -15,15 +15,15 @@ function initializeCLWorkspace(dataFolder)
 
 cline_para.refIdx=8;
 cline_para.tipRegion=45;
-cline_para.endRepulsion=.3;
+cline_para.endRepulsion=.5;
 cline_para.repulsionD=20;
 cline_para.heat=3;
-cline_para.CLalpha=5;
+cline_para.CLalpha=1;
 cline_para.CLbeta=40;
 cline_para.gamma=40;  
 cline_para.kappa=60;
 cline_para.endkappa=5;
-cline_para.gradient_force=20;
+cline_para.gradient_force=2;
 cline_para.showFlag=0;
 cline_para.iterations=400;
 cline_para.stretching_force_factor=[.3 .3];

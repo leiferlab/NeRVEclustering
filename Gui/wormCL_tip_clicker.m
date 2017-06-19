@@ -81,7 +81,11 @@ function varargout = wormCL_tip_clicker_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-function getMousePositionOnImage(src, event)
+function getMousePositionOnImage(src, event,lag)
+if nargin==2
+    lag=0;
+end
+
 
 handles = guidata(src);
 current_axis=handles.axes1;
@@ -95,10 +99,10 @@ yLimits = get(current_axis, 'ylim');
 if (curX > min(xLimits) && curX < max(xLimits) &&...
         curY > min(yLimits) && curY < max(yLimits))
     if handles.get_head.Value
-        addPoint('head',curX,curY,handles);
+        addPoint('head',curX,curY,handles,lag);
         forward1_Callback(handles.forward1, event, handles)
     elseif handles.get_tail.Value
-        addPoint('tail',curX,curY,handles);
+        addPoint('tail',curX,curY,handles,lag);
         forward1_Callback(handles.forward1, event, handles)
     end
 end
@@ -425,13 +429,15 @@ elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
     back1_Callback(handles.slider1,eventdata,handles);
     %Up
 elseif  strcmp(eventdata.Key,'f')
+    
+stepSize=str2double(get(handles.stepSize,'String'));
     %enter Auto Mode
     display(['Entering Auto Mode, keep your cursor on the head or tail!']);
     display('To exist, press the space bar');
     set(gcf,'Pointer','circle');
      while (handles.figure1.CurrentCharacter=='f' ...
              &&  str2double(handles.currentFrame.String)<handles.slider1.Max)
-getMousePositionOnImage(handles.axes1, eventdata)
+getMousePositionOnImage(handles.axes1, eventdata,stepSize)
 pause(.1)
      end
     set(gcf,'Pointer','arrow');
@@ -531,17 +537,17 @@ if get(handles.get_head,'Value');
     handles.get_head.Value=0;
 end
 
-function addPoint(location,xselect,yselect,handles)
+function addPoint(location,xselect,yselect,handles,lag)
 
 currentFrame=round(get(handles.slider1,'Value'));
 switch location
     case 'head'
         head_pts=getappdata(handles.figure1,'head_pts');
-        head_pts(currentFrame,:)=[xselect,yselect];
+        head_pts(currentFrame-lag,:)=[xselect,yselect];
         setappdata(handles.figure1,'head_pts',head_pts);
     case 'tail'
         tail_pts=getappdata(handles.figure1,'tail_pts');
-        tail_pts(currentFrame,:)=[xselect,yselect];
+        tail_pts(currentFrame-lag,:)=[xselect,yselect];
         setappdata(handles.figure1,'tail_pts',tail_pts);
 end
 set(handles.last_click,'String', num2str(currentFrame));

@@ -278,7 +278,7 @@ Aout=A2';
 nan_map=isnan(G+R);
 
 %if more than .3 of the data in a col are nan, trash the col
-bad_col=mean(nan_map)>.3;
+bad_col=mean(nan_map)>.5;
 nan_map(:,bad_col)=1;
 
 %do morphological open, removing isolated nans, I'm ok 
