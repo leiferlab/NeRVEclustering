@@ -320,7 +320,7 @@ Signal vairables
 	R2 - Smoothed and normalized version of rPhotoCorr.Normalization is done as delta F/ F0, where F0 is the lower 20th percentile signal. A 5 time step (.83s) fwhm Gaussian is used to smooth the result. 
 	G2 - Same as above but with gPhotoCorr.
 
-	Ratio2 - First, both the green and red signals are smoothed with a 5 time step fwhm Gaussian filter. Then the Ratio is then taken as  gPhotoCorr/rPhotoCorr and normalized as delta R/ R0 in the same way as R2 and G2. Some modifications are made to deal with some of the fans. 
+	Ratio2 - First, both the green and red signals are smoothed with a 5 time step fwhm Gaussian filter. Then the Ratio is then taken as  gPhotoCorr/rPhotoCorr and normalized as delta R/ R0 in the same way as R2 and G2. Some modifications are made to deal with some of the nans. 
 
 
 
