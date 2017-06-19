@@ -14,8 +14,8 @@ if iscell(bgFile)
 end
 
 if nargin<2
-    imsize=[1200 600];
-    
+    [row, col]=getdatdimensions(bgFile);
+    imsize=[row col];
 end
  if nargin<3
      method='mean';
