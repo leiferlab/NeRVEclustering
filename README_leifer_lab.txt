@@ -38,7 +38,7 @@ Most of the anlaysis is run via Python submission scripts. From Terminal navigat
 
 	
 
-cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmission/
+cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/
 
 
 
@@ -71,6 +71,9 @@ In the matlab command line, set up the paths to use these programs with:
 
 
 You can then run any GUI typing the name of the .m file into the command line.
+You may also want to change the keyboard shortcuts under 
+Preference->Keyboard->Shortcuts
+so you have the familiar copy/paste/find keyboard shortcuts.
 
 
 
@@ -113,7 +116,7 @@ After taking the alignment videos on both computers, move the LowMag folder into
 
 
 STEP 1: WORM CENTERLINE DETECTION
-(done locally or on tigressdata VNC for manual centerline initialization)
+(done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
 
 	wormCL_tip_clicker.m
 		- this is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail. 

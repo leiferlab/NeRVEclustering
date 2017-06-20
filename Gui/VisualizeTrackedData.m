@@ -506,11 +506,14 @@ else
     currentcolor='black';
 end
 oldPlotState=getappdata(handles.figure1,'oldPlot');
+if isempty(oldPlotState)
+    oldPlotState=[0 0];
+end
 newPlotState=[target plotType];
 
 %if either the neuron being tracked or the type of plot has changed, you
 %need to reload the data, otherwise, just move the dot and slide the window
-if ~all(ismember(oldPlotState,newPlotState)) || isempty(oldPlotState)
+if ~all((oldPlotState==newPlotState)) || isempty(oldPlotState)
     plot(handles.axes3,plotTrace);
     hold(handles.axes3,'on')
     tracePoint=scatter(handles.axes3,...

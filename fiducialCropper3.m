@@ -150,12 +150,15 @@ try
     
     profileG=load('illumination_profile_G.mat');
     profileG=profileG.illumination_profile;
+    profileG=profileG./max(profileG(:));
+
     g_corr=1./profileG;
     %remove very bright and very dim pixels in the calibration image
     g_corr(g_corr>5| g_corr<0)=0;
     
     profileR=load('illumination_profile_R.mat');
     profileR=profileR.illumination_profile;
+    profileR=profileR/max(profileR(:));
     r_corr=1./profileR;
     r_corr(r_corr>5 | r_corr<0)=0;
     
