@@ -157,11 +157,11 @@ try
     %load up lowmag fluor image
     fluor_raw=read(fluorVidObj,fluorIdxRange);
     fluor_raw=squeeze(fluor_raw(:,:,1,:));
+    fluor_raw=pedistalSubtract(double(fluor_raw));
     %warp it to align with high mag, it warps to the uncropped high mag so
-    %we need to crop it
-    fluor_trans=imwarp(fluor_raw,Hi2LowResF.t_concord,...
-        'OutputView',Hi2LowResF.Rsegment);
-    fluor_trans=fluor_trans((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
+    %RB has the coordinates that would match with the hi_mag images, we'll
+    %need to use the XYWorldLimit fields to find the ofsets.
+    [fluor_trans,RB]=imwarp(fluor_raw,Hi2LowResF.t_concord);
     
     %do something with status errors!
     status=fseek(Fid,2*(hiResIdx(1))*nPix,-1);
@@ -200,13 +200,22 @@ try
     % cast fluor image
     fluor_trans=normalizeRange(double(fluor_trans));
     %apply automatic threshold and z project
-    fluor_thresh=(fluor_trans>max(graythresh(fluor_trans(:))/2,.04));
+    fluor_thresh=(fluor_trans>max(graythresh(fluor_trans(fluor_trans>0))/2,.04));
     fluor_thresh_proj=normalizeRange(sum(fluor_thresh,3));
     
-    %remove boundary
-    boundaryRegion=ones(size(fluor_thresh_proj));
-    boundaryRegion(51:end-50,51:end-50)=0;
-   % fluor_thresh_proj=fluor_thresh_proj.*~boundaryRegion;
+    fluor_mask=fluor_thresh_proj>.5;
+    fluor_mask=imopen(fluor_mask,true(11));
+    cc=bwconncomp(fluor_mask);
+    object_sizes=cellfun(@(x) length(x),cc.PixelIdxList);
+    [~,maxId]=max(object_sizes);
+    cc.NumObjects=1;
+    cc.PixelIdxList=cc.PixelIdxList(maxId);
+    
+    bb=regionprops(cc,'BoundingBox');
+    bb=bb.BoundingBox;
+    fluor_thresh_proj=imcrop(fluor_thresh_proj,bb);
+    fluor_x_offset=RB.XWorldLimits(1)+bb(1);
+    fluor_y_offset=RB.YWorldLimits(1)+bb(2);
     
     
     %% get proper centerlines to use that correspond to the hiresframes
@@ -365,8 +374,8 @@ try
     %I find a better straightening algorithm then I can dump all of this.
     
     [fcm_x, fcm_y]=find(fluor_thresh_proj==max(fluor_thresh_proj(:)));
-    fcm_x=mean(fcm_x);
-    fcm_y=mean(fcm_y);
+    fcm_x=mean(fcm_x)+fluor_y_offset;
+    fcm_y=mean(fcm_y)+fluor_x_offset;
     
     %find CL points that has brightest points in low mag fluor
     CL2f_mean=(CL_fluor(:,:,1));
@@ -377,19 +386,11 @@ try
     %the brightest index and the high mag CL point found using lowmag data
     xyOffset2=[fcm_y fcm_x]-[CL_hi(refIdx,1,1) CL_hi(refIdx,2,1)];
     
-    CL2X=reshape(mean(CL2_hi_long(:,1,1:end),3),[],1,1);
-    CL2Y=reshape(mean(CL2_hi_long(:,2,1:end),3),[],1,1);
-    
+     
     %shift around the centerline to optimize overlap between centerline and
     %fluorescence image
-    
-    %apply filter that emphasizes center of worm brain
-    fluor_filt=convnfft(fluor_thresh_proj,Sfilter2,'same');
-    % ignore boundary pixels
-    fluor_filt=fluor_filt.*~boundaryRegion;
-    
-    %serach for offset that when added to centerline, maximizes the overlap
-    %between the centerline and the fluor_filt image, starting with
+       %serach for offset that when added to centerline, maximizes the overlap
+    %between the centerline and the image, starting with
     
     % do correlation to find xy offset between images
     % z project highmag and transfrome fluor images
@@ -398,8 +399,8 @@ try
     %do correlation to find offsets
     corrIm=conv2(fluor_thresh_proj,rot90(hiResProj,2),'same');
     [CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
-    CLoffsetX=CLoffsetX-round(size(fluor_thresh_proj,2)/2);
-    CLoffsetY=CLoffsetY-round(size(fluor_thresh_proj,1)/2);
+    CLoffsetX=CLoffsetX-round(size(hiResProj,2)/2)+fluor_x_offset;
+    CLoffsetY=CLoffsetY-round(size(hiResProj,1)/2)+fluor_y_offset;
     
     %add together all centerline offsets.
     xyOffset3=xyOffset2-[CLoffsetX CLoffsetY];
@@ -408,12 +409,13 @@ try
     CL2_hi_long(:,2,:)=CL2_hi_long(:,2,:)+xyOffset3(2);
     CL2_hi_long(:,1,:)=CL2_hi_long(:,1,:)+xyOffset3(1);
     
+    CL2X=reshape(mean(CL2_hi_long(:,1,1:end),3),[],1,1);
+    CL2Y=reshape(mean(CL2_hi_long(:,2,1:end),3),[],1,1);
+ 
     if show
         close all
         imagesc(worm_im(:,:,midZ))
         hold on
-        CL2X=CL2X+xyOffset3(1);
-        CL2Y=CL2Y+xyOffset3(2);
         plot(CL2X,CL2Y,'xr');
     end
     

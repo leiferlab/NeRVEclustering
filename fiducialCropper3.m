@@ -234,7 +234,7 @@ for i=1:length(pointStats)
         
         %subtract background and apply intensity correction
         hiResImage=bsxfun(@minus,hiResImage,background);
-        hiResImage=bsxfun(@times,hiResImage,all_corr);
+       % hiResImage=bsxfun(@times,hiResImage,all_corr);
         hiResImage(hiResImage<0)=0;
         
         

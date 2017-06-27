@@ -63,11 +63,14 @@ def get_nframes(client,fullPath):
     client2 = client.open_sftp()
     sub_data={}
     # read each line, saving key-values pairs into a dictionary
-    with client2.open(subDataFile) as remote_file:
-        for lines in remote_file:
-            lines=lines.split(" ")
-            print(lines)
-            sub_data[lines[0]]=lines[1]
+    try:
+        with client2.open(subDataFile) as remote_file:
+            for lines in remote_file:
+                lines=lines.split(" ")
+                print(lines)
+                sub_data[lines[0]]=lines[1]
+    except Exception:
+        raise NameError("Remote File not found")
         
     if sub_data.get('NFrames') != None:
         print('Getting number of frames from Remote')

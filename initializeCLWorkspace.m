@@ -125,6 +125,7 @@ for ichunk=1:nCells+1
     %select centerline points
     display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1) ', showing frame ' num2str(lowframe)]);
     imagesc(BFFrameRaw);
+    colormap gray
     set(gcf,'Name',['Select Points for frame ' num2str(ichunk) ])
 
     [xpts,ypts]=getpts();

@@ -100,11 +100,24 @@ if isfield(CLworkspace,'tips')
         
         head_time=find(head_pts(:,1) & ~same_pt);
         head_pts_sub=head_pts(head_time,:);
-        head_pt_list=interp1(head_time,head_pts_sub,framelist,'pchip');
         
         tail_time=find(tail_pts(:,1) & ~same_pt);
         tail_pts_sub=tail_pts(tail_time,:);
-        tail_pt_list=interp1(tail_time,tail_pts_sub,framelist,'pchip');
+        
+        if isempty(head_pts_sub)
+            head_pt_list=[];
+            display('WARNING: tip file present, but no head points are Found!')
+        else
+            head_pt_list=interp1(head_time,head_pts_sub,framelist,'pchip');
+        end
+        
+        if isempty(tail_pts_sub)
+            tail_pt_list=[];
+            display('WARNING: tip file present, but no tail points are Found!')
+        else
+            tail_pt_list=interp1(tail_time,tail_pts_sub,framelist,'pchip');
+        end
+        
         
         cline_para.stretch_ends_flag=0;
         cline_para.stretching_force_factor=[0 0];

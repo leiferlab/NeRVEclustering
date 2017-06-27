@@ -22,7 +22,7 @@ function varargout = VisualizeWorm3dAnalysis(varargin)
 
 % Edit the above text to modify the response to help VisualizeWorm3dAnalysis
 
-% Last Modified by GUIDE v2.5 19-Jun-2017 09:24:13
+% Last Modified by GUIDE v2.5 26-Jun-2017 12:04:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -513,18 +513,6 @@ hold(handles.axes1,'off')
 
 
 
-
-function smoothingWindow_Callback(hObject, eventdata, handles)
-% hObject    handle to smoothingWindow (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
- plotter(handles.slider1,eventdata);
-
-% Hints: get(hObject,'String') returns contents of smoothingWindow as text
-%        str2double(get(hObject,'String')) returns contents of smoothingWindow as a double
-
-
-
 function startTime_Callback(hObject, eventdata, handles)
 % hObject    handle to startTime (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -837,26 +825,6 @@ set(hObject,'String','Make Movie')
 end
 
 
-% --- Executes on button press in normalizeButton.
-function normalizeButton_Callback(hObject, eventdata, handles)
-% hObject    handle to normalizeButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of normalizeButton
-plotter(handles.slider1,eventdata);
-
-
-
-function timeStep_Callback(hObject, eventdata, handles)
-% hObject    handle to timeStep (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of timeStep as text
-%        str2double(get(hObject,'String')) returns contents of timeStep as a double
-
-
 % --------------------------------------------------------------------
 function adjustContrast_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to adjustContrast (see GCBO)
@@ -1032,3 +1000,21 @@ fieldName=fieldnames(dataMat);
 dataMat=getfield(dataMat,fieldName{1});
 %save the pointStats file
 setappdata(handles.figure1,'TrackData',dataMat);
+
+
+% --- Executes on button press in instructions.
+function instructions_Callback(hObject, eventdata, handles)
+% hObject    handle to instructions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+msgbox({...
+    '1. Select Folder and choose a fully analyzed BrainScanner Folder',...
+    '2. The Pointstats file is loaded by default, if you do not want to use the PointStatsNew file, select a different one',...
+    '3. Browse the video to get an idea of the straightening and tracking quality.',...
+    '',...
+    'Controls',...
+    'asdw or arrow keys: forward and back in time, up and down in Z',...
+    'Display Range: how many slices above and below a neuron should the neuron be displayed in.'...
+    'Track Neuron: Which neuron to follow through time and show the trace of',...
+    },...
+    'Instructions');

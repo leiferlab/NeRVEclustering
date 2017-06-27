@@ -22,7 +22,7 @@ function varargout = VisualizeTrackedData(varargin)
 
 % Edit the above text to modify the response to help VisualizeTrackedData
 
-% Last Modified by GUIDE v2.5 05-May-2017 16:19:52
+% Last Modified by GUIDE v2.5 26-Jun-2017 11:48:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -114,15 +114,25 @@ set(handles.currentFolder,'String',dataFolder);
 
 setappdata(handles.figure1,'tifFlag',0);
 
+%%% load alignments and background
+display('Loading Alignment file')
 registration=load([dataFolder filesep 'alignments.mat']);
 if isfield(registration.alignments,'background')
     background=registration.alignments.background;
+    display('Background Found!')
 else
     background=0;
+    display('No Background Found! No subtraction will be done.')
 end
 registration=registration.alignments.S2AHiRes;
 setappdata(handles.figure1,'registration',registration)
 setappdata(handles.figure1,'background',background);
+
+
+%%%% also load illumination profile if possible.
+
+ image_corr=illuminationCorrection();
+ setappdata(handles.figure1,'image_corr',image_corr);
 
 
 if exist([dataFolder filesep 'hiResData.mat'],'file')
@@ -203,6 +213,7 @@ hold(handles.axes1,'off')
 
 
 %%% load heatmap data
+display('Loading neural data')
 heatDataFile=[dataFolder filesep 'heatData.mat'];
 if exist(heatDataFile,'file')
 heatData=load(heatDataFile);
@@ -324,7 +335,10 @@ status=fseek(Fid,2*imageIdx*row*col,-1);
 fullImage=fread(Fid,row*col,'uint16',0,'l');
 fullImage=(reshape(fullImage,row,col));
 
+image_corr=getappdata(handles.figure1,'image_corr');
 fullImage=fullImage-background;
+%fullImage=fullImage.*image_corr;
+%fullImage=fliplr(image_corr);
 fullImage(fullImage<0)=0;
 
 % green and red image rectangles
@@ -1086,4 +1100,36 @@ if exist(heatDataFile,'file')
 else
     statusWarning(handles.signalStatus, ...
         'No neural activity found! Has the fiducialCropper run?')
+end
+
+
+function all_corr=illuminationCorrection()
+%% create illumination profile correction, if files are present
+
+try
+    %load illumination profiles, these are images normalized images of a
+    %fluorescent calibration slide. Each image is full field, but due to
+    %the filters only the appropriate half of the dual view image is shown.
+    
+    profileG=load('illumination_profile_G.mat');
+    profileG=profileG.illumination_profile;
+    profileG=profileG./max(profileG(:));
+
+    g_corr=1./profileG;
+    %remove very bright and very dim pixels in the calibration image
+    g_corr(g_corr>5| g_corr<0)=0;
+    
+    profileR=load('illumination_profile_R.mat');
+    profileR=profileR.illumination_profile;
+    profileR=profileR/max(profileR(:));
+    r_corr=1./profileR;
+    r_corr(r_corr>5 | r_corr<0)=0;
+    
+    %combine the two halves, the two regions corresponding to the image should
+    %have no overlap so a straight pix by pix sum will work
+    all_corr=g_corr+r_corr;
+catch me
+    
+    display(' No illumination profile found, no correction applied')
+    all_corr=1;
 end

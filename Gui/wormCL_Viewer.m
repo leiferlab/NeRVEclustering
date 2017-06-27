@@ -22,7 +22,7 @@ function varargout = wormCL_Viewer(varargin)
 
 % Edit the above text to modify the response to help wormCL_Viewer
 
-% Last Modified by GUIDE v2.5 16-Jun-2017 12:40:43
+% Last Modified by GUIDE v2.5 26-Jun-2017 11:34:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -120,23 +120,12 @@ catch
     currentData=uipickfiles();
 end
 currentData=currentData{1};
-row=str2double(get(handles.imageRows,'String'));
-col=str2double(get(handles.imageCols,'String'));
-
 setappdata(0,'mostRecent',fileparts(currentData));
 set(handles.currentFolder,'String',currentData);
-if strfind(currentData,'.dat')
-Fid=fopen(currentData);
-status=fseek(Fid,0,1);
-nFrames=ftell(Fid)/(2*row*col)-1;
+
+Fid= VideoReader(currentData);
+nFrames=Fid.NumberOfFrames;
 setappdata(handles.figure1,'Fid',Fid);
-setappdata(handles.figure1,'aviFlag',0);
-elseif strfind(currentData,'.avi')
-     Fid= VideoReader(currentData);
-     nFrames=Fid.NumberOfFrames;
-setappdata(handles.figure1,'Fid',Fid);
-setappdata(handles.figure1,'aviFlag',1);
-end
 
 
 setappdata(handles.figure1,'maxC',0);
@@ -614,6 +603,7 @@ cline_para.endRepulsion=.5;
 cline_para.refSpring=0;
 cline_para.showFlag=0;
 tip_image=C;
+cl_old=distanceInterp(cl_old(8:end,:),100);
 [cl,Is,Eout]=ActiveContourFit_wormRef4(...
     C,tip_image, cline_para, cl_old,1,[0 0]);
  showImage(handles.slider1,eventdata)
@@ -702,7 +692,9 @@ H=sqrt(H1.^2+H2.^2);
 H=H*1000;
 H=H-15;
 H(H<0)=0;
-C=.3*H+.7*C;
+C(C<0)=0;
+
+%C=.3*H+.7*C;
 C(C<0)=0;
 C=smooth2a(C,5,5);
 
@@ -737,7 +729,3 @@ save([behaviorFolder filesep 'centerline'] ,'centerline','eigenProj'...
 
 save([behaviorFolder filesep 'CL_copy'] ,'centerline','eigenProj'...
     ,'wormcentered');
-
-
-
-
