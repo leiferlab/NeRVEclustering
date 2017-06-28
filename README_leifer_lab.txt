@@ -112,31 +112,34 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done on tigressdata VNC with Matlab, does not depend on timing)
 
-After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 
 STEP 1: WORM CENTERLINE DETECTION
 (done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
 
-	wormCL_tip_clicker.m
-		- this is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail. 
-	initializeCLWorkspace.m 
-		- this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm.
- 
-		- when this is done, move the alignment and the initialCLWorkspace.mat into the corresponding LowMag folder on tigress.
+	wormCL_tip_clicker.m (OPTIONAL)
+		- This is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail.
+        - To use this, click on a subset of the head and tail coordinates. You can adjust the stepSize to skip over some frames.
+        - The program interpolates for frames you do not click, so every 5-10 is fine for normal paced worm, 100-200 for very slow or stationary worms. 
+        - remember to save. 
 
+	initializeCLWorkspace.m 
+		- this will allow the user to manually initialize a few centerlines to help the detection algorithm.
+        - it also gets user ROIs to help calculating backgrounds, like bubble removal and head position. 
  
 	Python submission code:
-
 		submitWormAnalysisCenterline.py
 	Matlab analysis code:
-
+        clusterCLStart.m
 		clusterWormCenterline.m
+
 	File Outputs:
 	CLstartworkspace.mat, initialized points and background images for darkfield images
 	CL_files folder, containing partial CL.mat files
 	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
 
+    *NOTE: if you run this and later decide to add the tips, you simply need to rerun the program with the startWorkspace box checked and the program will use the tips. 
 
 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
 

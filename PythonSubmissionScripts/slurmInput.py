@@ -151,17 +151,19 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
     code_straighten = CODE_PATH + '/PythonSubmissionScripts/runWormStraighten.sh'
     code_pscompiler = CODE_PATH + '/PythonSubmissionScripts/runWormCompilePointStats.sh'
-    
+    fail_script=email_script=get_email_script('fail')
+
     if email_flag:
         email_script=get_email_script()
     else:
         email_script=get_email_script('fail')
     
     input0 = "clusterStraightenStart('"+ fullPath + "')"
-    qsubCommand0 = ("sbatch --mem=12000 " 
+    qsubCommand0 = ("sbatch --mem=16000 " 
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
+        + fail_script
         + " --output=\"" + outputFilePath + "/straight_s-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/straight_s-%J.err" + "\""
         + " " + code_runinput
@@ -188,11 +190,12 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
         else:
             currentLimit="1000"
 
-        qsubCommand1 = ("sbatch --mem=12000 " 
+        qsubCommand1 = ("sbatch --mem=16000 " 
             + MIN_TIME_STR 
             + " -D " + folderName
             + " -J "+ folderName 
             + dependencyString
+            + fail_script
             + " --output=\"" + outputFilePath + "/straight-%J.out" + "\""
             + " --error=\"" + outputFilePath + "/straight-%J.err" + "\""
             + " --array=1-" + currentLimit + ":" + str(stepSize) 

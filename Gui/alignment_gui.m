@@ -260,7 +260,7 @@ save([alignmentFolder HiResS2LoResF_name],'-struct'...
 save([alignmentFolder LowResB2F_name],'-struct'...
     ,'lowResFluor2BF')
 save([imFolder filesep 'alignments'],'alignments');
-display('Saved!')
+display('Saved! Copy the alignment.mat folder into all the BrainScanner folders.')
 
 
 function alignments=makeTransformation(handles)
@@ -540,7 +540,7 @@ function fluorView_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of fluorView
 if get(hObject,'Value')
-    setDemoView(hObject,handles,2);
+    setDemoView(hObject,handles,3);
     hObject.BackgroundColor=[1 .4 .4];
     handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
     handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];
@@ -559,7 +559,7 @@ function greenView_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of greenView
 if get(hObject,'Value')
-    setDemoView(hObject,handles,3);
+    setDemoView(hObject,handles,2);
     hObject.BackgroundColor=[1 .4 .4];
     handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
     handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];

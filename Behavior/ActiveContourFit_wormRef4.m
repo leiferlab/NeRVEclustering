@@ -223,7 +223,7 @@ for i=1:cline_para.iterations
             %intensity is less than the inital head point intensity, add
             %growing force
             if  Is(1)>0
-                fhead=cline_para.endkappa*(Is(1)-initial_head_I-4*deltaS.^2);
+                fhead=cline_para.endkappa*(Is(1)-initial_head_I-4*deltaS.^2*sign(deltaS));
                 fhead(fhead>15)=15;
             else
                 %if initial head intensity is zero, include stretch force 
@@ -236,12 +236,11 @@ for i=1:cline_para.iterations
             tail_I_10=mean(Is(end-10:end));
             tail_I_5=mean(Is(end-5:end));
             
-            if tail_I_20<tail_I_init ||  tail_I_5<tail_I_init
-                ftail=-cline_para.endkappa*tail_I_init;
-            else
-                ftail=cline_para.endkappa*(tail_I_5-1-deltaS.^2);
-            end
+
+            ftail=cline_para.endkappa*(tail_I_5-1-deltaS.^2.*sign(deltaS));
+            
             ftail(ftail>5)=5;
+            ftail(ftail<-5)=-5;
         else
             ftail=0;
             fhead=0;

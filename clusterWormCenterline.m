@@ -199,7 +199,8 @@ for iframe=1:length(framelist)
             H=sqrt(H1.^2+H2.^2);
             
             H=H*1000;
-            H=H-15;
+            H=pedistalSubtract(H);
+            H=H-2*median(H(:));
             H(H<0)=0;
             bf_frame=bf_frame_raw*.7+H*.3;
             

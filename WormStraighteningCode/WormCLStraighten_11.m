@@ -9,7 +9,7 @@ function [V,pointStats,Vproj,side,xyOffset2,wormBW2]=WormCLStraighten_11...
 %Ver 11, trying to make straightening better with some feedback
 
 %% initial parameters
-%size to search around centerline
+%size to search around centerline, this is going to be (half) 
 outputRadius=83.5; %xy search radius around centerline
 outputRadiusZ=63.5; %z serach radius around centerilne
 outputLength=200; % serach radius along centerline about center
@@ -19,20 +19,20 @@ outputRadiusBuff=30;
 outputLengthBuff=100;
 
 
-%ratio between xypixels and z slices
+%ratio between xypixels and z slices CHECK THIS TO USE VOLTAGE SPACING
 zRatio=1/3;
 
 %options for segmentation
 options.method='invdist';
-options.radius=20;
-options.power=1;
+%initial threshold value
 options.thresh1=.05;
+%area size limits
 options.minObjSize=50;
 options.maxObjSize=400;
-options.minSphericity=.80;
-options.filterSize=[10 10 4];
-options.power=1;
-options.prefilter=1;
+%minimum sphericity, long objects tend to get split in half. 
+options.minSphericity=.80; 
+options.filterSize=[10 10 4]; %3d bandpass filter, object size
+options.prefilter=1; %images are filtered before calling segmentation program
 options.hthresh=0;
 
 %set up destination folder
@@ -48,14 +48,6 @@ Sfilter(Sfilter<.1)=-(.1-Sfilter(Sfilter<.1))*80;
 
 Sfilter(Sfilter>.8)=0;
 Sfilter(Sfilter>0)=1;
-
-Sfilter2=max(gaussKernal2(:))-gaussKernal2;
-Sfilter2(Sfilter2<.01)=Sfilter2(Sfilter2<.01)-.3;
-Sfilter2(Sfilter2>.6)=0;
-
-Sfilter2(Sfilter2>0)=nnz(Sfilter2<0)/nnz(Sfilter2>0);
-Sfilter2=Sfilter2-mean(Sfilter2(:));
-
 
 %% recover alignments
 lowResFluor2BF=alignments.lowResFluor2BF;
@@ -90,7 +82,7 @@ end
 
 fluorVidObj= VideoReader(fluorMovie);
 
-%% set up high mag videos
+%% set up video timing objects
 if isempty(vidInfo)
     
     [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
@@ -138,10 +130,13 @@ centerline=centerline.(CLfieldNames{CLfieldIdx});
 try
     %% load images
     
+    %get image path
     datFileDir=dir([dataFolder filesep 'sCMOS_Frames_U16_*']);
     datFile=[dataFolder filesep datFileDir.name];
+    %get image size
     [rows,cols]=getdatdimensions(datFile);
     nPix=rows*cols;
+    
     Fid=fopen(datFile);
     
     %select frames to analyze
@@ -149,20 +144,7 @@ try
     %get z values of those frames
     zRange=hiResData.Z(hiResIdx-zOffset);
     zSize=length(hiResIdx);
-    
-    %get correspoinding fluor indices
-    fluorIdx=round(fluorIdxLookup(hiResIdx));
-    fluorIdxRange=[min(fluorIdx) max(fluorIdx)];
-    
-    %load up lowmag fluor image
-    fluor_raw=read(fluorVidObj,fluorIdxRange);
-    fluor_raw=squeeze(fluor_raw(:,:,1,:));
-    fluor_raw=pedistalSubtract(double(fluor_raw));
-    %warp it to align with high mag, it warps to the uncropped high mag so
-    %RB has the coordinates that would match with the hi_mag images, we'll
-    %need to use the XYWorldLimit fields to find the ofsets.
-    [fluor_trans,RB]=imwarp(fluor_raw,Hi2LowResF.t_concord);
-    
+     
     %do something with status errors!
     status=fseek(Fid,2*(hiResIdx(1))*nPix,-1);
     
@@ -174,6 +156,26 @@ try
     else
         hiResImage=pedistalSubtract(hiResImage);
     end
+    
+    %% get fluor image  
+    %get correspoinding fluor indices
+    fluorIdx=round(fluorIdxLookup(hiResIdx));
+    fluorIdxRange=[min(fluorIdx) max(fluorIdx)];
+    
+    %load up lowmag fluor image
+    fluor_raw=read(fluorVidObj,fluorIdxRange);
+    fluor_raw=squeeze(fluor_raw(:,:,1,:));
+    fluor_raw=double(fluor_raw);
+    for i=1:size(fluor_raw,3)
+        fluor_raw(:,:,i)=pedistalSubtract(fluor_raw(:,:,i));
+    end
+    %warp it to align with high mag, it warps to the uncropped high mag so
+    %RB has the coordinates that would match with the hi_mag images, we'll
+    %need to use the XYWorldLimit fields to find the ofsets.
+    
+    [fluor_thresh_proj,fluor_x_offset,fluor_y_offset]=...
+        warp_crop(fluor_raw,Hi2LowResF.t_concord);
+    
     %% crop and align hi mag images
     worm_im=hiResImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3),:);
     raw_size=size(worm_im);
@@ -192,31 +194,7 @@ try
         midZ=round(length(s)/2);
     end
     
-    %% try fix centerline alignemnt by looking at lowmag fluor and finding
-    % a correction offset between the transformed lowmag fluor and the high
-    % mag segmentation.
-    
-    % get lowmag fluor and threshold, and project
-    % cast fluor image
-    fluor_trans=normalizeRange(double(fluor_trans));
-    %apply automatic threshold and z project
-    fluor_thresh=(fluor_trans>max(graythresh(fluor_trans(fluor_trans>0))/2,.04));
-    fluor_thresh_proj=normalizeRange(sum(fluor_thresh,3));
-    
-    fluor_mask=fluor_thresh_proj>.5;
-    fluor_mask=imopen(fluor_mask,true(11));
-    cc=bwconncomp(fluor_mask);
-    object_sizes=cellfun(@(x) length(x),cc.PixelIdxList);
-    [~,maxId]=max(object_sizes);
-    cc.NumObjects=1;
-    cc.PixelIdxList=cc.PixelIdxList(maxId);
-    
-    bb=regionprops(cc,'BoundingBox');
-    bb=bb.BoundingBox;
-    fluor_thresh_proj=imcrop(fluor_thresh_proj,bb);
-    fluor_x_offset=RB.XWorldLimits(1)+bb(1);
-    fluor_y_offset=RB.YWorldLimits(1)+bb(2);
-    
+
     
     %% get proper centerlines to use that correspond to the hiresframes
     hires_range=min(hiResIdx):max(hiResIdx);
@@ -373,6 +351,7 @@ try
     %from bead selection is often off by a bit and it changes over time. If
     %I find a better straightening algorithm then I can dump all of this.
     
+    %find bright centroid of lowmag fluor in  himag coordinate system
     [fcm_x, fcm_y]=find(fluor_thresh_proj==max(fluor_thresh_proj(:)));
     fcm_x=mean(fcm_x)+fluor_y_offset;
     fcm_y=mean(fcm_y)+fluor_x_offset;
@@ -382,23 +361,20 @@ try
     fluor_raw_proj=sum(fluor_raw,3);
     CL2f_I=interp2(fluor_raw_proj,CL2f_mean(:,2),CL2f_mean(:,1));
     [~,refIdx]=max(CL2f_I);
+    
     %create initial offset as the shift between the high mag fluor center and
     %the brightest index and the high mag CL point found using lowmag data
     xyOffset2=[fcm_y fcm_x]-[CL_hi(refIdx,1,1) CL_hi(refIdx,2,1)];
-    
-     
-    %shift around the centerline to optimize overlap between centerline and
-    %fluorescence image
-       %serach for offset that when added to centerline, maximizes the overlap
-    %between the centerline and the image, starting with
     
     % do correlation to find xy offset between images
     % z project highmag and transfrome fluor images
     hiResProj=normalizeRange(sum(worm_im,3));
     
-    %do correlation to find offsets
+    %do a cross correlation to find linear translation between hi mag and
+    %lowmag transform images
     corrIm=conv2(fluor_thresh_proj,rot90(hiResProj,2),'same');
     [CLoffsetY,CLoffsetX]=find(corrIm==max(corrIm(:)));
+    
     CLoffsetX=CLoffsetX-round(size(hiResProj,2)/2)+fluor_x_offset;
     CLoffsetY=CLoffsetY-round(size(hiResProj,1)/2)+fluor_y_offset;
     
@@ -419,7 +395,7 @@ try
         plot(CL2X,CL2Y,'xr');
     end
     
-    %% crop cetnerline to retain region which is in the hi res image
+    %% crop centerline to retain region which is in the hi res image
     %find distance squared between centerline points in all frames and the
     %middle of the hi res image
     CLcenter=sum(bsxfun(@minus, CL2_hi_long(1:1500,:,:),rect1(3:4)/2).^2,2);
@@ -475,6 +451,7 @@ try
         drawnow
     end
     %% make coordinate system around the worm
+    %gets the tangent normal and binormal vectors for the centerline,
 [Tv,Nv,Bv]=WormCurveCoordinates(CL2_hi);
 %% select worm orientation
     % the side input specifies the side of the nervcord. If the nerve chord
@@ -506,7 +483,6 @@ try
     plane_num=size(Tv,1);
     %make the first and last 'endround' tbn vectors the same so nothing
     %strange happens at the ends.
-    
     %if number of points is larger than 10, use end round of 5. If smaller
     %than 10, use half the range, but something probably went wrong.
     if plane_num>10
@@ -534,7 +510,7 @@ try
     %% show stack with centerline
     if show
         close all
-        for iSlice=1:raw_size(3);
+        for iSlice=1:raw_size(3)
             imagesc(worm_im(:,:,iSlice));colormap hot
             hold on
             clSlice=iSlice;
@@ -596,6 +572,7 @@ try
         zLevels=flipud(zLevels);
     else
         %for the upstroke of triangle wave
+        
         zRange2=unique(cummax(zRange));
         zRange2=zRange2-zRange2(midZ);
         %do interpolation trick to avoid any repeats
@@ -904,3 +881,52 @@ catch me
         [destination_path filesep 'ERROR' num2str(iStack,'%3.5d')];
     save(err_destination,'me');
 end
+
+
+%%%%%%% SUBFUNCTIONS %%%%%%%%%%%
+
+function [image_trans_proj,offset_x,offset_y]=warp_crop(image,transform)
+%warp crop takes the lowmag fluor image stack and warps it into the
+%coordinate system of the high mag segmentation image. Because the
+%alignments are often not very good for this tranformation, the image of
+%the worm brain is often outside the normal bounds of the high mage image,
+%so I increase the image window using an imref2d object. I then crop around
+%the brain to decrease the total image size, I then output the offset_x and
+%offset_y which indicate which coordinates the corner of the image would be
+%at if they were in the Hi mag coordinate system. 
+
+    image=double(image);
+    for i=1:size(image,3)
+        image(:,:,i)=normalizeRange(image(:,:,i));
+    end
+    
+    image_proj=(image>max(graythresh(image(image>0))/2,.04));
+    image_proj=sum(image_proj,3);
+
+    %output an image that would go from -1000 to 2000, as opposed to 0:512,
+    %this will allow me to see the head if it is outside the normal image
+    %bounds. 
+    RB=imref2d([3000,3000],-1000.5+[0,2000],-1000.5+[0,2000]);
+    %do the transformation
+    [image_trans_proj,RB]=imwarp(image_proj,transform,'nearest','OutputView',RB);
+    image_trans_proj=normalizeRange(image_trans_proj);
+    fluor_mask=image_trans_proj>.5;
+    
+    %open to try to remove small objects
+    fluor_mask=imopen(fluor_mask,true(11));
+    %select only the largest object
+    cc=bwconncomp(fluor_mask);
+    object_sizes=cellfun(@(x) length(x),cc.PixelIdxList);
+    [~,maxId]=max(object_sizes);
+    cc.NumObjects=1;
+    cc.PixelIdxList=cc.PixelIdxList(maxId);
+    %get the bounding box
+    bb=regionprops(cc,'BoundingBox');
+    bb=bb.BoundingBox;
+    %crop the projection image for output
+    image_trans_proj=imcrop(image_trans_proj,bb);
+    %add the bounding box corner to the world limits to get the box
+    %location in the coordinate system of the himag image.
+    offset_x=RB.XWorldLimits(1)+bb(1);
+    offset_y=RB.YWorldLimits(1)+bb(2);
+    
