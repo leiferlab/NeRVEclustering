@@ -33,7 +33,15 @@ PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
 
-    
+# apparently an update of slurm and/or della requires now an absolute path after 
+# "-D" in slurm submission commands. Replacing os.path.basename(fullPath) with a
+# call to this function, so that it can be reverted easily.
+def get_folder_name(fullPath):
+    # it was
+    #folderName=os.path.basename(fullPath)
+    folderName=fullPath
+    return folderName
+
 # construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
 def get_email_script(mail_type='end,fail'):
     user= getpass.getuser()
@@ -74,7 +82,7 @@ def path_setup(commandList):
 # input code for initializing the centerline worksapce
 def centerline_start_input(commandList,fullPath,email_flag=False):
     commandList.insert(len(commandList)-1, '####CENTERLINES START####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= make_output_path(fullPath)
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
     
@@ -99,7 +107,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
     #make header for input file
     commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
     
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= make_output_path(fullPath)
     
     #path to shell script job files
@@ -146,7 +154,7 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     commandList.insert(len(commandList)-1, '####STRAIGHTENING####'+NOW)
 
     totalRuns = int(totalRuns)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= make_output_path(fullPath)
     
     code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
@@ -226,7 +234,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     totalRuns=int(totalRuns)
     nRef=int(nRef)
     
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= fullPath + "/outputFiles"
     currentDate=datetime.date.today()
     currentDate=str(currentDate)
@@ -308,7 +316,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     nCheck=int(nCheck)
     nNeurons=int(nNeurons)
     
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     if email_flag:
@@ -354,7 +362,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
 
 def crop_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, '####CROPPING####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
@@ -385,7 +393,7 @@ def crop_input(commandList,fullPath, email_flag = False):
 
 def flash_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
@@ -423,7 +431,7 @@ def flash_input(commandList,fullPath, email_flag = False):
 
 def custom_input(commandList,input_command,fullPath, email_flag = False,time='180',mem='16000'):
     commandList.insert(len(commandList)-1, '####CUSTOM INPUT####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     time_str=" --time=" + time
