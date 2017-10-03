@@ -275,7 +275,7 @@ for iframe=1:length(framelist)
                 
                 cl_dist=mean(sqrt(sum((cl-cl_old).^2,2)));
                 %don't let the centerlines go too far
-                if cl_dist>25
+                if cl_dist>25 && isempty(cline_para.head_pt)
                     cl=cl_old;
                 end
             end

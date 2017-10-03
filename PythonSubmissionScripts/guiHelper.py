@@ -39,6 +39,10 @@ def pickle_load():
     #fill in default values
     if 'username' not in prevUser:
             prevUser['username'] = "USER"
+    if 'time' not in prevUser:
+            prevUser['time'] = "180"
+    if 'mem' not in prevUser:
+            prevUser['mem'] = "16000"
     if 'date' not in prevUser:
             prevUser['date'] = "testing_sets"
     if 'folderName' not in prevUser:
@@ -51,6 +55,11 @@ def pickle_load():
             prevUser['neuronNumber'] = "150"
     if 'checkNumber' not in prevUser:
             prevUser['checkNumber'] = "500"
+    if 'matlab_command' not in prevUser:
+            prevUser['matlab_command']='Put your code here!'
+    if 'code_path' not in prevUser:
+            prevUser['code_path']='Put the path to the .path file here!'
+            
 
     return prevUser
 
@@ -123,9 +132,14 @@ def selectFolder(master=None):
         master.e['date'].insert(0,date)
         master.e['folder_name'].delete(0,tk.END)
         master.e['folder_name'].insert(0,folderName)
-        print folder
+        print(folder)
         
-#class for building the gui and populating the rows
+def selectPath(master=None):
+    filename = tkFileDialog.askopenfilename(initialdir= '/tigress/LEIFER/communalCode/ ')
+    master.e['code_path'].delete(0,tk.END)
+    master.e['code_path'].insert(0,filename)
+# 
+# #class for building the gui and populating the rows
 class submitTK(tk.Tk):
     #build the gui with some number of max rows and cols, 
     #submitTK is a subclass of tkinter's Tk(). 
@@ -183,6 +197,10 @@ class submitTK(tk.Tk):
         #refill prevUser dict with master entries
         if 'user_name' in self.e:
             prevUser['username']=self.e['user_name'].get()
+        if 'time' in self.e:
+            prevUser['time']=self.e['time'].get()
+        if 'mem' in self.e:
+            prevUser['mem']=self.e['mem'].get()
         if 'date' in self.e:
             prevUser['date'] = self.e['date'].get()
         if 'folder_name' in self.e:
@@ -195,6 +213,11 @@ class submitTK(tk.Tk):
             prevUser['neuronNumber']=self.e['n_neurons'].get()
         if 'n_checks' in self.e:
             prevUser['checkNumber']=self.e['n_checks'].get()
+        if 'matlab_command' in self.e:
+            prevUser['matlab_command']=self.e['matlab_command'].get()
+        if 'code_path' in self.e:
+            prevUser['code_path']=self.e['code_path'].get()
+            
         #save prevUser as pickle
         pickle.dump(prevUser, open(pickle_file, "wb" ) )
         

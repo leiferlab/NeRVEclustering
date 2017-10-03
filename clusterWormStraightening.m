@@ -32,7 +32,7 @@ alignments=alignments.alignments;
 for iStack=nStart:(nStart+nRange-1)
     %set up image and pointstats names
     fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
-    fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d')];
+    fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d') '.mat'];
     % does not overwrite if both files are present
     if ~exist(fileName2,'file') && ~exist(fileName3,'file')
         tic
@@ -40,6 +40,13 @@ for iStack=nStart:(nStart+nRange-1)
         WormCLStraighten_11(dataFolder,destination,vidInfo,...
             alignments,Vtemplate,zOffset,iStack,side,0); 
         display(['image' num2str(iStack,'%3.5d') 'completed in ' num2str(toc) 's']);
+    elseif exist(fileName3,'file')
+        PS=load(fileName3);
+        if isempty(PS.pointStats.straightPoints);
+                 WormCLStraighten_11(dataFolder,destination,vidInfo,...
+            alignments,Vtemplate,zOffset,iStack,side,0); 
+        display(['image' num2str(iStack,'%3.5d') 'completed in ' num2str(toc) 's']);
+        end
     else
         display([ 'image' num2str(iStack,'%3.5d') '.tif already exist!'])
     end

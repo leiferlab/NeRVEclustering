@@ -58,15 +58,10 @@ If running from tigressdata, matlab can be found by typing this into terminal:
 
 	/usr/licensed/matlab-R2017a/bin/matlab
 
-
-
 In the matlab command line, set up the paths to use these programs with:
 
-
-
-	cd /tigress/LEIFER/communalCode
-	
-	path(pathdef)
+	>>cd /tigress/LEIFER/communalCode
+	>>path(pathdef)
 
 
 
@@ -117,17 +112,20 @@ After taking the alignment videos on both computers, move the LowMag folder into
 
 STEP 1: WORM CENTERLINE DETECTION
 (done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
-
-	wormCL_tip_clicker.m (OPTIONAL)
-		- This is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail.
-        - To use this, click on a subset of the head and tail coordinates. You can adjust the stepSize to skip over some frames.
-        - The program interpolates for frames you do not click, so every 5-10 is fine for normal paced worm, 100-200 for very slow or stationary worms. 
-        - remember to save. 
+This step processes the behavior images and produces centerlines for the worm in all frames. 
 
 	initializeCLWorkspace.m 
 		- this will allow the user to manually initialize a few centerlines to help the detection algorithm.
         - it also gets user ROIs to help calculating backgrounds, like bubble removal and head position. 
- 
+
+	wormCL_tip_clicker.m (OPTIONAL)
+        
+		- This is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail.
+        - To use this, click on a subset of the head and tail coordinates. You can adjust the stepSize to skip over some frames.
+        - The program interpolates for frames you do not click, so every 5-10 is fine for normal paced worm, 100-200 for very slow or stationary worms. 
+        - remember to save. 
+		- You can use this after doing an initial check of the centerlines. Run the submission code and take a look. If it's bad, do the tip clicking and rerun the python code. No need to rerun initializeCLWorkspace.
+
 	Python submission code:
 		submitWormAnalysisCenterline.py
 	Matlab analysis code:
@@ -143,15 +141,16 @@ STEP 1: WORM CENTERLINE DETECTION
 
 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
 
-
+After Centerlines and timing are done, it's good to view them and the timing by using the program WormAnalysisPreview
 
 **steps 2-5 all use submitWormAnalysisPipelineFull.py for submission. 
 STEP 2: STRAIGHTEN AND SEGMENTATION
-	
+
+This step will performing straightening of the HiMag images using the centerlines from the previous step. It will also perform segmentation of the neurons in the straightened coordinate system. 
+
 Python submission code:
 
 		submitWormAnalysisPipelineFull.py
-
 
 	Matlab analysis code called by python:
 
@@ -159,6 +158,7 @@ Python submission code:
 		clusterStraightenStart.m
 
 		clusterWormStraightening.m
+        
 	
 File Outputs:
 	startWorkspace.mat, initial workspace used for during straightening for all volumes
@@ -166,6 +166,7 @@ File Outputs:
 
 
 STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
+This step does the Nerve clustering. It is the longest step in the analysis. It produces registration vectors for each volume of the recording, and clusters them to assign neuron identities. 
 
 	Python submission code:
 
@@ -173,18 +174,19 @@ STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
 
 
 	Matlab analysis code called by python:
-
-
+		makePointStatsRef.m
 
 		clusterWormTracker.m
 
 		clusterWormTrackCompiler.m
 
 	File Outputs:
+		PSref.mat, structure array containing the pointStats for all volumes used as references. Useful for making other registration vectors after the analysis is completed. 
 		TrackMatrixFolder, containing all registrations of sample volumes with reference volumes.
 		pointStats.mat, structure containing all coordinates from all straightened volumes along with a trackIdx, the result of initial tracking of points. 
 
 STEP 4: ERROR CORRECTION
+This step does cross validation on the neural IDs that are produced by step 3. It will reassign some neural IDs or create new points. 
 
 	Python submission code:
 
@@ -202,6 +204,7 @@ STEP 4: ERROR CORRECTION
 	pointStatsNew.mat- matfile containing the refined trackIdx after error correction. 
 
 STEP 5: SIGNAL EXTRACTION
+This step gets fluorescent intensities from pixels around the neurons to get a trace of neural activity for each neuron. The neural signal is presented in several ways, including raw, photobleaching corrected, and ratiometric. 
 
 	Python submission code:
 
@@ -215,6 +218,9 @@ STEP 5: SIGNAL EXTRACTION
 
 	File Output:
 	heatData.mat, all signal results from extracting signal from the coordinates. 
+	
+STEP 6: LOOK AT THE DATA
+After the analysis pipeline it is always a good idea to manually look at the signal and the tracking to see if the results are reasonable by eye. Volumes are rejected if the program thinks they are bad, but some slip through so you should look at them quickly using the visualization GUIs. You can flag all the neurons in a volume or a single neuron for all volumes using VisualizeTrackedData.m
 	
 
 #########################################################################
@@ -243,9 +249,9 @@ WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. 
 GUIs for post-pipeline to make sure things worked
 -------------------------------------------------
 
-VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons. 
+VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons on the straighted coordinates in 3d. It also shows the different signals for each neuron.  
 
-VisualizeTrackedData.m - Check to see that tracking works well. Works on unstraightened .dat file. 
+VisualizeTrackedData.m - Check to see that tracking works well. Shows the tracking of neurons in the unstraighted images. You can also flag neurons or volumes that look bad. It also shows the different signals for each neuron.  
 
 
 
@@ -327,13 +333,16 @@ Signal vairables
 	G2 - Same as above but with gPhotoCorr.
 
 	Ratio2 - First, both the green and red signals are smoothed with a 5 time step fwhm Gaussian filter. Then the Ratio is then taken as  gPhotoCorr/rPhotoCorr and normalized as delta R/ R0 in the same way as R2 and G2. Some modifications are made to deal with some of the nans. 
-
+	
+If you flagged any neurons using VisuzliedTrackedData.mat, then you will also see
+	flagged_neurons - a list of neuron IDs that are flagged and should not be considered
+	flagged_volumes - a list of volume indexes that are flagged and should not be considered. 
 
 
 Other fields:
 behavior - structure with 
     ethogram: t Volumes by 1 vector of behaviors, -1 for reverse, 0 pause, 1 forward, 2 turn. Behaviors determined automatically using the centerlines.
-       x_pos: t Volumes by 1 vector of x coordinates in the reference frame of the plate.
+       x_pos: t Volumes by 1 vector of x coordinates of the worm center of mass in the reference frame of the plate.
        y_pos: t Volumes by 1 vector of y coordinates in the reference frame of the plate.
            v: t Volumes by 1 vector of worm center of mass velocities in the reference frame of the plate. Positive is forward, negative reverse.
        pc1_2: t Volumes by 2 vector of the projections onto the first two eigenworms. 

@@ -128,6 +128,8 @@ if __name__ == '__main__':
         Before running this code, you must have a CLworkspace.mat file 
         in the LowMag folder. 
         
+        
+        
         Requirements:
                 CLworkspace.mat: created by initilaizeCLWorkspace
                     must be located in the LowMag folder
@@ -137,7 +139,9 @@ if __name__ == '__main__':
                 
                     
         The code has 2 sections. 
-                CL_start: uses user provide results to calculate backgrounds
+                CL_start: uses user provide results to calculate backgrounds. Will also
+                            find the tips_coordinates.mat file if it is present in the Low
+                            Mag folder. Check the StartWorkspace box to run this section. 
                 Centerline: fits centerlines using the backgroudns and initial
                             Centerlines provided.
         
@@ -146,7 +150,8 @@ if __name__ == '__main__':
         Parent Path:/tigress/LEIFER/PanNeuronal
         Date of Data: testing_sets
         Data Folder Name: Brain_working_dataset
-        <Check box>
+        Start Workspace: <Check box> 
+        Email: <Check box>
         
         ''')
     master=make_gui()

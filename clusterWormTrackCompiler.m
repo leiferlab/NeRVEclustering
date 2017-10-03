@@ -217,7 +217,9 @@ for i=1:n_clusters
 end
 
 
-%% find "basis" by averaging over a cluster.
+%% find "basis" by averaging over a cluster. this is the cm of the point clound
+% and will be used to classify every neuron from every volume, this is step
+% 2 of the clustering in the paper. 
 
 masterVec=zeros(n_clusters,size(subTranstionMatrix,2));
 totalVec=zeros(n_clusters,size(subTranstionMatrix,2));
@@ -270,7 +272,7 @@ cluster_assign_present=cluster_assign(~isnan(cluster_assign));
 [~,ia]=sort(cluster_assign_present);
 assignedNodes=assignedNodes(ia);
 
-%make list of indices that should be theoretically 
+%make list of indices that should be theoretically assigned to the group
 hitIdx=sub2ind(size(score),cluster_assign_present(ia),assignedNodes);
 %turn that list onto a logical matrix, where each training neuron has 1
 %for the cluster it belongs to and 0 everywhere else. 

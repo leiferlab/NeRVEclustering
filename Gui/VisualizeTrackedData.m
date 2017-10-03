@@ -410,8 +410,8 @@ imageIdx=hiResIdx+offset;
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
 if ~isempty(fiducialPoints) && length(fiducialPoints)>=iVolume
     currentFiducials=fiducialPoints{iVolume};
-    
-    if ~isempty(currentFiducials)
+    %set indicator if empty
+    if ~isempty(cell2mat(currentFiducials))
     setappdata(handles.figure1,'fiducials',currentFiducials);
    statusWarning(handles.neuronCoordStatus,'Neurons Present',0)
     else
@@ -1068,7 +1068,7 @@ function flagNeuron_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
-flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
+flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
 flagged_neurons=[flagged_neurons, currentTarget];
 setappdata(handles.figure1,'flagged_neurons',flagged_neurons);
 
@@ -1090,16 +1090,18 @@ function saveHeatMap_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.currentFolder,'String',dataFolder);
+dataFolder=get(handles.currentFolder,'String');
 flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
 flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
 %%% load heatmap data
-heatDataFile=[dataFolder filesep 'heatData'];
+heatDataFile=[dataFolder filesep 'heatData.mat'];
 if exist(heatDataFile,'file')
     save(heatDataFile,'flagged_volumes','flagged_neurons','-append')
+    statusWarning(handles.signalStatus, ...
+        'File Saved',0)
 else
     statusWarning(handles.signalStatus, ...
-        'No neural activity found! Has the fiducialCropper run?')
+        'No neural activity found! Has the fiducialCropper run?',1)
 end
 
 

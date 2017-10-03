@@ -1,5 +1,25 @@
 function [im_bw_out,im_smooth]=...
     WormSegmentHessian3dStraighten(im,options,im_smooth)
+
+
+%%%INPUTS:
+%im: a 3d image of the worms neurons. The pixels should be cubes.
+
+%options: structure with parameters, see descriptions below.
+
+%im_smooth: optional pre-smoothed version of the 3d image, this can be used
+%to save the time of the preprocessing step. 
+
+%%%%OUTPUTS:
+%im_bw_out: a binary mask of the segmented regions of the neurons in the
+%worm after processing.
+
+%im_smooth: a smoothed version of the original input image, if im_smooth is
+%provided as an input, the same matrix is returned
+
+
+
+
 % this function takes as an input an image with bright blobs and segments
 % it by looking at the eigenvalues of the hessian matrix. Objects can be
 % further seperated using a watershed filter based on the object size. An
@@ -10,18 +30,19 @@ function [im_bw_out,im_smooth]=...
 thresh1=.03; %initial Threshold
 hthresh=-.0; %threshold for trace of hessian.
 minObjSize=80; % min object size
-maxObjSize=350; % max object size
-valleyRatio=.75;
-% watershed filter object shapes? is also the value for imhmin
+maxObjSize=[]; % max object size
+% watershed filter object shapes? is also the value for imhmin if nonzero
 watershedFilter=0; 
 filterSize=[10,10,4]; %bp filter size low f
 noise=1; % bp filter hi f
 pad=10; % pad to take around each sub blob
-show=0; %show fits (deactivated)
+show=0; %show a snapshot of each subregion during the fitting process,
 maxSplit=0; % split objects using regional maxima
-minSphericity=.84; % minimum sphericity for splitting.
+
+valleyRatio=.75; %used for max splitting if valley between two maxima is lower than valleyRatio* the max
+minSphericity=.84; % minimum sphericity for splitting. not currently used
 prefilter=0;
-gaussFilter=1;
+gaussFilter=1; %size of gaussian smoothing if not prefiltered. 
 
 % parse options to load fields
 if nargin>=2
@@ -101,10 +122,10 @@ Heig(isnan(Heig))=0;
 Htrace=real(Heig(:,:,:,1));
 hess_bw=Htrace<hthresh ;
 %apply area threshold
-hess_bw=AreaFilter(hess_bw,minObjSize,[],6);
+hess_bw=AreaFilter(hess_bw,minObjSize,maxObjSize,6);
 
 %% watershed filter shapes
-
+%optional watershed seperation of shapes
 if watershedFilter
 Jd=-bwdist(~hess_bw);  %make distance map
 %Jd=smooth3(Jd,'gaussian',5,2);
@@ -146,10 +167,10 @@ if maxSplit
 end
 %% after splitting, apply size filters
 hess_bw=hess_bw.*sub_bw;
-hess_bw=AreaFilter(hess_bw,minObjSize,[],6);
+hess_bw=AreaFilter(hess_bw,minObjSize,maxObjSize,6);
 hess_bw=regionSplit(hess_bw,options);
 % remove small objects in subImage
-hess_bw=AreaFilter(hess_bw,minObjSize,[],6);
+hess_bw=AreaFilter(hess_bw,minObjSize,maxObjSize,6);
 
 
 %% find centroids, display (off)

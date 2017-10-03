@@ -1,6 +1,18 @@
 function TrackMatrixi=compareWithRef(P1,PS_ref)
 
 
+% CompareWithRef computes registration vectors between a single pointStats
+% strucutre in P1 and an array of reference pointStats in PS_ref
+% INPUTS:
+%       P1 - pointStats structure from a single volume
+%       PS_ref - pointStats array structure with a pointStats for all of
+%       the reference volumes
+% OUTPUTS:
+%       TrackMatrix - A matrix of the all of the neuron registration
+%       vectors from the neurons found in P1. TrackMatrix is an nxm matrix
+%       where n is the number of neurons in P1 and m is the total number of
+%       neurons in all of the volumes represented. 
+
 %% initial parameters
 
 %parameters for tracking/matching
@@ -39,6 +51,7 @@ for j_ps=1:length(PS_ref)
         
         %put together old points and transformed points for use in
         %kmeans clustering to break the pointsets into smaller groups
+        %This is to try and get a finer match using a smaller pointset. 
         
         trackInput=[T1temp ;T2_trans(:,1:3) ];
         idx = kmeans(trackInput(:,1:3),3);

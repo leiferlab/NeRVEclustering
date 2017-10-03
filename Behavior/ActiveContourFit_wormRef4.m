@@ -20,7 +20,6 @@ xyzs = distanceInterp(cline_initial(2:end-1,:),100);
 %intializing this value for later
 ftail=0;
 refL=cline_para.refL;
-tip_l=cline_para.tipRegion;
 % for manually clicked tips
 if isfield(cline_para,'head_pt')
     head_pt=cline_para.head_pt;
@@ -312,16 +311,26 @@ for i=1:cline_para.iterations
         minCounter=minCounter+1;
     end
     
-    %% fix places where worm crosses itself and try to correct it
+    %% every 10 frames, remove 4 points from head and tail and try to have CL regrow
+    %trying to stop tips from getting lost
+    if i > cline_para.iterations - 50 && ~mod(i,20) &&  cline_para.stretch_ends_flag
+        xyzs=distanceInterp(xyzs(4:end-3,:),100);
+    end
+    
+    %% Try to fix places where worm crosses itself and try to correct it
     cross_bool= doesCross(xyzs);
     if cross_bool
         display('Cross detected')
+        %find linesegments that cross
+        % cross_1(i) and cross_2(i) are the indeces of the ith cross. 
         [~,cross_1,cross_2]= doesCross(xyzs);
         cross_list=[];
         for iCross=1:length(cross_1)
             subCrossList=cross_1(iCross):cross_2(iCross);
+            %if its a small loop, excise the loop. 
             if length(subCrossList)<25
                 cross_list=[cross_list subCrossList];
+                %if its a small loop at the head, cut off part of the head
             elseif cross_1(iCross)<3
                 cross_list=[cross_list 1:3];
             end
