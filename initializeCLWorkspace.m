@@ -107,7 +107,7 @@ end
 
 %cut up the entire video into nCells chunks and then initialize nCells+1
 %centerlines for fitting each chunk forwards and backwards.
-nCells=1;
+nCells=16;
 nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
 bfCell_i=cell(nCells,1);
 clStartI=cell(nCells+1,1);
