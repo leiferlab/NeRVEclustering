@@ -88,7 +88,7 @@ def centerline_start_input(commandList,fullPath,email_flag=False):
     
     input0 = "clusterCL_start('"+ fullPath + "')"
     #make submission command
-    qsubCommand0 = ("sbatch --mem=12000 " 
+    qsubCommand0 = ("sbatch --mem=18000 " 
         + MIN_TIME_STR 
         + " -N 1 -n 1 -c 10" #for use of 10 cores for parfor loops in the matlab code
         + " -D " + folderName
@@ -120,8 +120,8 @@ def centerline_input(commandList,fullPath,email_flag = False):
         email_script=get_email_script('fail')
         
     
-    qsubCommand1 = ("sbatch --mem=12000 " 
-        + "--time=300" 
+    qsubCommand1 = ("sbatch --mem=18000 " 
+        + "--time=800" 
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
@@ -134,7 +134,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
     commandList.insert(len(commandList)-1, qsubCommand1) #Add this to the stack of strings
    
     #Same as above but now for the "centerline compile" part 
-    qsubCommand2 = ("sbatch --mem=12000 " 
+    qsubCommand2 = ("sbatch --mem=18000 " 
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
@@ -405,7 +405,7 @@ def flash_input(commandList,fullPath, email_flag = False):
 
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
-    qsubCommand1 = ("sbatch --mem=2000 " 
+    qsubCommand1 = ("sbatch --mem=4000 " 
         + MIN_TIME_STR 
         + " -J "+ folderName
         + email_script
@@ -417,7 +417,7 @@ def flash_input(commandList,fullPath, email_flag = False):
     print(qsubCommand1)
     
     qsubCommand2 = ("sbatch --mem=2000 "  
-        + MIN_TIME_STR 
+        + "--time=500" 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
