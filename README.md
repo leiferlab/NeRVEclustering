@@ -110,8 +110,7 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done on tigressdata VNC with Matlab, does not depend on timing)
 
-After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
-
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. If you need to select the green channel for the neuron segmentation and tracking instead of the red one (i.e. if you are using a red-shifted Ca2+ indicator and GFP), use alignment_gui2.m . After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 STEP 1: WORM CENTERLINE DETECTION
 (done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
