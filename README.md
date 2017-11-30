@@ -222,14 +222,14 @@ GUI to Check Data
 Before any analysis
 
 ------------------------------------
-ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
+scanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
 
 
 GUIs for post-centerlines
 
 -------------------------
-wormCLviewer.m - Gui to view darkfield worm images along with the centerline
+wormCL_viewer.m - Gui to view darkfield worm images along with the centerline
 
 
 WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. Good for use post centerlines but prior to straightening.
@@ -327,19 +327,24 @@ Signal vairables
 
 Other fields:
 behavior - structure with 
+
     ethogram: t Volumes by 1 vector of behaviors, -1 for reverse, 0 pause, 1 forward, 2 turn. Behaviors determined automatically using the centerlines.
        x_pos: t Volumes by 1 vector of x coordinates in the reference frame of the plate.
+       
        y_pos: t Volumes by 1 vector of y coordinates in the reference frame of the plate.
+       
            v: t Volumes by 1 vector of worm center of mass velocities in the reference frame of the plate. Positive is forward, negative reverse.
+	   
        pc1_2: t Volumes by 2 vector of the projections onto the first two eigenworms. 
+       
         pc_3: t Volumes by 1 vector of the projections onto the third eigenworm. 
 
-XYZcoord - N neurons x 3 XYZ coordinates for the neurons. The coordinates are taken by a random straightened volume from the recording to serve as an example.
+XYZcoord: N neurons x 3 XYZ coordinates for the neurons. The coordinates are taken by a random straightened volume from the recording to serve as an example.
 
-acorr - a n Neurons x n Neurons pearson correlation matrix of Ratio2
+acorr: a n Neurons x n Neurons pearson correlation matrix of Ratio2
 
-cgIdx - ordered indices derived from heirarchically clustering the correlation matrix. To show organized traces, use Ratio2(cgIdx,:)
+cgIdx: ordered indices derived from heirarchically clustering the correlation matrix. To show organized traces, use Ratio2(cgIdx,:)
 
-hasPointsTime- a t volumes by 1 vector of time for each volume. 
+hasPointsTime: a t volumes by 1 vector of time for each volume. 
 
 
