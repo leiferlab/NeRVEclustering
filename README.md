@@ -130,12 +130,14 @@ STEP 1: WORM CENTERLINE DETECTION
 
 		clusterWormCenterline.m
 	File Outputs:
-	CLstartworkspace.mat, initialized points and background images for darkfield images
+	CLworkspace.mat, initialized points and background images for darkfield images
 	CL_files folder, containing partial CL.mat files
 	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
 
 
-	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
+	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines.
+	
+If centerlines fail a lot, try changing the parameters of the centerline fitting. Use 'AutoCL' in the wormCL_viewer.m GUI. The parameters are hardcoded there and you can play around with them by changing cline.para in function autoCL_Callback(hObject, eventdata, handles). If you found something that works, go back to your initialized workspace (CLWorkspace.mat, Lowmag folder of your data) and set the parameters in that file to the values that worked in the GUI. Rerun centerline submitWormAnalysisCenterline.py.
 
 
 
