@@ -110,8 +110,7 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
 (done on tigressdata VNC with Matlab, does not depend on timing)
 
-After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on the computer "Bardeen" or on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
-
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. If you need to select the green channel for the neuron segmentation and tracking instead of the red one (i.e. if you are using a red-shifted Ca2+ indicator and GFP), use alignment_gui2.m . After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 STEP 1: WORM CENTERLINE DETECTION
 (done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
@@ -131,12 +130,14 @@ STEP 1: WORM CENTERLINE DETECTION
 
 		clusterWormCenterline.m
 	File Outputs:
-	CLstartworkspace.mat, initialized points and background images for darkfield images
+	CLworkspace.mat, initialized points and background images for darkfield images
 	CL_files folder, containing partial CL.mat files
 	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
 
 
-	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
+	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines.
+	
+If centerlines fail a lot, try changing the parameters of the centerline fitting. Use 'AutoCL' in the wormCL_viewer.m GUI. The parameters are hardcoded there and you can play around with them by changing cline.para in function autoCL_Callback(hObject, eventdata, handles). If you found something that works, go back to your initialized workspace (CLWorkspace.mat, Lowmag folder of your data) and set the parameters in that file to the values that worked in the GUI. Rerun centerline submitWormAnalysisCenterline.py.
 
 
 
@@ -222,14 +223,14 @@ GUI to Check Data
 Before any analysis
 
 ------------------------------------
-ScanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
+scanBinaryImageStack.m - Gui to view raw .dat file movies. This also works with .avi files
 
 
 
 GUIs for post-centerlines
 
 -------------------------
-wormCLviewer.m - Gui to view darkfield worm images along with the centerline
+wormCL_viewer.m - Gui to view darkfield worm images along with the centerline
 
 
 WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. Good for use post centerlines but prior to straightening.
@@ -327,19 +328,24 @@ Signal vairables
 
 Other fields:
 behavior - structure with 
+
     ethogram: t Volumes by 1 vector of behaviors, -1 for reverse, 0 pause, 1 forward, 2 turn. Behaviors determined automatically using the centerlines.
        x_pos: t Volumes by 1 vector of x coordinates in the reference frame of the plate.
+       
        y_pos: t Volumes by 1 vector of y coordinates in the reference frame of the plate.
+       
            v: t Volumes by 1 vector of worm center of mass velocities in the reference frame of the plate. Positive is forward, negative reverse.
+	   
        pc1_2: t Volumes by 2 vector of the projections onto the first two eigenworms. 
+       
         pc_3: t Volumes by 1 vector of the projections onto the third eigenworm. 
 
-XYZcoord - N neurons x 3 XYZ coordinates for the neurons. The coordinates are taken by a random straightened volume from the recording to serve as an example.
+XYZcoord: N neurons x 3 XYZ coordinates for the neurons. The coordinates are taken by a random straightened volume from the recording to serve as an example.
 
-acorr - a n Neurons x n Neurons pearson correlation matrix of Ratio2
+acorr: a n Neurons x n Neurons pearson correlation matrix of Ratio2
 
-cgIdx - ordered indices derived from heirarchically clustering the correlation matrix. To show organized traces, use Ratio2(cgIdx,:)
+cgIdx: ordered indices derived from heirarchically clustering the correlation matrix. To show organized traces, use Ratio2(cgIdx,:)
 
-hasPointsTime- a t volumes by 1 vector of time for each volume. 
+hasPointsTime: a t volumes by 1 vector of time for each volume. 
 
 
