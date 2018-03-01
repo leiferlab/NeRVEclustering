@@ -61,7 +61,9 @@ hlistener=addlistener(handles.slider1,'ContinuousValueChange',...
 setappdata(handles.figure1,'holdaxes',false);
 setappdata(handles.slider1,'hlistener',hlistener);
 set(handles.slider1,'Max',2000);
-
+%set defaults 
+set(handles.colorMap,'Value',3)
+set(handles.transpose,'Value', true)
 % Update handles structure
 guidata(hObject, handles);
 
@@ -153,6 +155,16 @@ if exist(CLworkspace_file,'file')
     catch
     end
     setappdata(handles.figure1,'cline_para',cline_para);
+    display('Load tip file if present, otherwise, cancel')
+    tip_file=[parentFolder filesep 'tip_coodinates.mat'];
+    if exist(tip_file,'file')
+        tips=load(tip_file);
+        display(' Tip file found, loading tips');
+        setappdata(handles.figure1,'tips',tips);
+    else
+        tips=[];
+        display('No tips found!');
+    end
 else
     background=[];
     frame_bg_lvl=[];
@@ -530,6 +542,18 @@ function loadTips_Callback(hObject, eventdata, handles)
 % hObject    handle to loadTips (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+currentFolder=get(handles.currentFolder,'String');
+currentFolder=fileparts(currentFolder);
+
+tip_file=uipickfiles('Filterspec', currentFolder);
+tip_file=tip_file{1};
+tip_data=load(tip_file);
+head_pts=tip_data.head_pts;
+tail_pts=tip_data.tail_pts;
+
+setappdata(handles.figure1,'head_pts',head_pts);
+setappdata(handles.figure1,'tail_pts',tail_pts);
+
 
 
 % --- Executes on button press in fixTips.
@@ -572,48 +596,51 @@ function autoCL_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%get centerline
-for i=1:100000
-cline_para=getappdata(handles.figure1,'cline_para');
- 
-frameNumber=get(handles.slider1,'Value');
-frameNumber=max(1,round(frameNumber));
-CL_set=getappdata(handles.figure1,'centerline');
-if i==1
-cl_old=CL_set{1}(:,[2,1],frameNumber);
-else
-    cl_old=cl;
-end
-tips=getappdata(handles.figure1,'tips');
-if ~isempty(tips)
-cline_para.head_pt=tips.head_pts(frameNumber,:);
-cline_para.tail_pt=tips.tail_pts(frameNumber,:);
+%fit a certain number of frames with autoCL
+    %get centerline
+    for i=1:str2double(get(handles.stepSize,'String'))
+    cline_para=getappdata(handles.figure1,'cline_para');
 
-cline_para.stretching_force_factor=[0 0];
-cline_para.stretch_ends_flag=0;
+    frameNumber=get(handles.slider1,'Value');
+    frameNumber=max(1,round(frameNumber));
+    CL_set=getappdata(handles.figure1,'centerline');
+    if i==1
+    cl_old=CL_set{1}(:,[2,1],frameNumber);
+    else
+        cl_old=cl;
+    end
+    tips=getappdata(handles.figure1,'tips');
+    if ~isempty(tips)
+    cline_para.head_pt=tips.head_pts(frameNumber,:);
+    cline_para.tail_pt=tips.tail_pts(frameNumber,:);
 
-end
-cline_para.stretching_force_factor=[1 0.3];
+    cline_para.stretching_force_factor=[0 0];
+    cline_para.stretch_ends_flag=0;
 
-cline_para.memForce=0;
-C=processImage(handles);
-cline_para.CLalpha=1;
-cline_para.gradient_force=1;
-cline_para.endRepulsion=.5;
-cline_para.refSpring=0;
-cline_para.showFlag=0;
-tip_image=C;
-cl_old=distanceInterp(cl_old(8:end,:),100);
-[cl,Is,Eout]=ActiveContourFit_wormRef4(...
-    C,tip_image, cline_para, cl_old,1,[0 0]);
- showImage(handles.slider1,eventdata)
+    end
+    cline_para.stretching_force_factor=[1 0.3];
 
-CL_set{1}(:,[2,1],frameNumber)=cl;
-setappdata(handles.figure1,'centerline',CL_set);
-hold(handles.axes1,'on')
-plot(handles.axes1,cl(:,1),cl(:,2))
-hold(handles.axes1,'off');
-handles.slider1.Value=handles.slider1.Value+1;
+    cline_para.memForce=0;
+    C=processImage(handles);
+    cline_para.CLalpha=1.3;
+    cline_para.gradient_force=1;
+    cline_para.endRepulsion=.02;
+    cline_para.refSpring=0.01;
+    cline_para.showFlag=0;
+    tip_image=C;
+    cl_old=distanceInterp(cl_old(8:end,:),100);
+    [cl,Is,Eout]=ActiveContourFit_wormRef4(...
+        C,tip_image, cline_para, cl_old,1,[0 0]);
+     showImage(handles.slider1,eventdata)
+
+    CL_set{1}(:,[2,1],frameNumber)=cl;
+    setappdata(handles.figure1,'centerline',CL_set);
+    hold(handles.axes1,'on')
+    plot(handles.axes1,cl(:,1),cl(:,2))
+    hold(handles.axes1,'off');
+   
+    handles.slider1.Value=handles.slider1.Value+1;
+   
 
 end
 
