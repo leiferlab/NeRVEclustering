@@ -34,8 +34,8 @@ for iStack=nStart:(nStart+nRange-1)
     fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
     fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d') '.mat'];
     % does not overwrite if both files are present
+    tic
     if ~exist(fileName2,'file') && ~exist(fileName3,'file')
-        tic
         % do straightening for this istack
         WormCLStraighten_11(dataFolder,destination,vidInfo,...
             alignments,Vtemplate,zOffset,iStack,side,0); 

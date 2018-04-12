@@ -22,7 +22,7 @@ function varargout = wormCL_Viewer(varargin)
 
 % Edit the above text to modify the response to help wormCL_Viewer
 
-% Last Modified by GUIDE v2.5 26-Jun-2017 11:34:13
+% Last Modified by GUIDE v2.5 01-Mar-2018 16:05:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -145,31 +145,43 @@ CLworkspace_file=[parentFolder filesep 'CLworkspace.mat'];
 if exist(CLworkspace_file,'file')
     display('Workspace found, loading workspace')
     CLworkspace=load(CLworkspace_file);
-    background=CLworkspace.mean_bf_all;
-    frame_bg_lvl=CLworkspace.frame_bg_lvl;
-    set(handles.backgroundSubtract,'enable','on');
-    cline_para=CLworkspace.cline_para;
-    try
-    tips=processTips(CLworkspace);
-    setappdata(handles.figure1,'tips',tips);
+    try 
+        background=CLworkspace.mean_bf_all;
+        frame_bg_lvl=CLworkspace.frame_bg_lvl;
+        set(handles.backgroundSubtract,'enable','on');
+        cline_para=CLworkspace.cline_para;
+        setappdata(handles.figure1,'cline_para',cline_para);
     catch
-    end
-    setappdata(handles.figure1,'cline_para',cline_para);
-    display('Load tip file if present, otherwise, cancel')
-    tip_file=[parentFolder filesep 'tip_coodinates.mat'];
-    if exist(tip_file,'file')
-        tips=load(tip_file);
-        display(' Tip file found, loading tips');
-        setappdata(handles.figure1,'tips',tips);
-    else
-        tips=[];
-        display('No tips found!');
+        background=[];
+        frame_bg_lvl=[];
+        set(handles.backgroundSubtract,'enable','off');
     end
 else
     background=[];
     frame_bg_lvl=[];
     set(handles.backgroundSubtract,'enable','off');
 end
+    display('Load tip file if present, otherwise, cancel')
+    tip_file=[parentFolder filesep 'tip_coodinates.mat'];
+    if exist(tip_file,'file')
+        tips=load(tip_file);
+        display(' Tip file found, loading tips');
+        % update tip variable in CLWorkspace
+        CLworkspace.tips = tips
+    try
+    tips=processTips(CLworkspace);
+    setappdata(handles.figure1,'tips',tips);
+    catch
+    end
+    
+    
+        
+        % save tips for GUI
+        setappdata(handles.figure1,'tips',tips);
+    else
+        tips=[];
+        display('No tips found!');
+    end
 setappdata(handles.figure1,'background',background);
 setappdata(handles.figure1,'frame_bg_lvl',frame_bg_lvl);
 
@@ -610,23 +622,35 @@ function autoCL_Callback(hObject, eventdata, handles)
         cl_old=cl;
     end
     tips=getappdata(handles.figure1,'tips');
-    if ~isempty(tips)
-    cline_para.head_pt=tips.head_pts(frameNumber,:);
-    cline_para.tail_pt=tips.tail_pts(frameNumber,:);
+        if ~isempty(tips)
+        cline_para.head_pt=tips.head_pts(frameNumber,:);
+        cline_para.tail_pt=tips.tail_pts(frameNumber,:);
 
-    cline_para.stretching_force_factor=[0 0];
-    cline_para.stretch_ends_flag=0;
+        cline_para.stretching_force_factor=[0.05 0.05];
+        cline_para.stretch_ends_flag=1;
+        % Monika added this
+        %cline_para.CLbeta=200;
+        %cline_para.gamma=60;
+        %cline_para.heat=10;
+        %cline_para.refL=20.5;
+        cline_para.gradient_force=1;
+        cline_para.endRepulsion=.1;
+        %end Monika
 
     end
-    cline_para.stretching_force_factor=[1 0.3];
+    cline_para.stretching_force_factor=[0.1 0.1];
 
     cline_para.memForce=0;
     C=processImage(handles);
-    cline_para.CLalpha=1.3;
+    cline_para.CLalpha=1.0;
+    
     cline_para.gradient_force=1;
-    cline_para.endRepulsion=.02;
-    cline_para.refSpring=0.01;
+    cline_para.endRepulsion=.1;
+    cline_para.refSpring=0.0;
     cline_para.showFlag=0;
+    % Monika
+    %cline_para.endKappa=0.05;
+    
     tip_image=C;
     cl_old=distanceInterp(cl_old(8:end,:),100);
     [cl,Is,Eout]=ActiveContourFit_wormRef4(...
@@ -756,3 +780,27 @@ save([behaviorFolder filesep 'centerline'] ,'centerline','eigenProj'...
 
 save([behaviorFolder filesep 'CL_copy'] ,'centerline','eigenProj'...
     ,'wormcentered');
+
+
+% --- Executes on button press in copyCL.
+function copyCL_Callback(hObject, eventdata, handles)
+% hObject    handle to copyCL (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+for i=1:str2double(get(handles.stepSize,'String'))
+    frameNumber=get(handles.slider1,'Value');
+    frameNumber=max(1,round(frameNumber));
+    % use last frames CL
+    CL_set=getappdata(handles.figure1,'centerline');
+    cl = CL_set{1}(:,[2,1],frameNumber-1);
+    %set current frame to last frames data
+    CL_set{1}(:,[2,1],frameNumber)=cl;
+    setappdata(handles.figure1,'centerline',CL_set);
+    hold(handles.axes1,'on')
+    plot(handles.axes1,cl(:,1),cl(:,2))
+    hold(handles.axes1,'off');
+    showImage(handles.slider1,eventdata)
+    handles.slider1.Value=handles.slider1.Value+1;
+end
+     
+

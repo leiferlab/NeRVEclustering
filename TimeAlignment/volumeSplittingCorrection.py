@@ -4,7 +4,7 @@ import scipy.io as sio
 import os
 import sys
 
-folder = '/tigress/LEIFER/PanNeuronal/20171023/BrainScanner20171023_160108/'
+folder = '/tigress/LEIFER/PanNeuronal/20171023/BrainScanner20171023_162221/'
 if os.path.isfile(folder+'hiResData_copy.mat'):
     sys.exit("hiResData.mat has already been corrected for "+folder)
 hiResData = sio.loadmat(folder+'hiResData.mat')

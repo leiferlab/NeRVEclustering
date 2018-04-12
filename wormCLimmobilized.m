@@ -9,15 +9,18 @@ behaviorFolder=uipickfiles('FilterSpec',mostRecent);
 catch
     behaviorFolder=uipickfiles();
 end
-behaviorFolder = behaviorFolder{1}
-behaviorFolder = [behaviorFolder filesep BehaviorAnalysis]
-load([behaviorFolder filesep 'centerline'])
+behaviorFolder = behaviorFolder{1};
+behaviorFolder = [behaviorFolder filesep 'BehaviorAnalysis']
+load([behaviorFolder filesep 'centerline']);
 % make a copy of previous CL
 save([behaviorFolder filesep 'CL_copy'] ,'centerline','eigenProj'...
     ,'wormcentered');
 % copy first centerline entry --we assume this is the one you want
 cltmp = centerline(:,:,1);
+%if centerline.mat has the right number of entries
 length = size(centerline)
+% or add manually
+%length = 30542;
 centerline2 = repmat(cltmp, [1,1,length(end)]);
 eigenWormFile='eigenWorms.mat';
 load(eigenWormFile);

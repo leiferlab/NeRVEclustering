@@ -28,7 +28,7 @@ import socket
 import time
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain' #path to the code repo
-MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
+MIN_TIME_STR = "--time=3660"  #minimum time string for use on short queue
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
@@ -121,7 +121,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         
     
     qsubCommand1 = ("sbatch --mem=18000 " 
-        + "--time=800" 
+        + "--time=3660" 
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)

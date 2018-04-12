@@ -33,6 +33,14 @@ cline_para.refL=5.5;
 cline_para.memForce=.01;
 
 
+% these are from autoCL and tend to work better. maybe slower
+%cline_para.memForce=0;   
+%cline_para.stretching_force_factor=[1 0.3];
+%cline_para.gradient_force=1;
+%cline_para.refSpring=0;
+    
+
+
 
 %% Select datafolder for analysis
 if nargin==0
@@ -126,6 +134,9 @@ for ichunk=1:nCells+1
     display(['Select Points for frame ' num2str(ichunk) ' of ' num2str(nCells+1) ', showing frame ' num2str(lowframe)]);
     imagesc(BFFrameRaw);
     colormap gray
+    tmpS = size(BFFrameRaw);
+    hold on
+    plot(tmpS(:,1)/2, tmpS(:,2)/2, 'rx')
     set(gcf,'Name',['Select Points for frame ' num2str(ichunk) ])
 
     [xpts,ypts]=getpts();

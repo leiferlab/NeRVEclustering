@@ -704,7 +704,7 @@ try
     
     % get pixels that are still within the image after the shift that would
     % happen from the correlation alignment
-    %something strange here,
+    %something strange here, CHECK THIS TO USE VOLTAGE SPACING CHECK THIS TO USE VOLTAGE SPACING
     inImage=(ndY>0 & ndX>0 &  ndX<=imsize(1) & ndY<=imsize(2));
     inImageIdx=sub2ind_nocheck(...
         imsize,ndX(inImage),ndY(inImage),ndZ(inImage));
