@@ -51,10 +51,10 @@ cline_para=cl_workspace.cline_para;
 display('Load tip file if present, otherwise, cancel')
 tip_file=[low_mag_folder filesep 'tip_coodinates.mat'];
 if exist(tip_file,'file')
-    tips=load(tip_file);
+    newtips=load(tip_file);
     display(' Tip file found, loading tips');
 else
-    tips=[];
+    newtips=[];
     display('No tips found!');
 end
 
@@ -225,6 +225,8 @@ cline_para.refL=mean(w_lengths)/100;
 %%
 load([low_mag_folder filesep 'CLworkspace']);
 %%
+% to avoid overwriting tips with empty array if rerunning centerline scipt
+tips = newtips
 save([low_mag_folder filesep 'CLworkspace'],...
     'bf_list_cell',...
     'mean_bf_all',...
