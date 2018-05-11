@@ -180,7 +180,7 @@ class submitTK(tk.Tk):
         self.e[name]= tk.Checkbutton(self, text=None, variable=var1)
         self.e[name].var = var1
         self.e[name].grid(row=self.row_count, column=1,sticky=tk.W+tk.E)
-        self.e[name].var.set(1)
+        self.e[name].var.set(default)
         self.row_count+=1
         
     # add a button with a text label and a function callback handle. 

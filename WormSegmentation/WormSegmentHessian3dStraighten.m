@@ -110,7 +110,7 @@ for iblob=1:cc.NumObjects
  if ~prefilter
  sub_im=smooth3(sub_im,'gaussian',2*gaussFilter+1,gaussFilter);
  else
- sub_im=bpass3(sub_im,2,filterSize);
+ sub_im=bpass3(sub_im,noise,filterSize);
  end
 %clculate hessian matrix for each point
 H=hessianMatrix(sub_im,8);

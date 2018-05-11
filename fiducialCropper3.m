@@ -37,7 +37,9 @@ pointStats=pointStats.pointStatsNew;
 XYZcoord=getSampleCoordinates(pointStats); %will be saved
 
 hasPoints=1:length(pointStats);
+
 hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
+size(hasPointsTime),size(hasPoints) 
 hasPointsTime=hasPointsTime(hasPoints);
 
 

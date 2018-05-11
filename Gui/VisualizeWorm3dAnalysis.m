@@ -142,10 +142,10 @@ setappdata(handles.figure1,'heatData',heatData);
 %display the ethogram
 
 % define ethogramColormap
-fcolor=[0 1 0];%[27 158 119]/256;
-bcolor=[1 0 0];%[217 95 2]/256;
-turncolor=[0 0 1];%[117 112 179]/256;
-pausecolor=[255 217 50]/256;
+fcolor=[0 1 0];%[27 158 119]/256;%green
+bcolor=[1 0 0];%[217 95 2]/256;%red
+turncolor=[0 0 1];%[117 112 179]/256;%blue
+pausecolor=[255 217 50]/256;%yellow
 ethocolormap=[bcolor;pausecolor;fcolor;turncolor];
 
 try
@@ -166,9 +166,6 @@ ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
 setappdata(handles.figure1,'ethoPlot',ethoPlot);
 hold(handles.axes5,'off');
 
-
-
-
 imageInfo=imfinfo([imFolder filesep imFiles(1).name]);
 setappdata(handles.figure1,'imFiles',imFiles);
 setappdata(handles.figure1,'imFolder',imFolder);
@@ -187,7 +184,10 @@ set(handles.slider2,'max',length(imageInfo));
 set(handles.slider2,'value',1);
 
 [bfAll,~,hiResData]=tripleFlashAlign(dataFolder);
-lookup=interp1(bfAll.frameTime,1:length(bfAll.frameTime),hiResData.frameTime,'nearest',01);
+n_CL=size(centerline,3);
+clTime=bfAll.frameTime(1:n_CL);
+lookup=interp1(clTime,1:length(bfAll.frameTime),hiResData.frameTime(diff(hiResData.stackIdx)==1),'nearest',0);
+size(lookup)
 setappdata(handles.figure1,'lookup',lookup);
 plotter(handles.slider1,eventdata);
 
@@ -407,7 +407,7 @@ scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
  
  
 %slide the window around the current time
- xRange=iImage+[-100,100];
+ xRange=iImage+[-200,200];
  xRange=xRange-min(xRange(1)-1,1);
  xlim(handles.axes3,xRange);
  ylim(handles.axes3,nanmean( plotTrace(xRange(1):xRange(2)))...
@@ -419,7 +419,7 @@ CLdata=getappdata(handles.figure1,'CLdata');
 if ~isempty(CLdata)
     
 lookup=getappdata(handles.figure1,'lookup');
-CLidx=lookup(iImage);
+CLidx=lookup(iImage); %need to correct here to go from volIndex to ClIndex.
 currentCL=CLdata.centerline(:,:,round(CLidx));
 currentCL=bsxfun(@minus,currentCL,mean(currentCL));
 
@@ -427,16 +427,16 @@ currentCL=bsxfun(@minus,currentCL,mean(currentCL));
 CL_handle=findobj(handles.axes4,'type','Line');
 head_handle=findobj(handles.axes4,'type','Scatter');
 if isempty(CL_handle) && isempty(head_handle)
-plot(handles.axes4,currentCL(:,1),currentCL(:,2),'linewidth',4);
+plot(handles.axes4,currentCL(:,2),currentCL(:,1),'linewidth',4);
 hold(handles.axes4,'on')
-scatter(handles.axes4,currentCL(1,1),currentCL(1,2),['o' currentcolor],'filled')
+scatter(handles.axes4,currentCL(1,2),currentCL(1,1),['o' currentcolor],'filled')
 hold(handles.axes4,'off');
 axis(handles.axes4,[-400 400 -400 400],'off');
 else
-    CL_handle.XData=currentCL(:,1);
-    CL_handle.YData=currentCL(:,2);
-    head_handle.XData=currentCL(1,1);
-    head_handle.YData=currentCL(1,2);
+    CL_handle.XData=currentCL(:,2);
+    CL_handle.YData=currentCL(:,1);
+    head_handle.XData=currentCL(1,2);
+    head_handle.YData=currentCL(1,1);
     head_handle.MarkerFaceColor=currentcolor;
 end
 

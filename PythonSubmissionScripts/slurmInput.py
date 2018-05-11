@@ -103,7 +103,7 @@ def centerline_start_input(commandList,fullPath,email_flag=False):
     return commandList
         
 # input code for centerline submission
-def centerline_input(commandList,fullPath,email_flag = False):
+def centerline_input(commandList,fullPath,email_flag = False,chip_flag = 0):
     #make header for input file
     commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
     
@@ -129,7 +129,7 @@ def centerline_input(commandList,fullPath,email_flag = False):
         + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\"" #where error messages are stored
         + " --array=1-32:1"  #there are 32 threads for centerline fitting
         + " " + code_centerline #this is the shell command to invoke the centerline specific matlab script
-        + " '"  + fullPath +"' ") #this is an input which is handed into the shell command which gets into matlab
+        + " '"  + fullPath +"' "+ str(chip_flag) +" ") #this is an input which is handed into the shell command which gets into matlab
         
     commandList.insert(len(commandList)-1, qsubCommand1) #Add this to the stack of strings
    
@@ -296,7 +296,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
         commandList.insert(len(commandList)-1, qsubCommand1)
     commandList.insert(len(commandList)-1, '\r')
     
-    qsubCommand2 = ("sbatch --mem=100000 " 
+    qsubCommand2 = ("sbatch --mem=16000 " 
         + qString_track 
         + " -D " + folderName
         + " -J "+ folderName 
@@ -344,7 +344,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
         + str(nCheck))
     commandList.insert(len(commandList)-1, qsubCommand5)
         
-    qsubCommand6 = ("sbatch --mem=100000 " 
+    qsubCommand6 = ("sbatch --mem=8000 " 
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName 
@@ -374,7 +374,7 @@ def crop_input(commandList,fullPath, email_flag = False):
     else:
         email_script=""
         
-    qsubCommand7 = ("sbatch --mem=16000 " 
+    qsubCommand7 = ("sbatch --mem=8000 " 
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName 

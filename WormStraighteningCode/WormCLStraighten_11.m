@@ -31,7 +31,9 @@ options.minObjSize=50;
 options.maxObjSize=400;
 %minimum sphericity, long objects tend to get split in half. 
 options.minSphericity=.84; 
-options.filterSize=[10 10 4]; %3d bandpass filter, object size
+% try out smaller object sizes in x/y. Old size below [10 10 4]
+%options.filterSize=[10 10 4]; %3d bandpass filter, object size
+options.filterSize=[8 8 4]; %3d bandpass filter, object size
 options.prefilter=1; %images are filtered before calling segmentation program
 options.hthresh=0;
 

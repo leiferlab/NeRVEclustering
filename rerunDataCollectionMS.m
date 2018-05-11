@@ -12,9 +12,6 @@ load([dataFolder filesep 'heatData'])
 
 
 
-%% calculate regulaized derivatives. Currently uses default parameters from Kato et al.
-heatMap_normalized = 
-traceOut=derivReg(heatData.Ratio2)
 %% make timing tracks
 
 [bfAll,~,hiResData]=tripleFlashAlign(dataFolder);
@@ -25,17 +22,18 @@ pointStats=load(pointStatsFile);
 pointStats=pointStats.pointStatsNew;
 XYZcoord=getSampleCoordinates(pointStats); %will be saved
 
-hasPoints=1:length(pointStats)-1;
-hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
-size(hasPointsTime), size(hasPoints);
-hasPointsTime=hasPointsTime(hasPoints);
-
+hasPoints=length(pointStats);
+%hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
+%size(hasPointsTime), size(hasPoints)
+%hasPointsTime=hasPointsTime(hasPoints);
+% get hasPointsTime from previous heatmap. Otherwise we have issues if
+% volumes were flagged
 
 [centerline,eigenProj, CLV,wormCentered]=loadCLBehavior(dataFolder);
 n_CL=size(centerline,3);
-clTime=bfAll.frameTime(1:n_CL);
 
-
+clTime=bfAll.frameTime;%(1:n_CL);
+size(bfAll.frameTime), size(hiResData.frameTime), size(CLV)
 
 %% load centerline data, pad with zeros if needed to making size the same as
 %behavior video size
@@ -47,6 +45,14 @@ hiResCLbehavior=interp1(clTime,CLbehavior,hiResData.frameTime,'nearest',0);
 %get worm cm positions for each volume measured
 
 
+%% calculate regulaized derivatives. Currently uses default parameters from Kato et al.
+
+Ratio2N = Ratio2;
+size(max(Ratio2N,[],2))
+Ratio2N = Ratio2N./max(Ratio2N,[],1);
+Ratio2N = Ratio2N';
+size(Ratio2N)
+Ratio2D=derivReg(Ratio2N);
 %% Calculate worm velocities
 filterKernal2=makeGaussKernel(500);
 filterFactor2=imfilter(ones(size(xPos)),filterKernal2);
@@ -153,6 +159,7 @@ save([dataFolder filesep 'heatDataMS.mat'],...
     'behavior',...
     'hasPointsTime',...
     'clTime',...
+    'Ratio2D',...
     '-append');
 
 

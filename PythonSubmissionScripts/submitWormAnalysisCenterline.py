@@ -33,9 +33,10 @@ def make_gui():
     master.addGuiField("DataFolderName",'folder_name',defaultFolder)
     master.addGuiCheck("Start Workspace",'start_flag',1)
     master.addGuiCheck("Email",'email_flag',1)
+    master.addGuiCheck("Chip",'chip_flag',0)
     
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
-    if  socket.gethostname()=='tigressdata.princeton.edu':
+    if  socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
         master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     return master
     
@@ -49,6 +50,7 @@ def submitScript(master=None):
     
     startFlag        = master.e['start_flag'].var.get()
     emailFlag       = master.e['email_flag'].var.get()
+    chipFlag       = master.e['chip_flag'].var.get() 
         
     # which folder to process, must add paths linux style
     fullPath = beginOfPath + "/" + date
@@ -74,7 +76,7 @@ def submitScript(master=None):
     commandList=slurm.path_setup(commandList)
     if startFlag:
         commandList=slurm.centerline_start_input(commandList,fullPath)
-    commandList=slurm.centerline_input(commandList,fullPath,emailFlag)
+    commandList=slurm.centerline_input(commandList,fullPath,emailFlag,chipFlag)
 
     #save defaults using pickle dump
     master.pickleDump()

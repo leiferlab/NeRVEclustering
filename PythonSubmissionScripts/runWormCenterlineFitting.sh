@@ -26,4 +26,11 @@ export MATLABPATH="$MATLABPATH;"
 # make sure that the matlab path is full/correct
 echo $MATLABPATH
 # run the job
+
+isChip=$2
+if [ $isChip == 0 ]
+then
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormCenterline('$1',$SLURM_ARRAY_TASK_ID);exit;"
+else
+   matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormCenterline('$1',$SLURM_ARRAY_TASK_ID,1);exit;"
+fi

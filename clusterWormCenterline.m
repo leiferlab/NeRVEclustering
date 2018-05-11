@@ -1,12 +1,15 @@
-function clusterWormCenterline(dataFolder,iCell,show2)
+function clusterWormCenterline(dataFolder,iCell,isChip,show2)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %clusterworm tracker fits centerlines to behavior videos from our whole
 %brain imaging setup. a CL workspace must be loaded with initial parameters
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window.
 %It also requires an alignment.mat file in the BrainScanner folder.
+if nargin<3
+    isChip=0;
+end
 
-if nargin==2
+if nargin<4
     show2=0;
 end
 
@@ -59,7 +62,9 @@ try
     initial_cl=CLworkspace.initial_cl; % initial_cl clStart
     flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
     frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
-    
+    if isChip
+        FourierMask=CLworkspace.FourierMask;
+    end
     %setup paths to movies
     fluormovie=CLworkspace.fluormovie;
     behaviormovie=CLworkspace.behaviormovie;
@@ -168,46 +173,72 @@ for iframe=1:length(framelist)
     tic
     try
         if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc_idx==itime) && itime>=1
-            %% filter behavior images
-            bf_frame_raw = read(behavior_vidobj,itime);
-            bf_frame_raw=double(bf_frame_raw(:,:,1));
-            background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
-            %scale background for best match before subtraction.
-            c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
-            bf_frame_raw=bf_frame_raw-background_raw*c;
             
+            if isChip
+                bf_frame_raw = read(behavior_vidobj,itime);
+                bf_frame_raw=double(bf_frame_raw(:,:,1));
+                % fourier mask filter(if not empty)
+                %low pass filter to deal with background.
+                lowpassMask=false(size(bf_frame_raw,1),size(bf_frame_raw,2));
+                lowpassMask(floor(size(bf_frame_raw,1)/2),floor(size(bf_frame_raw,2)/2))=true;
+                se_lowpass=strel('square',5);
+                lowpassMask=imdilate(lowpassMask,se_lowpass);
+                if ~isempty(FourierMask)
+                    FourierMask=FourierMask | lowpassMask;
+                else
+                    FourierMask=lowpassMask;
+                end  
+                
+                fftimg=fftshift(fft2(bf_frame_raw));
+                fftimg(logical(FourierMask))=0;
+                bf_frame_raw=real( ifft2( ifftshift(fftimg) ) );
+                bf_frame=imfilter(bf_frame_raw,k);
             
-            
-            
-            bg=normalizeRange(background_raw);
-            bg_mask=bg>.5;
-            bg_mask=AreaFilter(bg_mask,5000,[],8);
-            bg_mask=imclose(bg_mask,true(12));
-            bg_mask=imdilate(bg_mask,true(25));
-            
-            
-            C2=imfilter(bf_frame_raw,k);
-            [H,D]=hessianMatrix(C2,3);
-            [Heig,HeigVec]=hessianEig(H);
-            
-            
-            bf_frame_raw(bf_frame_raw<0)=0;
-            
-            
-            H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
-            H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
-            H=sqrt(H1.^2+H2.^2);
-            
-            H=H*1000;
-            H=pedistalSubtract(H);
-            H=H-2*median(H(:));
-            H(H<0)=0;
-            bf_frame=bf_frame_raw*.7+H*.3;
-            
-            
-            % afew filter steps
-            bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
-            bf_frame_std=normalizeRange(bf_frame_std);
+                % afew filter steps
+                bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
+                bf_frame_std=normalizeRange(bf_frame_std);
+            else
+                %% filter behavior images
+                bf_frame_raw = read(behavior_vidobj,itime);
+                bf_frame_raw=double(bf_frame_raw(:,:,1));
+                background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
+                %scale background for best match before subtraction.
+                c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
+                bf_frame_raw=bf_frame_raw-background_raw*c;
+                
+                
+                
+                
+                bg=normalizeRange(background_raw);
+                bg_mask=bg>.5;
+                bg_mask=AreaFilter(bg_mask,5000,[],8);
+                bg_mask=imclose(bg_mask,true(12));
+                bg_mask=imdilate(bg_mask,true(25));
+                
+                
+                C2=imfilter(bf_frame_raw,k);
+                [H,D]=hessianMatrix(C2,3);
+                [Heig,HeigVec]=hessianEig(H);
+                
+                
+                bf_frame_raw(bf_frame_raw<0)=0;
+                
+                
+                H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
+                H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
+                H=sqrt(H1.^2+H2.^2);
+                
+                H=H*1000;
+                H=pedistalSubtract(H);
+                H=H-2*median(H(:));
+                H(H<0)=0;
+                bf_frame=bf_frame_raw*.7+H*.3;
+                
+                
+                % afew filter steps
+                bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
+                bf_frame_std=normalizeRange(bf_frame_std);
+            end
             
             %% filter fluor images
             % this is empty for new setup, not empty for old
@@ -245,7 +276,11 @@ for iframe=1:length(framelist)
             %% make input image
             
             %gassian filter
-            inputImage=filter2(GAUSSFILTER,bf_frame,'same');
+            if isChip
+                inputImage=bf_frame;
+            else
+                inputImage=filter2(GAUSSFILTER,bf_frame,'same');
+            end
             
             bf_frame_std=normalizeRange(imfilter(bf_frame_std,GAUSSFILTER2));
             bfFrameMask=(bf_frame_std>min(graythresh(bf_frame_std),.7));

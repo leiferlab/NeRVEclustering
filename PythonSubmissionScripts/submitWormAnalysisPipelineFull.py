@@ -57,7 +57,7 @@ def make_gui():
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
 
     #if we're logged onto tigressdata, then add a select folder button to navigate files
-    if  socket.gethostname()=='tigressdata.princeton.edu':
+    if  socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
         print("Navigate inside a Brainscanner folder and press Select.")
         master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     return master

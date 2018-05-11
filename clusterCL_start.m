@@ -222,6 +222,11 @@ initial_cl=initial_cl(2:end-1);
 worm_length_fun= @(x) sum(sqrt(sum(diff(x).^2,2)));
 w_lengths=cellfun(@(x) worm_length_fun(x), initial_cl);
 cline_para.refL=mean(w_lengths)/100;
+
+
+%% Add Fourier mask for low mag behavior image
+% Xinwei add for reduce chip posts background.
+FourierMask=GenerateFourierMask(behavior_vidobj);
 %%
 load([low_mag_folder filesep 'CLworkspace']);
 %%
@@ -236,6 +241,7 @@ save([low_mag_folder filesep 'CLworkspace'],...
     'frame_bg_lvl',...
     'cline_para',...
     'tips',...
+    'FourierMask',...
     '-append');
 
 

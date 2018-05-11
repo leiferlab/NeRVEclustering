@@ -225,6 +225,7 @@ switch get(handles.colorMap,'Value')
         caxis(handles.axes1,[0,maxC]); 
 
     case 4
+        
         C(1:1:row/2,:)=normalizeRange(pedistalSubtract(C(1:1:row/2,:)))+1;
         C(round(row/2):end,:)=normalizeRange(pedistalSubtract(C(round(row/2):end,:)));
         h=imagesc(C,'Parent',handles.axes1);
@@ -247,7 +248,8 @@ end
 if CLnumber<size(centerline,3)
 plot(handles.axes1,X, Y,colors(iCL));
 end
-plot(handles.axes1,X([1,end],:), Y([1 end],1),'og');
+plot(handles.axes1,X(end,:), Y(end,1),'og');
+plot(handles.axes1,X(1,:), Y(1,1),'ob');
 end
 hold(handles.axes1,'off')
 drawnow

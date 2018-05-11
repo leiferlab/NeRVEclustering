@@ -20,14 +20,16 @@ cltmp = centerline(:,:,1);
 %if centerline.mat has the right number of entries
 length = size(centerline)
 % or add manually
-%length = 30542;
+%length = 23806;
 centerline2 = repmat(cltmp, [1,1,length(end)]);
+%centerline2 = centerline(:,:,1:length);
 eigenWormFile='eigenWorms.mat';
 load(eigenWormFile);
 wormcentered=FindWormCentered(centerline2);
 eigbasis=imresize(eigbasis,[size(eigbasis,1),size(wormcentered,1)]);
 eigenProj=eigbasis*wormcentered;
+centerline = centerline2;
 %save new centerlines
 display(['Saving data in ' behaviorFolder])
-save([behaviorFolder filesep 'centerline'] ,'centerline2','eigenProj'...
+save([behaviorFolder filesep 'centerline'] ,'centerline','eigenProj'...
 ,'wormcentered');
