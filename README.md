@@ -26,11 +26,15 @@ Open a terminal window by going to Applications->System Tools -> Terminal
 
 Run the following commands:
 
+on tigressdata:
 
 ```bash
 /tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
 ```
-
+on tigressdata2:
+```bash
+/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile_forTigressdata2.sh 
+```
 
 #####TO RUN A PYTHON SCRIPT#####:
 
