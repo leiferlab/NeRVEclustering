@@ -631,30 +631,30 @@ function autoCL_Callback(hObject, eventdata, handles)
         cline_para.stretching_force_factor=[0.05 0.05];
         cline_para.stretch_ends_flag=1;
         % Monika added this
-        %cline_para.CLbeta=200;
+        %cline_para.CLbeta=20;
         %cline_para.gamma=60;
         %cline_para.heat=10;
         %cline_para.refL=20.5;
         cline_para.gradient_force=1;
-        cline_para.endRepulsion=.1;
+        cline_para.endRepulsion=.01;
         %end Monika
 
     end
     cline_para.stretching_force_factor=[0.1 0.1];
 
-    cline_para.memForce=0;
+    cline_para.memForce=0.1;
     C=processImage(handles);
-    cline_para.CLalpha=1.0;
-    
+    cline_para.CLalpha=1;
+    %cline_para.CLbeta = 1;
     cline_para.gradient_force=1;
-    cline_para.endRepulsion=.1;
-    cline_para.refSpring=0.0;
+    cline_para.endRepulsion=.01;
+    cline_para.refSpring=0.00;
     cline_para.showFlag=0;
     % Monika
     %cline_para.endKappa=0.05;
     
     tip_image=C;
-    cl_old=distanceInterp(cl_old(8:end,:),100);
+    cl_old=distanceInterp(cl_old(1:end,:),100);
     [cl,Is,Eout]=ActiveContourFit_wormRef4(...
         C,tip_image, cline_para, cl_old,1,[0 0]);
      showImage(handles.slider1,eventdata)

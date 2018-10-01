@@ -28,7 +28,7 @@ import socket
 import time
 
 CODE_PATH='/tigress/LEIFER/communalCode/3dbrain' #path to the code repo
-MIN_TIME_STR = "--time=3660"  #minimum time string for use on short queue
+MIN_TIME_STR = "--time=6:02:00"  #minimum time string for use on short queue
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
@@ -89,7 +89,7 @@ def centerline_start_input(commandList,fullPath,email_flag=False):
     input0 = "clusterCL_start('"+ fullPath + "')"
     #make submission command
     qsubCommand0 = ("sbatch --mem=18000 " 
-        + MIN_TIME_STR 
+        + "--time=2:02:00"
         + " -N 1 -n 1 -c 10" #for use of 10 cores for parfor loops in the matlab code
         + " -D " + folderName
         + " -J "+ folderName
@@ -121,7 +121,8 @@ def centerline_input(commandList,fullPath,email_flag = False,chip_flag = 0):
         
     
     qsubCommand1 = ("sbatch --mem=18000 " 
-        + "--time=3660" 
+        + "--time=2:02:00" 
+#        + "--time=7320"
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
@@ -135,7 +136,8 @@ def centerline_input(commandList,fullPath,email_flag = False,chip_flag = 0):
    
     #Same as above but now for the "centerline compile" part 
     qsubCommand2 = ("sbatch --mem=18000 " 
-        + MIN_TIME_STR 
+#        + MIN_TIME_STR 
+        + "--time=2:02:00"
         + " -D " + folderName
         + " -J "+ folderName
         + email_script
@@ -296,7 +298,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
         commandList.insert(len(commandList)-1, qsubCommand1)
     commandList.insert(len(commandList)-1, '\r')
     
-    qsubCommand2 = ("sbatch --mem=16000 " 
+    qsubCommand2 = ("sbatch --mem=128000 " 
         + qString_track 
         + " -D " + folderName
         + " -J "+ folderName 
@@ -344,8 +346,8 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
         + str(nCheck))
     commandList.insert(len(commandList)-1, qsubCommand5)
         
-    qsubCommand6 = ("sbatch --mem=8000 " 
-        + MIN_TIME_STR 
+    qsubCommand6 = ("sbatch --mem=16000 " 
+        + "--time=10:02:00"
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -406,7 +408,7 @@ def flash_input(commandList,fullPath, email_flag = False):
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
     qsubCommand1 = ("sbatch --mem=4000 " 
-        + MIN_TIME_STR 
+        + "--time=3:02:00" 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
@@ -417,7 +419,7 @@ def flash_input(commandList,fullPath, email_flag = False):
     print(qsubCommand1)
     
     qsubCommand2 = ("sbatch --mem=2000 "  
-        + "--time=500" 
+        + "--time=2:02:00" 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
@@ -468,7 +470,8 @@ def write_input(commandList,client,fullPath):
     outputFilePath=make_output_path(fullPath)
     fileName=outputFilePath+'/input.txt'
 #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
-    if socket.gethostname()=='tigressdata.princeton.edu':
+    if socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
+	print fileName
         with open(fileName,'a') as f:
             for command in commandList:
                 f.write(command)

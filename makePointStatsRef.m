@@ -20,15 +20,12 @@ fprintf(Fid,status);
 fclose(Fid);
 
 
-
-
 PS_file=[dataFolder filesep 'PointsStats.mat'];
 load(PS_file)
 
 %list of stacks presents
 volList=find(cellfun(@(x) ~isempty(x),{pointStats.straightPoints}));
 nVol=length(volList);
-
 %the list of references to use
 refList=unique(round(1:nVol/nRef:nVol));
 refList=volList(refList);

@@ -22,10 +22,10 @@ pointStats=load(pointStatsFile);
 pointStats=pointStats.pointStatsNew;
 XYZcoord=getSampleCoordinates(pointStats); %will be saved
 
-hasPoints=length(pointStats);
-%hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
-%size(hasPointsTime), size(hasPoints)
-%hasPointsTime=hasPointsTime(hasPoints);
+hasPoints=1:length(pointStats);
+hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)>=1);
+size(hasPointsTime), size(hasPoints)
+hasPointsTime=hasPointsTime(hasPoints);
 % get hasPointsTime from previous heatmap. Otherwise we have issues if
 % volumes were flagged
 

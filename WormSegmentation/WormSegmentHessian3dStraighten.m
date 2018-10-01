@@ -33,7 +33,7 @@ minObjSize=80; % min object size
 maxObjSize=[]; % max object size
 % watershed filter object shapes? is also the value for imhmin if nonzero
 watershedFilter=0; 
-filterSize=[10,10,4]; %bp filter size low f
+filterSize=[8,8,4]; %bp filter size low f
 noise=1; % bp filter hi f
 pad=10; % pad to take around each sub blob
 show=0; %show a snapshot of each subregion during the fitting process,

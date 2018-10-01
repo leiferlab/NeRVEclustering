@@ -5,6 +5,7 @@
 % frames.
 display('Select a Brainscanner folder.')
 try
+mostRecent=getappdata(0,'mostRecent');
 behaviorFolder=uipickfiles('FilterSpec',mostRecent);
 catch
     behaviorFolder=uipickfiles();
@@ -20,7 +21,7 @@ cltmp = centerline(:,:,1);
 %if centerline.mat has the right number of entries
 length = size(centerline)
 % or add manually
-%length = 23806;
+length = 24046;
 centerline2 = repmat(cltmp, [1,1,length(end)]);
 %centerline2 = centerline(:,:,1:length);
 eigenWormFile='eigenWorms.mat';

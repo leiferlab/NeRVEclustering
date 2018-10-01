@@ -37,16 +37,15 @@ pointStats=pointStats.pointStatsNew;
 XYZcoord=getSampleCoordinates(pointStats); %will be saved
 
 hasPoints=1:length(pointStats);
-
-hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
+%change to >=1 to get at least as many time points as stacks
+hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)>=1);
 size(hasPointsTime),size(hasPoints) 
 hasPointsTime=hasPointsTime(hasPoints);
 
-
 [centerline,eigenProj, CLV,wormCentered]=loadCLBehavior(dataFolder);
 n_CL=size(centerline,3);
+n_CL, size(bfAll.frameTime)
 clTime=bfAll.frameTime(1:n_CL);
-
 
 
 %% load centerline data, pad with zeros if needed to making size the same as

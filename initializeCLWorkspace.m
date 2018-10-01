@@ -10,7 +10,6 @@ function initializeCLWorkspace(dataFolder)
 
 
 %% parameters
-
 %% Initialize fitting parameters for centerline, 
 
 cline_para.refIdx=8;
@@ -94,7 +93,6 @@ else
     bf2fluor_lookup=interp1(fluorAll.frameTime,fluorIdxList,bfAll.frameTime,'linear');
     
 end
-
 
 
 %% set up low magvideos, we've changed the way we save data, the older version

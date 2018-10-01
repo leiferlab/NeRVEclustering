@@ -94,6 +94,8 @@ def dellaConnect(username,password=None):
     if socket.gethostname()=='tigressdata.princeton.edu':
         #if on tigressdata, use path to key file file in /tigress/LEIFEr
         key = paramiko.RSAKey.from_private_key_file(KEYPATH)
+    elif socket.gethostname()=='tigressdata2.princeton.edu':
+        key = paramiko.RSAKey.from_private_key_file(KEYPATH)
     else:
         key=None
     # connect and submit job via sbatch

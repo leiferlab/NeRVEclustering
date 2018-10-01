@@ -228,10 +228,11 @@ cline_para.refL=mean(w_lengths)/100;
 % Xinwei add for reduce chip posts background.
 FourierMask=GenerateFourierMask(behavior_vidobj);
 %%
+
 load([low_mag_folder filesep 'CLworkspace']);
 %%
 % to avoid overwriting tips with empty array if rerunning centerline scipt
-tips = newtips
+tips = newtips;
 save([low_mag_folder filesep 'CLworkspace'],...
     'bf_list_cell',...
     'mean_bf_all',...

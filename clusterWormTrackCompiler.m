@@ -66,19 +66,20 @@ transitionMatrixCell=...
 %% build training set on first 800 time points
 %if this fails, continuously decrease the number of training time points
 %until it works. 
-
+% start later in the recording -- in case there are 'bad volumes'
+nStart= 500
 for iTry=0:5
     %% try loop to try to work around out of memory issues
 
-        NTrainingRange=900-100*iTry;
+        NTrainingRange=900-100*iTry+nStart;
 	%bla
 	%NTrainingRange=450-50*iTry;	
         
         NTrainingRange=min(NTrainingRange,N-1);
-        nTraining=min(NTrainingRange,N-1);
+        nTraining=min(NTrainingRange-nStart,N-1-nStart);
         
         display(['Attempting nTraining of ' num2str(nTraining)]);
-        nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
+        nSelect=round(nStart:NTrainingRange/nTraining:NTrainingRange);
     try
         
         %% correlation and cluster, can take up to 10 minutes  

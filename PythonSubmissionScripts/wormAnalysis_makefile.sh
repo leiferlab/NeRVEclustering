@@ -22,7 +22,7 @@
 
 #check if we currently need keys to ssh in
 
-if [ "$HOSTNAME" == "tigressdata2.princeton.edu" ]; then
+if [ "$HOSTNAME" == "tigressdata.princeton.edu" ]; then
 	pass=$(ssh $USER@della.princeton.edu -qo PasswordAuthentication=no echo 0 || echo 1)
 	if [ "$pass" == "1" ]; then
 		# copy the key file into the users home directory, and chmod to proper permissions
