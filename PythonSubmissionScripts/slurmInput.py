@@ -429,6 +429,44 @@ def flash_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, qsubCommand2)
     print(qsubCommand2)
     return commandList
+
+# For new file format from LabView's new software
+def flashNew_input(commandList,fullPath, email_flag = False):
+    commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
+    folderName=get_folder_name(fullPath)
+    outputFilePath=make_output_path(fullPath)
+    
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+        
+    memlimit = 4000
+
+    input1= "python highResTimeTraceAnalysisTriangle4.py " + memlimit + " " + fullPath
+    input2= "multipleAVIFlash('"+ fullPath +"')"
+    
+    qsubCommand1 = ("sbatch --mem="+memlimit+" " 
+        + "--time=3:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
+        + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
+        + input1 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand1)
+    print(qsubCommand1)
+    
+    qsubCommand2 = ("sbatch --mem=2000 "  
+        + "--time=2:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/avFlash-%J.err" + "\""
+        + " " + code_runinput + " " 
+        + " \"" + input2 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand2)
+    print(qsubCommand2)
+    return commandList
     
 
 def custom_input(commandList,input_command,fullPath, email_flag = False,time='180',mem='16000'):
