@@ -436,6 +436,46 @@ def flashNew_input(commandList,fullPath, email_flag = False):
     folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
+    code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
+    code_runinput_python = CODE_PATH + '/PythonSubmissionScripts/runPythonInput.sh'
+
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+
+    input1= "highResTimeTraceAnalysisTriangle4.py 4000 " + fullPath
+    input2= "multipleAVIFlash('"+ fullPath +"')"
+    qsubCommand1 = ("sbatch --mem=4000 " 
+        + "--time=3:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
+        + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
+        + " " + code_runinput_python + " " 
+        + " \"" + input1 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand1)
+    print(qsubCommand1)
+    
+    qsubCommand2 = ("sbatch --mem=2000 "  
+        + "--time=2:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/avFlash-%J.err" + "\""
+        + " " + code_runinput + " " 
+        + " \"" + input2 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand2)
+    print(qsubCommand2)
+    return commandList
+    
+def flashNewNotWorking_input(commandList,fullPath, email_flag = False):
+    commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
+    folderName=get_folder_name(fullPath)
+    outputFilePath=make_output_path(fullPath)
+    
+    code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
+    
     if email_flag:
         email_script=get_email_script()
     else:
@@ -443,10 +483,9 @@ def flashNew_input(commandList,fullPath, email_flag = False):
         
     memlimit = 4000
 
-    input1= "python highResTimeTraceAnalysisTriangle4.py " + memlimit + " " + fullPath
+    input1= "python highResTimeTraceAnalysisTriangle4.py 4000 " + fullPath
     input2= "multipleAVIFlash('"+ fullPath +"')"
-    
-    qsubCommand1 = ("sbatch --mem="+memlimit+" " 
+    qsubCommand1 = ("sbatch --mem=4000 " 
         + "--time=3:02:00" 
         + " -J "+ folderName
         + email_script
@@ -509,7 +548,7 @@ def write_input(commandList,client,fullPath):
     fileName=outputFilePath+'/input.txt'
 #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
     if socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
-	print fileName
+        print(fileName)
         with open(fileName,'a') as f:
             for command in commandList:
                 f.write(command)

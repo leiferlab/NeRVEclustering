@@ -1,0 +1,802 @@
+diff --git a/Behavior/ActiveContourFit_wormRef4.m b/Behavior/ActiveContourFit_wormRef4.m
+index 1d6dc07..903dcd1 100755
+--- a/Behavior/ActiveContourFit_wormRef4.m
++++ b/Behavior/ActiveContourFit_wormRef4.m
+@@ -20,7 +20,6 @@ xyzs = distanceInterp(cline_initial(2:end-1,:),100);
+ %intializing this value for later
+ ftail=0;
+ refL=cline_para.refL;
+-tip_l=cline_para.tipRegion;
+ % for manually clicked tips
+ if isfield(cline_para,'head_pt')
+     head_pt=cline_para.head_pt;
+@@ -312,16 +311,26 @@ for i=1:cline_para.iterations
+         minCounter=minCounter+1;
+     end
+     
+-    %% fix places where worm crosses itself and try to correct it
++    %% every 10 frames, remove 4 points from head and tail and try to have CL regrow
++    %trying to stop tips from getting lost
++    if i > cline_para.iterations - 50 && ~mod(i,20) &&  cline_para.stretch_ends_flag
++        xyzs=distanceInterp(xyzs(4:end-3,:),100);
++    end
++    
++    %% Try to fix places where worm crosses itself and try to correct it
+     cross_bool= doesCross(xyzs);
+     if cross_bool
+         display('Cross detected')
++        %find linesegments that cross
++        % cross_1(i) and cross_2(i) are the indeces of the ith cross. 
+         [~,cross_1,cross_2]= doesCross(xyzs);
+         cross_list=[];
+         for iCross=1:length(cross_1)
+             subCrossList=cross_1(iCross):cross_2(iCross);
++            %if its a small loop, excise the loop. 
+             if length(subCrossList)<25
+                 cross_list=[cross_list subCrossList];
++                %if its a small loop at the head, cut off part of the head
+             elseif cross_1(iCross)<3
+                 cross_list=[cross_list 1:3];
+             end
+diff --git a/CenterlineTracking b/CenterlineTracking
+--- a/CenterlineTracking
++++ b/CenterlineTracking
+@@ -1 +1 @@
+-Subproject commit c5e6a0029998a08fc142f53bf6a2981d9255d50c
++Subproject commit c5e6a0029998a08fc142f53bf6a2981d9255d50c-dirty
+diff --git a/Gui/SliceBrowser.m b/Gui/SliceBrowser.m
+index 3d092e3..a437673 100755
+--- a/Gui/SliceBrowser.m
++++ b/Gui/SliceBrowser.m
+@@ -337,6 +337,9 @@ sliceZY = squeeze(permute(sliceYZ, [2 1 3]));
+ sp1 = subplot(2,2,1);
+ %colorbar;
+ clims=double(clims);
++if all(~clims)
++    clims(2)=1;
++end
+ imagesc(sliceXY, clims);
+ title('Slice XY');
+ ylabel('X');xlabel('Y');
+diff --git a/Gui/VisualizeTrackedData.m b/Gui/VisualizeTrackedData.m
+index 836022a..f6a96a2 100755
+--- a/Gui/VisualizeTrackedData.m
++++ b/Gui/VisualizeTrackedData.m
+@@ -410,8 +410,8 @@ imageIdx=hiResIdx+offset;
+ fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
+ if ~isempty(fiducialPoints) && length(fiducialPoints)>=iVolume
+     currentFiducials=fiducialPoints{iVolume};
+-    
+-    if ~isempty(currentFiducials)
++    %set indicator if empty
++    if ~isempty(cell2mat(currentFiducials))
+     setappdata(handles.figure1,'fiducials',currentFiducials);
+    statusWarning(handles.neuronCoordStatus,'Neurons Present',0)
+     else
+@@ -1068,7 +1068,7 @@ function flagNeuron_Callback(hObject, ~, handles)
+ % eventdata  reserved - to be defined in a future version of MATLAB
+ % handles    structure with handles and user data (see GUIDATA)
+ currentTarget=str2double(get(handles.trackedNeuron,'String'));
+-flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
++flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
+ flagged_neurons=[flagged_neurons, currentTarget];
+ setappdata(handles.figure1,'flagged_neurons',flagged_neurons);
+ 
+@@ -1090,16 +1090,18 @@ function saveHeatMap_Callback(hObject, eventdata, handles)
+ % eventdata  reserved - to be defined in a future version of MATLAB
+ % handles    structure with handles and user data (see GUIDATA)
+ 
+-set(handles.currentFolder,'String',dataFolder);
++dataFolder=get(handles.currentFolder,'String');
+ flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
+ flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
+ %%% load heatmap data
+-heatDataFile=[dataFolder filesep 'heatData'];
++heatDataFile=[dataFolder filesep 'heatData.mat'];
+ if exist(heatDataFile,'file')
+     save(heatDataFile,'flagged_volumes','flagged_neurons','-append')
++    statusWarning(handles.signalStatus, ...
++        'File Saved',0)
+ else
+     statusWarning(handles.signalStatus, ...
+-        'No neural activity found! Has the fiducialCropper run?')
++        'No neural activity found! Has the fiducialCropper run?',1)
+ end
+ 
+ 
+diff --git a/Gui/alignment_gui.fig b/Gui/alignment_gui.fig
+index 08ca280..45f603c 100755
+Binary files a/Gui/alignment_gui.fig and b/Gui/alignment_gui.fig differ
+diff --git a/Gui/wormCL_tip_clicker.fig b/Gui/wormCL_tip_clicker.fig
+index 29856a0..df08c04 100755
+Binary files a/Gui/wormCL_tip_clicker.fig and b/Gui/wormCL_tip_clicker.fig differ
+diff --git a/PythonSubmissionScripts/guiHelper.py b/PythonSubmissionScripts/guiHelper.py
+index b993bb8..ca93fc9 100755
+--- a/PythonSubmissionScripts/guiHelper.py
++++ b/PythonSubmissionScripts/guiHelper.py
+@@ -39,6 +39,10 @@ def pickle_load():
+     #fill in default values
+     if 'username' not in prevUser:
+             prevUser['username'] = "USER"
++    if 'time' not in prevUser:
++            prevUser['time'] = "180"
++    if 'mem' not in prevUser:
++            prevUser['mem'] = "16000"
+     if 'date' not in prevUser:
+             prevUser['date'] = "testing_sets"
+     if 'folderName' not in prevUser:
+@@ -51,6 +55,11 @@ def pickle_load():
+             prevUser['neuronNumber'] = "150"
+     if 'checkNumber' not in prevUser:
+             prevUser['checkNumber'] = "500"
++    if 'matlab_command' not in prevUser:
++            prevUser['matlab_command']='Put your code here!'
++    if 'code_path' not in prevUser:
++            prevUser['code_path']='Put the path to the .path file here!'
++            
+ 
+     return prevUser
+ 
+@@ -123,9 +132,14 @@ def selectFolder(master=None):
+         master.e['date'].insert(0,date)
+         master.e['folder_name'].delete(0,tk.END)
+         master.e['folder_name'].insert(0,folderName)
+-        print folder
++        print(folder)
+         
+-#class for building the gui and populating the rows
++def selectPath(master=None):
++    filename = tkFileDialog.askopenfilename(initialdir= '/tigress/LEIFER/communalCode/ ')
++    master.e['code_path'].delete(0,tk.END)
++    master.e['code_path'].insert(0,filename)
++# 
++# #class for building the gui and populating the rows
+ class submitTK(tk.Tk):
+     #build the gui with some number of max rows and cols, 
+     #submitTK is a subclass of tkinter's Tk(). 
+@@ -183,6 +197,10 @@ class submitTK(tk.Tk):
+         #refill prevUser dict with master entries
+         if 'user_name' in self.e:
+             prevUser['username']=self.e['user_name'].get()
++        if 'time' in self.e:
++            prevUser['time']=self.e['time'].get()
++        if 'mem' in self.e:
++            prevUser['mem']=self.e['mem'].get()
+         if 'date' in self.e:
+             prevUser['date'] = self.e['date'].get()
+         if 'folder_name' in self.e:
+@@ -195,6 +213,11 @@ class submitTK(tk.Tk):
+             prevUser['neuronNumber']=self.e['n_neurons'].get()
+         if 'n_checks' in self.e:
+             prevUser['checkNumber']=self.e['n_checks'].get()
++        if 'matlab_command' in self.e:
++            prevUser['matlab_command']=self.e['matlab_command'].get()
++        if 'code_path' in self.e:
++            prevUser['code_path']=self.e['code_path'].get()
++            
+         #save prevUser as pickle
+         pickle.dump(prevUser, open(pickle_file, "wb" ) )
+         
+@@ -202,4 +225,4 @@ class submitTK(tk.Tk):
+     # run the main loop. 
+     def run(self):
+         tk.mainloop()
+-        
+\ No newline at end of file
++        
+diff --git a/PythonSubmissionScripts/slurmInput.py b/PythonSubmissionScripts/slurmInput.py
+index 44f8cbc..f098c2f 100755
+--- a/PythonSubmissionScripts/slurmInput.py
++++ b/PythonSubmissionScripts/slurmInput.py
+@@ -32,6 +32,7 @@ MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
+ PS_NAME1 =  'PointsStats.mat'
+ PS_NAME2 =  'PointsStats2.mat'
+ NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
++
+     
+ # construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
+ def get_email_script(mail_type='end,fail'):
+@@ -381,6 +382,7 @@ def crop_input(commandList,fullPath, email_flag = False):
+     return commandList
+ 
+ 
++
+ def flash_input(commandList,fullPath, email_flag = False):
+     commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
+     folderName=os.path.basename(fullPath)
+@@ -419,8 +421,42 @@ def flash_input(commandList,fullPath, email_flag = False):
+     return commandList
+     
+ 
++def custom_input(commandList,input_command,fullPath, email_flag = False,time='180',mem='16000'):
++    commandList.insert(len(commandList)-1, '####CUSTOM INPUT####'+NOW)
++    folderName=os.path.basename(fullPath)
++    outputFilePath=make_output_path(fullPath)
++    
++    time_str=" --time=" + time
++    mem_str=" --mem=" + mem
++    code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runCustomMatlabInput.sh'
++    
++    if email_flag:
++        email_script=get_email_script('end,fail')
++    else:
++        email_script=""
++        
++    qsubCommand = ("sbatch"
++        + mem_str 
++        + time_str 
++        + " -D " + folderName
++        + " -J "+ folderName 
++        + email_script
++        + " --output=\"" + outputFilePath + "/custom-%J.out"+ "\"" 
++        + " --error=\"" + outputFilePath + "/custom-%J.err" + "\""
++        + " " + code_runinput 
++        + " \"" + input_command +"\" ")
++    
++    commandList.insert(len(commandList)-1, qsubCommand)
++    commandList.insert(len(commandList)-1, '\r')
++    return commandList
++
++
+ #Write all of the inputs that were submitted into della into a text file and place it in the output folder. This file can be copied directly into the terminal of della to re run the job. 
+ def write_input(commandList,client,fullPath):
++    
++    #also adding write comments here, could be almost anywhere 
++    write_comments(fullPath)
++    
+     outputFilePath=make_output_path(fullPath)
+     fileName=outputFilePath+'/input.txt'
+ #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
+@@ -442,7 +478,48 @@ def write_input(commandList,client,fullPath):
+             file.write('\r\n')
+         file.flush()
+         ftp.close()
++        
++        
++#search for the comments file in the parent directory and parse the comments pertaining to the folder being analyzed. Save that output into the folder being analyzed.
++
++def write_comments(fullPath):
++    
++    #only works on tigress for now
++    if not socket.gethostname()=='tigressdata.princeton.edu':
++        print('Not on tigress! comments file not writing')
++        return
++    
++    #don't overwrite if data_comments file already exists
++    data_comments_file = fullPath + '/data_comments.txt'
++    if os.path.exists(data_comments_file):
++        print('Comments file already exists! not overwriting')
++        return
++
++
++    parent_dir,folder_name = os.path.split(fullPath)
++    comments_file=parent_dir+'/Comments.txt'
++
+     
++    if os.path.exists(comments_file):
++        
++        target=False
++        w=open(data_comments_file,'w')
++
++        
++        with open(comments_file,'r') as f:
++            search_line=f.readlines()
++            for line in search_line:
++            #write lines between seeing the date and seeing the word 'NEW FILE'
++                if folder_name in line:
++                    target=True
++                if 'NEW FILE' in line and target:
++                     w.close()
++                     break
++                if target:
++                     w.write(line)
++    else: 
++        print('Parent folder comments file not found')
++
+ 
+ #make the outputfolder where things are going to live, normally this folder is created automatically by the jobs but we need to make it ourselves because thats where we chose to put the input file from write_input. 
+ def make_ouputfolder(client,fullPath):
+diff --git a/PythonSubmissionScripts/submitWormAnalysisCenterline.py b/PythonSubmissionScripts/submitWormAnalysisCenterline.py
+index 6547bd3..9f1b635 100755
+--- a/PythonSubmissionScripts/submitWormAnalysisCenterline.py
++++ b/PythonSubmissionScripts/submitWormAnalysisCenterline.py
+@@ -128,6 +128,8 @@ if __name__ == '__main__':
+         Before running this code, you must have a CLworkspace.mat file 
+         in the LowMag folder. 
+         
++        
++        
+         Requirements:
+                 CLworkspace.mat: created by initilaizeCLWorkspace
+                     must be located in the LowMag folder
+@@ -137,7 +139,9 @@ if __name__ == '__main__':
+                 
+                     
+         The code has 2 sections. 
+-                CL_start: uses user provide results to calculate backgrounds
++                CL_start: uses user provide results to calculate backgrounds. Will also
++                            find the tips_coordinates.mat file if it is present in the Low
++                            Mag folder. Check the StartWorkspace box to run this section. 
+                 Centerline: fits centerlines using the backgroudns and initial
+                             Centerlines provided.
+         
+@@ -146,7 +150,8 @@ if __name__ == '__main__':
+         Parent Path:/tigress/LEIFER/PanNeuronal
+         Date of Data: testing_sets
+         Data Folder Name: Brain_working_dataset
+-        <Check box>
++        Start Workspace: <Check box> 
++        Email: <Check box>
+         
+         ''')
+     master=make_gui()
+diff --git a/README_leifer_lab.txt b/README_leifer_lab.txt
+index 6f7d5af..661d00c 100755
+--- a/README_leifer_lab.txt
++++ b/README_leifer_lab.txt
+@@ -58,15 +58,10 @@ If running from tigressdata, matlab can be found by typing this into terminal:
+ 
+ 	/usr/licensed/matlab-R2017a/bin/matlab
+ 
+-
+-
+ In the matlab command line, set up the paths to use these programs with:
+ 
+-
+-
+-	cd /tigress/LEIFER/communalCode
+-	
+-	path(pathdef)
++	>>cd /tigress/LEIFER/communalCode
++	>>path(pathdef)
+ 
+ 
+ 
+@@ -117,17 +112,20 @@ After taking the alignment videos on both computers, move the LowMag folder into
+ 
+ STEP 1: WORM CENTERLINE DETECTION
+ (done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
++This step processes the behavior images and produces centerlines for the worm in all frames. 
++
++	initializeCLWorkspace.m 
++		- this will allow the user to manually initialize a few centerlines to help the detection algorithm.
++        - it also gets user ROIs to help calculating backgrounds, like bubble removal and head position. 
+ 
+ 	wormCL_tip_clicker.m (OPTIONAL)
++        
+ 		- This is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail.
+         - To use this, click on a subset of the head and tail coordinates. You can adjust the stepSize to skip over some frames.
+         - The program interpolates for frames you do not click, so every 5-10 is fine for normal paced worm, 100-200 for very slow or stationary worms. 
+         - remember to save. 
++		- You can use this after doing an initial check of the centerlines. Run the submission code and take a look. If it's bad, do the tip clicking and rerun the python code. No need to rerun initializeCLWorkspace.
+ 
+-	initializeCLWorkspace.m 
+-		- this will allow the user to manually initialize a few centerlines to help the detection algorithm.
+-        - it also gets user ROIs to help calculating backgrounds, like bubble removal and head position. 
+- 
+ 	Python submission code:
+ 		submitWormAnalysisCenterline.py
+ 	Matlab analysis code:
+@@ -143,22 +141,24 @@ STEP 1: WORM CENTERLINE DETECTION
+ 
+ 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
+ 
+-
++After Centerlines and timing are done, it's good to view them and the timing by using the program WormAnalysisPreview
+ 
+ **steps 2-5 all use submitWormAnalysisPipelineFull.py for submission. 
+ STEP 2: STRAIGHTEN AND SEGMENTATION
+-	
++
++This step will performing straightening of the HiMag images using the centerlines from the previous step. It will also perform segmentation of the neurons in the straightened coordinate system. 
++
+ Python submission code:
+ 
+ 		submitWormAnalysisPipelineFull.py
+ 
+-
+ 	Matlab analysis code called by python:
+ 
+ 
+ 		clusterStraightenStart.m
+ 
+ 		clusterWormStraightening.m
++        
+ 	
+ File Outputs:
+ 	startWorkspace.mat, initial workspace used for during straightening for all volumes
+@@ -166,6 +166,7 @@ File Outputs:
+ 
+ 
+ STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
++This step does the Nerve clustering. It is the longest step in the analysis. It produces registration vectors for each volume of the recording, and clusters them to assign neuron identities. 
+ 
+ 	Python submission code:
+ 
+@@ -173,18 +174,19 @@ STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
+ 
+ 
+ 	Matlab analysis code called by python:
+-
+-
++		makePointStatsRef.m
+ 
+ 		clusterWormTracker.m
+ 
+ 		clusterWormTrackCompiler.m
+ 
+ 	File Outputs:
++		PSref.mat, structure array containing the pointStats for all volumes used as references. Useful for making other registration vectors after the analysis is completed. 
+ 		TrackMatrixFolder, containing all registrations of sample volumes with reference volumes.
+ 		pointStats.mat, structure containing all coordinates from all straightened volumes along with a trackIdx, the result of initial tracking of points. 
+ 
+ STEP 4: ERROR CORRECTION
++This step does cross validation on the neural IDs that are produced by step 3. It will reassign some neural IDs or create new points. 
+ 
+ 	Python submission code:
+ 
+@@ -202,6 +204,7 @@ STEP 4: ERROR CORRECTION
+ 	pointStatsNew.mat- matfile containing the refined trackIdx after error correction. 
+ 
+ STEP 5: SIGNAL EXTRACTION
++This step gets fluorescent intensities from pixels around the neurons to get a trace of neural activity for each neuron. The neural signal is presented in several ways, including raw, photobleaching corrected, and ratiometric. 
+ 
+ 	Python submission code:
+ 
+@@ -216,6 +219,9 @@ STEP 5: SIGNAL EXTRACTION
+ 	File Output:
+ 	heatData.mat, all signal results from extracting signal from the coordinates. 
+ 	
++STEP 6: LOOK AT THE DATA
++After the analysis pipeline it is always a good idea to manually look at the signal and the tracking to see if the results are reasonable by eye. Volumes are rejected if the program thinks they are bad, but some slip through so you should look at them quickly using the visualization GUIs. You can flag all the neurons in a volume or a single neuron for all volumes using VisualizeTrackedData.m
++	
+ 
+ #########################################################################
+ USEFUL GUIS FOR VISUALIZATION
+@@ -243,9 +249,9 @@ WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos.
+ GUIs for post-pipeline to make sure things worked
+ -------------------------------------------------
+ 
+-VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons. 
++VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons on the straighted coordinates in 3d. It also shows the different signals for each neuron.  
+ 
+-VisualizeTrackedData.m - Check to see that tracking works well. Works on unstraightened .dat file. 
++VisualizeTrackedData.m - Check to see that tracking works well. Shows the tracking of neurons in the unstraighted images. You can also flag neurons or volumes that look bad. It also shows the different signals for each neuron.  
+ 
+ 
+ 
+@@ -327,13 +333,16 @@ Signal vairables
+ 	G2 - Same as above but with gPhotoCorr.
+ 
+ 	Ratio2 - First, both the green and red signals are smoothed with a 5 time step fwhm Gaussian filter. Then the Ratio is then taken as  gPhotoCorr/rPhotoCorr and normalized as delta R/ R0 in the same way as R2 and G2. Some modifications are made to deal with some of the nans. 
+-
++	
++If you flagged any neurons using VisuzliedTrackedData.mat, then you will also see
++	flagged_neurons - a list of neuron IDs that are flagged and should not be considered
++	flagged_volumes - a list of volume indexes that are flagged and should not be considered. 
+ 
+ 
+ Other fields:
+ behavior - structure with 
+     ethogram: t Volumes by 1 vector of behaviors, -1 for reverse, 0 pause, 1 forward, 2 turn. Behaviors determined automatically using the centerlines.
+-       x_pos: t Volumes by 1 vector of x coordinates in the reference frame of the plate.
++       x_pos: t Volumes by 1 vector of x coordinates of the worm center of mass in the reference frame of the plate.
+        y_pos: t Volumes by 1 vector of y coordinates in the reference frame of the plate.
+            v: t Volumes by 1 vector of worm center of mass velocities in the reference frame of the plate. Positive is forward, negative reverse.
+        pc1_2: t Volumes by 2 vector of the projections onto the first two eigenworms. 
+diff --git a/WormSegmentation/WormSegmentHessian3dStraighten.m b/WormSegmentation/WormSegmentHessian3dStraighten.m
+index 842ef92..6c389ad 100755
+--- a/WormSegmentation/WormSegmentHessian3dStraighten.m
++++ b/WormSegmentation/WormSegmentHessian3dStraighten.m
+@@ -1,5 +1,25 @@
+ function [im_bw_out,im_smooth]=...
+     WormSegmentHessian3dStraighten(im,options,im_smooth)
++
++
++%%%INPUTS:
++%im: a 3d image of the worms neurons. The pixels should be cubes.
++
++%options: structure with parameters, see descriptions below.
++
++%im_smooth: optional pre-smoothed version of the 3d image, this can be used
++%to save the time of the preprocessing step. 
++
++%%%%OUTPUTS:
++%im_bw_out: a binary mask of the segmented regions of the neurons in the
++%worm after processing.
++
++%im_smooth: a smoothed version of the original input image, if im_smooth is
++%provided as an input, the same matrix is returned
++
++
++
++
+ % this function takes as an input an image with bright blobs and segments
+ % it by looking at the eigenvalues of the hessian matrix. Objects can be
+ % further seperated using a watershed filter based on the object size. An
+@@ -10,18 +30,19 @@ function [im_bw_out,im_smooth]=...
+ thresh1=.03; %initial Threshold
+ hthresh=-.0; %threshold for trace of hessian.
+ minObjSize=80; % min object size
+-maxObjSize=350; % max object size
+-valleyRatio=.75;
+-% watershed filter object shapes? is also the value for imhmin
++maxObjSize=[]; % max object size
++% watershed filter object shapes? is also the value for imhmin if nonzero
+ watershedFilter=0; 
+ filterSize=[10,10,4]; %bp filter size low f
+ noise=1; % bp filter hi f
+ pad=10; % pad to take around each sub blob
+-show=0; %show fits (deactivated)
++show=0; %show a snapshot of each subregion during the fitting process,
+ maxSplit=0; % split objects using regional maxima
+-minSphericity=.84; % minimum sphericity for splitting.
++
++valleyRatio=.75; %used for max splitting if valley between two maxima is lower than valleyRatio* the max
++minSphericity=.84; % minimum sphericity for splitting. not currently used
+ prefilter=0;
+-gaussFilter=1;
++gaussFilter=1; %size of gaussian smoothing if not prefiltered. 
+ 
+ % parse options to load fields
+ if nargin>=2
+@@ -101,10 +122,10 @@ Heig(isnan(Heig))=0;
+ Htrace=real(Heig(:,:,:,1));
+ hess_bw=Htrace<hthresh ;
+ %apply area threshold
+-hess_bw=AreaFilter(hess_bw,minObjSize,[],6);
++hess_bw=AreaFilter(hess_bw,minObjSize,maxObjSize,6);
+ 
+ %% watershed filter shapes
+-
++%optional watershed seperation of shapes
+ if watershedFilter
+ Jd=-bwdist(~hess_bw);  %make distance map
+ %Jd=smooth3(Jd,'gaussian',5,2);
+@@ -146,10 +167,10 @@ if maxSplit
+ end
+ %% after splitting, apply size filters
+ hess_bw=hess_bw.*sub_bw;
+-hess_bw=AreaFilter(hess_bw,minObjSize,[],6);
++hess_bw=AreaFilter(hess_bw,minObjSize,maxObjSize,6);
+ hess_bw=regionSplit(hess_bw,options);
+ % remove small objects in subImage
+-hess_bw=AreaFilter(hess_bw,minObjSize,[],6);
++hess_bw=AreaFilter(hess_bw,minObjSize,maxObjSize,6);
+ 
+ 
+ %% find centroids, display (off)
+diff --git a/clusterBotCheckCompiler.m b/clusterBotCheckCompiler.m
+index b7c541b..4108562 100755
+--- a/clusterBotCheckCompiler.m
++++ b/clusterBotCheckCompiler.m
+@@ -279,14 +279,22 @@ for iTime=empty_frames
+                 %weighted by both image intensity and the ellipsoidal
+                 %gaussian from the point cloud
+                 
++                %WOULD BE NICE TO WEIGHT IMAGE INTENSITY MORE OR HAVE SOME
++                %SORT OF CUTOFF FOR IMAGE INTENSITY. THIS PART ALSO
++                %STRUGGLES DOWN THE NERVE CHORD WHERE POINTS LIE ON A
++                %LINE.
++                
+                 % Energy of each control point as exp(-r^2)
+                 P=exp(-sum((newCov\ctrlPoints')'.*ctrlPoints,2));
+                 
+                 %translate control grid to center around new mean
+                 ctrlPoints2=round(bsxfun(@plus, ctrlPoints,newMean));
+-                %get all control points in the image
++                
++                %get all control points in the image, deal with ctrlPoints
++                %that fall outside the original image
+                 outside=bsxfun(@gt, ctrlPoints2,imSize);
+                 outside=outside| bsxfun(@lt, ctrlPoints2,[1 1 1]);
++                
+                 inImage=~any(outside,2);
+                 ctrlPoints2=ctrlPoints2(inImage,:);
+                 ctrlPoints2Idx=sub2ind(imSize,...
+diff --git a/clusterWormCenterline.m b/clusterWormCenterline.m
+index e12540e..82220d1 100755
+--- a/clusterWormCenterline.m
++++ b/clusterWormCenterline.m
+@@ -275,7 +275,7 @@ for iframe=1:length(framelist)
+                 
+                 cl_dist=mean(sqrt(sum((cl-cl_old).^2,2)));
+                 %don't let the centerlines go too far
+-                if cl_dist>25
++                if cl_dist>25 && isempty(cline_para.head_pt)
+                     cl=cl_old;
+                 end
+             end
+diff --git a/clusterWormStraightening.m b/clusterWormStraightening.m
+index 613040e..4b49641 100755
+--- a/clusterWormStraightening.m
++++ b/clusterWormStraightening.m
+@@ -32,7 +32,7 @@ alignments=alignments.alignments;
+ for iStack=nStart:(nStart+nRange-1)
+     %set up image and pointstats names
+     fileName2=[imageFolder2 filesep 'image' num2str(iStack,'%3.5d') '.tif'];
+-    fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d')];
++    fileName3=[imageFolder2 filesep 'pointStats' num2str(iStack,'%3.5d') '.mat'];
+     % does not overwrite if both files are present
+     if ~exist(fileName2,'file') && ~exist(fileName3,'file')
+         tic
+@@ -40,6 +40,13 @@ for iStack=nStart:(nStart+nRange-1)
+         WormCLStraighten_11(dataFolder,destination,vidInfo,...
+             alignments,Vtemplate,zOffset,iStack,side,0); 
+         display(['image' num2str(iStack,'%3.5d') 'completed in ' num2str(toc) 's']);
++    elseif exist(fileName3,'file')
++        PS=load(fileName3);
++        if isempty(PS.pointStats.straightPoints);
++                 WormCLStraighten_11(dataFolder,destination,vidInfo,...
++            alignments,Vtemplate,zOffset,iStack,side,0); 
++        display(['image' num2str(iStack,'%3.5d') 'completed in ' num2str(toc) 's']);
++        end
+     else
+         display([ 'image' num2str(iStack,'%3.5d') '.tif already exist!'])
+     end
+diff --git a/clusterWormTrackCompiler.m b/clusterWormTrackCompiler.m
+index 7ccfca6..1677023 100755
+--- a/clusterWormTrackCompiler.m
++++ b/clusterWormTrackCompiler.m
+@@ -217,7 +217,9 @@ for i=1:n_clusters
+ end
+ 
+ 
+-%% find "basis" by averaging over a cluster.
++%% find "basis" by averaging over a cluster. this is the cm of the point clound
++% and will be used to classify every neuron from every volume, this is step
++% 2 of the clustering in the paper. 
+ 
+ masterVec=zeros(n_clusters,size(subTranstionMatrix,2));
+ totalVec=zeros(n_clusters,size(subTranstionMatrix,2));
+@@ -270,7 +272,7 @@ cluster_assign_present=cluster_assign(~isnan(cluster_assign));
+ [~,ia]=sort(cluster_assign_present);
+ assignedNodes=assignedNodes(ia);
+ 
+-%make list of indices that should be theoretically 
++%make list of indices that should be theoretically assigned to the group
+ hitIdx=sub2ind(size(score),cluster_assign_present(ia),assignedNodes);
+ %turn that list onto a logical matrix, where each training neuron has 1
+ %for the cluster it belongs to and 0 everywhere else. 
+diff --git a/clusterWormTracker.m b/clusterWormTracker.m
+index 49c01be..97c523d 100755
+--- a/clusterWormTracker.m
++++ b/clusterWormTracker.m
+@@ -5,13 +5,15 @@ function clusterWormTracker(dataFolder,startIdx,stepSize)
+ % given pointStats. You can no longer split up a single sample.
+ 
+ %%%% Inputs
+-% filePath : link to the complete PointStats file with data from all
+-% volumes, also needs to have a PointStatsRef file which has the data from
++% dataFolder : complete path to dataFolder that has the pointStats.mat
++% file. Also needs to have a PointStatsRef file which has the data from
+ % the volumes selected to be references
+ 
+ % startIdx : the index of the volume being analyzed. Only volumes that are
+ % not empty are analyzed. 
+ 
++% stepsize : The number of volumes to analyze in this call of the code. 
++
+ 
+ 
+ %% default inputs
+diff --git a/compareWithRef.m b/compareWithRef.m
+index 2a6e9bf..17a548b 100755
+--- a/compareWithRef.m
++++ b/compareWithRef.m
+@@ -1,6 +1,18 @@
+ function TrackMatrixi=compareWithRef(P1,PS_ref)
+ 
+ 
++% CompareWithRef computes registration vectors between a single pointStats
++% strucutre in P1 and an array of reference pointStats in PS_ref
++% INPUTS:
++%       P1 - pointStats structure from a single volume
++%       PS_ref - pointStats array structure with a pointStats for all of
++%       the reference volumes
++% OUTPUTS:
++%       TrackMatrix - A matrix of the all of the neuron registration
++%       vectors from the neurons found in P1. TrackMatrix is an nxm matrix
++%       where n is the number of neurons in P1 and m is the total number of
++%       neurons in all of the volumes represented. 
++
+ %% initial parameters
+ 
+ %parameters for tracking/matching
+@@ -39,6 +51,7 @@ for j_ps=1:length(PS_ref)
+         
+         %put together old points and transformed points for use in
+         %kmeans clustering to break the pointsets into smaller groups
++        %This is to try and get a finer match using a smaller pointset. 
+         
+         trackInput=[T1temp ;T2_trans(:,1:3) ];
+         idx = kmeans(trackInput(:,1:3),3);
+diff --git a/fiducialCropper3.m b/fiducialCropper3.m
+index c65b9a5..2257fe7 100755
+--- a/fiducialCropper3.m
++++ b/fiducialCropper3.m
+@@ -209,7 +209,12 @@ alignments=alignments.alignments;
+ S2AHiRes=alignments.S2AHiRes;
+ rect1=S2AHiRes.rect1;
+ rect2=S2AHiRes.rect2;
+-background=alignments.background;
++
++if isfield(alignments,'background')
++    background=alignments.background;
++else
++    background=0;
++end
+ 
+ 
+ 
+@@ -233,7 +238,11 @@ for i=1:length(pointStats)
+         hiResImage=(reshape(pixelValues,rows,cols,nSlices));
+         
+         %subtract background and apply intensity correction
+-        hiResImage=bsxfun(@minus,hiResImage,background);
++        if any(background(:))
++            hiResImage=bsxfun(@minus,hiResImage,background);
++        else
++            hiResImage=pedistalSubtract(hiResImage);
++        end
+        % hiResImage=bsxfun(@times,hiResImage,all_corr);
+         hiResImage(hiResImage<0)=0;
+         
+@@ -304,7 +313,7 @@ for i=1:length(pointStats)
+         %make raw points for saving, need to check
+         rawPoints=coordinateTransform3d(straightPoints,X,Y,Z);
+         hiResRange=find(hiResData.stackIdx==pointStats(i).stackIdx);
+-        hiResIdx=hiResRange(rawPoints(:,3))+timeOffset;
++        hiResIdx=interp1(hiResRange,rawPoints(:,3),'linear','extrap')+timeOffset;
+         hiResVoltage=interp1(hiResData.Z,hiResIdx-timeOffset);
+         fiducialPointsi=cell(200,4);
+         %% loop over points and get average pixel intensities
+@@ -349,6 +358,8 @@ newFiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
+ mkdir(newFiducialFolder);
+ %save time offset and unstraightened fiducial cell structure, not as
+ %important any more, but good for visualization
++
++%used for clicking back in the day, not really needed anymore
+ clickPoints=0;
+ save([newFiducialFolder filesep 'timeOffset'],'timeOffset');
+ save([newFiducialFolder filesep 'botFiducials'],...
+@@ -419,7 +430,9 @@ function [xPos,yPos]=calculate_cm_position(centerline,hiResData,bf_frameTime)
+ %some conversion factors
+ pos2mm=1/10000;
+ CL2mm=1/557; % 1mm per 557 pixels
++
+ %angle between stage positions and behavior camera
++%MODIFY THIS IF CAMERA ANGLE CHANGES
+ stageCamAngle=90;
+ stageCamAngle=stageCamAngle*pi/180;
+ 
+@@ -459,6 +472,7 @@ yPosStage=inpaint_nans(yPosStage);
+ 
+ % switched some signs 1 and 2 for jeff cls, may need switching for some
+ % camera rotations
++
+ xPos=xPosStage-1*hiResCLposition(:,1);
+ yPos=yPosStage+1*hiResCLposition(:,2);
+ 
+diff --git a/initializeCLWorkspace.m b/initializeCLWorkspace.m
+index dba21ea..91d1252 100755
+--- a/initializeCLWorkspace.m
++++ b/initializeCLWorkspace.m
+@@ -107,7 +107,7 @@ end
+ 
+ %cut up the entire video into nCells chunks and then initialize nCells+1
+ %centerlines for fitting each chunk forwards and backwards.
+-nCells=16;
++nCells=1;
+ nSteps=ceil(nframes/nCells); %number of frames in each chunk (except last)
+ bfCell_i=cell(nCells,1);
+ clStartI=cell(nCells+1,1);
+@@ -174,7 +174,7 @@ button = questdlg('Is the worm moving a lot??');
+ if strcmp(button,'No')
+     display('Crop out the worm!')
+ else
+-    display('The worms head is always in the center of the image, crop out that head region');
++    display('The worms head is always in the center of the image, crop out small head region in the center');
+ end
+ imagesc(mean_sample)
+ worm_mask=roipoly();
