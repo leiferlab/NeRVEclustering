@@ -1,13 +1,12 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import sys
 import os
 import scipy.io as sio
 
-folder = sys.argv[2]
+folder = sys.argv[2]+"/"
 
 # Limit memory usage
-chunkMaxSize = int(sys.argv[1]) # number of frames to read at once
+chunkMaxSize = int(sys.argv[1])//6 # number of frames to read at once
 
 ##############
 ## FLASHFINDER
@@ -15,11 +14,12 @@ chunkMaxSize = int(sys.argv[1]) # number of frames to read at once
 
 print("Searching the flashes.")
 
+
 # Open file containing frames
 filename = folder + "sCMOS_Frames_U16_1024x512.dat"
 filesize = os.stat(filename).st_size
-f = open(filename)
 
+f = open(filename,'rb')
 # Find out how many iterations you have to do
 nFrames = filesize // (1024*512*2)
 nIterations = nFrames // chunkMaxSize
@@ -32,8 +32,8 @@ for i in np.arange(nIterations):
     chunk = np.fromfile(f,dtype=np.uint16,count=chunkMaxSize*1024*512)
     frames = chunk.reshape((chunkMaxSize,1024*512))
     brightness[i*chunkMaxSize:(i+1)*chunkMaxSize] = np.average(frames,axis=1)
-    stdev[i*chunkMaxSize:(i+1)*chunkMaxSize] = np.std(frames, axis=1)
-    f.seek(chunkMaxSize*1024*512*2)
+    stdev[i*chunkMaxSize:(i+1)*chunkMaxSize] = np.std(frames.astype(np.float64),axis=1)
+    f.seek(chunkMaxSize*1024*512*2*i)
 
 # Last partial chunk
 chunk = np.fromfile(f,dtype=np.uint16,count=remainingframes*1024*512)

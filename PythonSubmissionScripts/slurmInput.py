@@ -335,6 +335,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     
     qsubCommand5 = ("sbatch --mem=8000 " 
         + qString_check 
+#        + "--time=4:02:00"
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -444,16 +445,16 @@ def flashNew_input(commandList,fullPath, email_flag = False):
     else:
         email_script=""
 
-    input1= "highResTimeTraceAnalysisTriangle4.py 4000 " + fullPath
+    input1= CODE_PATH + "/TimeAlignment/highResTimeTraceAnalysisTriangle4.py 4000 " + fullPath
     input2= "multipleAVIFlash('"+ fullPath +"')"
-    qsubCommand1 = ("sbatch --mem=4000 " 
+    qsubCommand1 = ("sbatch --mem=20000 " 
         + "--time=3:02:00" 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
         + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
         + " " + code_runinput_python + " " 
-        + " \"" + input1 +"\" ")
+        + "\"" + input1 +" \"")
     commandList.insert(len(commandList)-1, qsubCommand1)
     print(qsubCommand1)
     
