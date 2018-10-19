@@ -3,7 +3,7 @@ import sys
 
 folder = sys.argv[1]
 
-framesDetails = np.loadtxt(folder+"framesDetails.dat",skiprows=1).T
+framesDetails = np.loadtxt(folder+"framesDetails.txt",skiprows=1).T
 #framesSync = np.loadtxt(folder+"other-frameSynchronous.dat",skiprows=1).T
 #framesAsync = np.loadtxt(folder+"other-frameAsynchronous.dat",skiprows=1).T
 

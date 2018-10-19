@@ -66,10 +66,10 @@ flashLoc = np.array(flashLoc)
 
 print("Compiling volume details.")
 
-framesDetails = np.loadtxt(folder+"framesDetails.dat",skiprows=1).T
-framesSync = np.loadtxt(folder+"other-frameSynchronous.dat",skiprows=1).T
-framesAsync = np.loadtxt(folder+"other-frameAsynchronous.dat",skiprows=1).T
-utilities = np.loadtxt(folder+"other-volumeMetadataUtilities.dat",skiprows=1).T
+framesDetails = np.loadtxt(folder+"framesDetails.txt",skiprows=1).T
+framesSync = np.loadtxt(folder+"other-frameSynchronous.txt",skiprows=1).T
+framesAsync = np.loadtxt(folder+"other-frameAsynchronous.txt",skiprows=1).T
+utilities = np.loadtxt(folder+"other-volumeMetadataUtilities.txt",skiprows=1).T
 
 frameIdx = framesDetails[1]
 frameTime = framesDetails[0]
