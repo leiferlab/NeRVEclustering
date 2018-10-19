@@ -47,7 +47,18 @@ f.close()
 brightnessB = brightness-np.average(brightness)
 stdevbrightness = np.std(brightnessB)
 
-flashLoc, = np.where(brightnessB>stdevbrightness*10)
+flashLocRepeated, = np.where(brightnessB>stdevbrightness*10)
+
+flashLoc =  []
+nFlashRep = len(flashLocRepeated)
+for nf in np.arange(nFlashRep):
+    if nf == 0:
+        flashLoc.append(flashLocRepeated[nf])
+    else:
+        if flashLocRepeated[nf] != flashLocRepeated[nf-1]+1:
+            flashLoc.append(flashLocRepeated[nf])
+    
+flashLoc = np.array(flashLoc)
 
 #################
 ## VOLUME DETAILS
@@ -61,6 +72,7 @@ framesAsync = np.loadtxt(folder+"other-frameAsynchronous.dat",skiprows=1).T
 utilities = np.loadtxt(folder+"other-volumeMetadataUtilities.dat",skiprows=1).T
 
 frameIdx = framesDetails[1]
+frameTime = framesDetails[0]
 volumeIndex = np.zeros_like(framesDetails[1],dtype=np.int32)
 xPos = np.zeros_like(framesDetails[1])
 yPos = np.zeros_like(framesDetails[1])
@@ -97,15 +109,15 @@ for i in np.arange(len(framesDetails[1])):
         
 Mat = {}
 dataAll = {
-    'imageIdx': frameIdx-frameIdx[0]+1,
-    'frameTime': (frameIdx-frameIdx[0]+1)*5e-3,
-    'flashLoc': flashLoc+1,
-    'stackIdx': volumeIndex+1,
-    'imSTD': stdev,
-    'imAvg': brightness,
-    'xPos': xPos,
-    'yPos': yPos,
-    'Z': Z
+    'imageIdx': (frameIdx-frameIdx[0]+1).reshape((frameIdx.shape[0],1)),
+    'frameTime': (frameTime-frameTime[0]).reshape((frameTime.shape[0],1)),
+    'flashLoc': (flashLoc+1).reshape((flashLoc.shape[0],1)),
+    'stackIdx': (volumeIndex+1).reshape((volumeIndex.shape[0],1)),
+    'imSTD': stdev.reshape((stdev.shape[0],1)),
+    'imAvg': brightness.reshape((brightness.shape[0],1)),
+    'xPos': xPos.reshape((xPos.shape[0],1)),
+    'yPos': yPos.reshape((yPos.shape[0],1)),
+    'Z': Z.reshape((Z.shape[0],1))
 }
 Mat['dataAll'] = dataAll
 
