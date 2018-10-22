@@ -5,7 +5,7 @@ import scipy.io as sio
 
 folder = sys.argv[2]+"/"
 
-# Limit memory usage
+# Limit memory usage. Load chunks of data
 chunkMaxSize = int(sys.argv[1])//6 # number of frames to read at once
 
 ##############
@@ -33,12 +33,13 @@ for i in np.arange(nIterations):
     frames = chunk.reshape((chunkMaxSize,1024*512))
     brightness[i*chunkMaxSize:(i+1)*chunkMaxSize] = np.average(frames,axis=1)
     stdev[i*chunkMaxSize:(i+1)*chunkMaxSize] = np.std(frames.astype(np.float64),axis=1)
-    f.seek(chunkMaxSize*1024*512*2*i)
+    #f.seek(chunkMaxSize*1024*512*2*i) #not needed, np.fromfile moves the pointer
 
 # Last partial chunk
 chunk = np.fromfile(f,dtype=np.uint16,count=remainingframes*1024*512)
 frames = chunk.reshape((remainingframes,1024*512))
 brightness[-remainingframes-1:-1] = np.average(frames,axis=1)
+stdev[-remainingframes-1:-1] = np.std(frames.astype(np.float64),axis=1)
 
 # Close file containing frames
 f.close()
@@ -47,8 +48,11 @@ f.close()
 brightnessB = brightness-np.average(brightness)
 stdevbrightness = np.std(brightnessB)
 
+# If the flash shows up in two or more consecutive frames, this will list a 
+# flash in each of them. 
 flashLocRepeated, = np.where(brightnessB>stdevbrightness*10)
 
+# Select only first frame of multiple in which the same flash shows up.
 flashLoc =  []
 nFlashRep = len(flashLocRepeated)
 for nf in np.arange(nFlashRep):
@@ -110,7 +114,7 @@ for i in np.arange(len(framesDetails[1])):
 Mat = {}
 dataAll = {
     'imageIdx': (frameIdx-frameIdx[0]+1).reshape((frameIdx.shape[0],1)),
-    'frameTime': (frameTime-frameTime[0]).reshape((frameTime.shape[0],1)),
+    'frameTime': (frameTime).reshape((frameTime.shape[0],1)),
     'flashLoc': (flashLoc+1).reshape((flashLoc.shape[0],1)),
     'stackIdx': (volumeIndex+1).reshape((volumeIndex.shape[0],1)),
     'imSTD': stdev.reshape((stdev.shape[0],1)),
