@@ -78,9 +78,10 @@ utilities = np.loadtxt(folder+"other-volumeMetadataUtilities.txt",skiprows=1).T
 frameIdx = framesDetails[1]
 frameTime = framesDetails[0]
 volumeIndex = np.zeros_like(framesDetails[1],dtype=np.int32)
+Z = np.zeros_like(framesDetails[1],dtype=np.float64)
 xPos = np.zeros_like(framesDetails[1])
 yPos = np.zeros_like(framesDetails[1])
-Z = framesSync[1]
+ZframeSync = framesSync[1]
 
 vindold = -1
 vsignold = 0
@@ -90,14 +91,16 @@ for i in np.arange(len(framesDetails[1])):
     frameindex = framesDetails[1][i]
     
     # Assign a volume index to each frame
-    try:
-        j1 = np.where(framesSync[0]==frameindex)[0][0]
+    j1B = np.where(framesSync[0]==frameindex)[0]
+    if len(j1B)!=0:
+        j1 = j1B[0]
         
         if framesSync[2,j1] != vsignold:
             vindold += 1
         vsignold = framesSync[2,j1] 
         volumeIndex[i] = vindold
-    except:
+        Z[i] = ZframeSync[j1]
+    else:
         volumeIndex[i] = vindold
     
     # Assign the xpos and ypos from the ludl stage to each frame
@@ -110,6 +113,11 @@ for i in np.arange(len(framesDetails[1])):
          
     xPos[i] = xpos
     yPos[i] = ypos
+    
+Q = len(Z)
+for q in np.arange(Q):
+    if Z[q] == 0.0 and q > 0 and q < Q-1:
+        Z[q] = (Z[q-1] + Z[q+1])/2.0
         
 Mat = {}
 dataAll = {
