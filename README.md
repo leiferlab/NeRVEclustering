@@ -92,7 +92,7 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 	Python submission code:
 
-		submitWormFlashFinder.py
+		submitWormFlashFinderNew.py
 
 	Matlab analysis code called by python:
 
