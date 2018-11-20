@@ -5,12 +5,14 @@ function clusterWormTracker(dataFolder,startIdx,stepSize)
 % given pointStats. You can no longer split up a single sample.
 
 %%%% Inputs
-% filePath : link to the complete PointStats file with data from all
-% volumes, also needs to have a PointStatsRef file which has the data from
+% dataFolder : complete path to dataFolder that has the pointStats.mat
+% file. Also needs to have a PointStatsRef file which has the data from
 % the volumes selected to be references
 
 % startIdx : the index of the volume being analyzed. Only volumes that are
 % not empty are analyzed. 
+
+% stepsize : The number of volumes to analyze in this call of the code. 
 
 
 

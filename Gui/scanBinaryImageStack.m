@@ -120,14 +120,18 @@ catch
     currentData=uipickfiles();
 end
 currentData=currentData{1};
-row=str2double(get(handles.imageRows,'String'));
-col=str2double(get(handles.imageCols,'String'));
 
 setappdata(0,'mostRecent',fileparts(currentData));
 set(handles.currentFolder,'String',currentData);
 if strfind(currentData,'.dat')
 Fid=fopen(currentData);
 status=fseek(Fid,0,1);
+%get image sizes for dat files
+
+[row,col]=getdatdimensions(currentData);
+set(handles.imageRows,'String',num2str(row));
+set(handles.imageCols,'String',num2str(col));
+
 nFrames=ftell(Fid)/(2*row*col)-1;
 setappdata(handles.figure1,'Fid',Fid);
 setappdata(handles.figure1,'aviFlag',0);

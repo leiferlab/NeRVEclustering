@@ -22,7 +22,7 @@ function varargout = wormCL_tip_clicker(varargin)
 
 % Edit the above text to modify the response to help wormCL_tip_clicker
 
-% Last Modified by GUIDE v2.5 24-Apr-2017 15:15:10
+% Last Modified by GUIDE v2.5 28-Jun-2017 15:54:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,7 +81,11 @@ function varargout = wormCL_tip_clicker_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-function getMousePositionOnImage(src, event)
+function getMousePositionOnImage(src, event,lag)
+if nargin==2
+    lag=0;
+end
+
 
 handles = guidata(src);
 current_axis=handles.axes1;
@@ -95,38 +99,15 @@ yLimits = get(current_axis, 'ylim');
 if (curX > min(xLimits) && curX < max(xLimits) &&...
         curY > min(yLimits) && curY < max(yLimits))
     if handles.get_head.Value
-        addPoint('head',curX,curY,handles);
+        addPoint('head',curX,curY,handles,lag);
         forward1_Callback(handles.forward1, event, handles)
     elseif handles.get_tail.Value
-        addPoint('tail',curX,curY,handles);
+        addPoint('tail',curX,curY,handles,lag);
         forward1_Callback(handles.forward1, event, handles)
     end
 end
 
 
-
-
-
-% --- Executes on slider movement.
-function slider1_Callback(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
 
 
 % --- Executes on button press in selectFolder.
@@ -162,6 +143,7 @@ setappdata(handles.figure1,'aviFlag',1);
 setappdata(handles.figure1,'maxC',0);
 setappdata(handles.figure1,'nFrames',nFrames);
 set(handles.slider1,'Value',1);
+set(handles.slider1,'Min',1);
 set(handles.slider1,'Max',nFrames);
 set(handles.maxSlider,'String',num2str(nFrames));
 set(handles.minSlider,'String','1');
@@ -176,10 +158,17 @@ show_image(hObject)
 
 
 function show_image(hObject,eventdata)
-
+%get current image from slider
 handles=guidata(get(hObject,'Parent'));
 frameNumber=get(handles.slider1,'Value');
+
+%force it to be a multiple of the stepsize
+stepSize=str2double(get(handles.stepSize,'String'));
+frameNumber=ceil(frameNumber/stepSize)*stepSize;
 frameNumber=max(1,round(frameNumber));
+frameNumber=min(frameNumber,handles.slider1.Max);
+set(handles.slider1,'Value',frameNumber);
+
 set(handles.currentFrame,'String',num2str(frameNumber));
 
 Fid=getappdata(handles.figure1,'Fid');
@@ -440,15 +429,33 @@ if strcmp(eventdata.Key,'rightarrow')||strcmp(eventdata.Key,'d')%strcmp(evnt.Key
 elseif strcmp(eventdata.Key,'leftarrow')||strcmp(eventdata.Key,'a')
     back1_Callback(handles.slider1,eventdata,handles);
     %Up
+elseif  strcmp(eventdata.Key,'f')
     
-elseif strcmp(eventdata.Key,'w')
-    get_head_Callback(handles.get_head,eventdata,handles);
-elseif strcmp(eventdata.Key,'s')
-    get_tail_Callback(handles.get_tail,eventdata,handles);
-elseif  strcmp(eventdata.Key,'space')
-    snapshot_Callback(handles.slider1,eventdata,handles);
-    forward1_Callback(handles.slider1,eventdata,handles);
+stepSize=str2double(get(handles.stepSize,'String'));
+%user optional delay, if the program is going fast, turn delay on and the
+%program will anticipate that you are behind one frame. Works well at max
+%speed.
+
+if get(handles.auto_delay,'Value')
+    lag=stepSize;
+else
+    lag=0;
+end
+
+    %enter Auto Mode
+    display(['Entering Auto Mode, keep your cursor on the head or tail!']);
+    display('To exist, press the space bar');
+    set(gcf,'Pointer','circle');
     
+     while (handles.figure1.CurrentCharacter=='f' ...
+             &&  str2double(handles.currentFrame.String)<handles.slider1.Max)
+getMousePositionOnImage(handles.axes1, eventdata,lag)
+speed=1/get(handles.speed_slider,'Value');
+pause(speed)
+     end
+     
+    set(gcf,'Pointer','arrow');
+
 end
 
 
@@ -522,7 +529,8 @@ end
 
 if get(handles.get_tail,'Value');
     handles.get_tail.BackgroundColor=[0.9400 0.9400 0.9400];
-    handles.get_tail.Value=0;end
+    handles.get_tail.Value=0;
+end
 
 
 % --- Executes on button press in get_tail.
@@ -543,17 +551,17 @@ if get(handles.get_head,'Value');
     handles.get_head.Value=0;
 end
 
-function addPoint(location,xselect,yselect,handles)
+function addPoint(location,xselect,yselect,handles,lag)
 
 currentFrame=round(get(handles.slider1,'Value'));
 switch location
     case 'head'
         head_pts=getappdata(handles.figure1,'head_pts');
-        head_pts(currentFrame,:)=[xselect,yselect];
+        head_pts(currentFrame-lag,:)=[xselect,yselect];
         setappdata(handles.figure1,'head_pts',head_pts);
     case 'tail'
         tail_pts=getappdata(handles.figure1,'tail_pts');
-        tail_pts(currentFrame,:)=[xselect,yselect];
+        tail_pts(currentFrame-lag,:)=[xselect,yselect];
         setappdata(handles.figure1,'tail_pts',tail_pts);
 end
 set(handles.last_click,'String', num2str(currentFrame));
@@ -656,3 +664,81 @@ currentFrame=max(currentFrame,handles.slider1.Min);
 currentFrame=min(currentFrame,handles.slider1.Max);
 handles.slider1.Value=round(currentFrame);
 
+
+% --- Executes on key release with focus on figure1 or any of its controls.
+function figure1_WindowKeyReleaseFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was released, in lower case
+%	Character: character interpretation of the key(s) that was released
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on mouse motion over figure - except title and menu.
+function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+ 
+
+
+% --- Executes on slider movement.
+function speed_slider_Callback(hObject, eventdata, handles)
+% hObject    handle to speed_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+value= get(hObject,'Value');
+
+if value<1
+    value=1;
+elseif value>10
+    value=10;
+end
+set(handles.speed_value,'String',num2str(value));
+set(handles.speed_slider,'Value',value);
+
+% --- Executes during object creation, after setting all properties.
+function speed_slider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to speed_slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+
+function speed_value_Callback(hObject, eventdata, handles)
+% hObject    handle to speed_value (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of speed_value as text
+%        str2double(get(hObject,'String')) returns contents of speed_value as a double
+value=str2double(get(hObject,'String'));
+
+if value<.1
+    value=.1;
+elseif value>10
+    value=10;
+end
+set(hObject,'String',num2str(value));
+set(handles.speed_slider,'Value',value);
+
+% --- Executes during object creation, after setting all properties.
+function speed_value_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to speed_value (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

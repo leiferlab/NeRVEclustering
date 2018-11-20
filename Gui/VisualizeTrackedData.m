@@ -22,7 +22,7 @@ function varargout = VisualizeTrackedData(varargin)
 
 % Edit the above text to modify the response to help VisualizeTrackedData
 
-% Last Modified by GUIDE v2.5 05-May-2017 16:19:52
+% Last Modified by GUIDE v2.5 26-Jun-2017 11:48:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -114,15 +114,25 @@ set(handles.currentFolder,'String',dataFolder);
 
 setappdata(handles.figure1,'tifFlag',0);
 
+%%% load alignments and background
+display('Loading Alignment file')
 registration=load([dataFolder filesep 'alignments.mat']);
 if isfield(registration.alignments,'background')
     background=registration.alignments.background;
+    display('Background Found!')
 else
     background=0;
+    display('No Background Found! No subtraction will be done.')
 end
 registration=registration.alignments.S2AHiRes;
 setappdata(handles.figure1,'registration',registration)
 setappdata(handles.figure1,'background',background);
+
+
+%%%% also load illumination profile if possible.
+
+ image_corr=illuminationCorrection();
+ setappdata(handles.figure1,'image_corr',image_corr);
 
 
 if exist([dataFolder filesep 'hiResData.mat'],'file')
@@ -150,6 +160,27 @@ set(handles.slider1,'value',1);
 set(handles.zSlider,'min',minZ);
 set(handles.zSlider,'max', maxZ);
 set(handles.zSlider,'value',(maxZ+minZ)/2);
+
+%%% load fiducial points
+fiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
+
+%get all mat files in the fiducials folder. We used to have multiple users,
+%but now there should only ever be one. 
+fiducialFile=dir([fiducialFolder filesep '*.mat']);
+fiducialFile=[fiducialFolder filesep fiducialFile(1).name];
+if exist(fiducialFile,'file')
+fiducialPoints=load(fiducialFile);
+timeOffset=load([fiducialFolder filesep 'timeOffset']);
+timeOffset=timeOffset.timeOffset;
+if isempty(timeOffset),timeOffset=0;end
+setappdata(handles.figure1,'timeOffset',timeOffset)
+fiducialPoints=fiducialPoints.fiducialPoints;
+setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
+else
+    statusWarning(handles.neuronCoordStatus,...
+        'No neuron locations found! Has the botCheckCompiler run?',1)
+end
+
 
 %%% prepare image object
 baseImg=getImage(handles,1);
@@ -179,26 +210,10 @@ scatter(handles.axes1,[],[],'xr')
 scatter(handles.axes1,[],[],'o')
 hold(handles.axes1,'off')
 
-%%% load fiducial points
-fiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
 
-%get all mat files in the fiducials folder. We used to have multiple users,
-%but now there should only ever be one. 
-fiducialFile=dir([fiducialFolder filesep '*.mat']);
-fiducialFile=[fiducialFolder filesep fiducialFile(1).name];
-if exist(fiducialFile,'file')
-fiducialPoints=load(fiducialFile);
-timeOffset=load([fiducialFolder filesep 'timeOffset']);
-timeOffset=timeOffset.timeOffset;
-setappdata(handles.figure1,'timeOffset',timeOffset)
-fiducialPoints=fiducialPoints.fiducialPoints;
-setappdata(handles.figure1,'fiducialPoints',fiducialPoints);
-else
-    statusWarning(handles.neuronCoordStatus,...
-        'No neuron locations found! Has the botCheckCompiler run?',1)
-end
 
 %%% load heatmap data
+display('Loading neural data')
 heatDataFile=[dataFolder filesep 'heatData.mat'];
 if exist(heatDataFile,'file')
 heatData=load(heatDataFile);
@@ -267,7 +282,7 @@ if iVolume~=getappdata(handles.figure1,'currentFrame') || isempty(zVoltages)
     vol_frame_list=...
         vol_frame_list(vol_frame_list>(-offset)...
         & vol_frame_list<length(hiResData.stackIdx));
-    zVoltages=hiResData.Z(vol_frame_list+offset);
+    zVoltages=hiResData.Z(vol_frame_list);
     [zVoltages,~,ia]=unique(zVoltages);
     vol_frame_list=vol_frame_list(ia);
     [~,ib]=sort(zVoltages,'ascend');
@@ -281,7 +296,7 @@ zSlice=interp1(zVoltages,1:length(zVoltages),zPos,'nearest','extrap');
 zVoltageOut=zVoltages(zSlice);
 set(handles.zSlider,'Value',zVoltageOut);
 
-hiResIdx=vol_frame_list(zSlice)+offset;
+hiResIdx=vol_frame_list(zSlice);
 setappdata(handles.figure1,'currentHiResIdx',hiResIdx);
 setappdata(handles.figure1,'currentFrame',iVolume);
 set(handles.FrameIdx,'string',[num2str(iVolume,'%6.2f'), ...
@@ -311,13 +326,19 @@ elseif Fid<=0
     Fid=fopen([imFiles filesep sCMOSfile] );
     setappdata(handles.figure1,'fileID',Fid);
 end
+offset=getappdata(handles.figure1,'timeOffset');
+imageIdx=hiResIdx+offset;
+
 
 %move the pointer to the image and read it in
-status=fseek(Fid,2*hiResIdx*row*col,-1);
+status=fseek(Fid,2*imageIdx*row*col,-1);
 fullImage=fread(Fid,row*col,'uint16',0,'l');
 fullImage=(reshape(fullImage,row,col));
 
+image_corr=getappdata(handles.figure1,'image_corr');
 fullImage=fullImage-background;
+%fullImage=fullImage.*image_corr;
+%fullImage=fliplr(image_corr);
 fullImage(fullImage<0)=0;
 
 % green and red image rectangles
@@ -330,7 +351,9 @@ Rsegment=R.Rsegment;
 if get(handles.channelSelect,'Value')==1
     baseImg=fullImage((rect1(2)+1):rect1(4),(1+rect1(1)):rect1(3));
 else
-    activity=fullImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+%    activity=fullImage((rect2(2)+1):rect2(4),(1+rect2(1)):rect2(3));
+    activity=fullImage((rect2(2)+1):rect2(2)+rect2(4)-1,...
+        (1+rect2(1)):rect2(1)+rect2(3)-1);
     baseImg=imwarp(activity,t_concord,'OutputView',Rsegment);
 end
 
@@ -381,13 +404,14 @@ flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
 
 text_handles=findobj(handles.axes1,'type','text');
 [hiResIdx,iVolume]=getHiResIdx(handles);
-
+offset=getappdata(handles.figure1,'timeOffset');
+imageIdx=hiResIdx+offset;
 %get neuron points
 fiducialPoints=getappdata(handles.figure1,'fiducialPoints');
 if ~isempty(fiducialPoints) && length(fiducialPoints)>=iVolume
     currentFiducials=fiducialPoints{iVolume};
-    
-    if ~isempty(currentFiducials)
+    %set indicator if empty
+    if ~isempty(cell2mat(currentFiducials))
     setappdata(handles.figure1,'fiducials',currentFiducials);
    statusWarning(handles.neuronCoordStatus,'Neurons Present',0)
     else
@@ -408,8 +432,8 @@ currentTarget=str2double(get(handles.trackedNeuron,'String'));
 currentTarget=round(currentTarget);
     % closeSlices are within +/- 2 frames of the currently shown frame,
     % these neurons will be shown in black
-closePoints=cellfun(@(x) abs(x-hiResIdx)<3,currentFiducials(:,4),'uniform',0);
-inSlicePoints=cellfun(@(x) x==hiResIdx,currentFiducials(:,4),'uniform',0);
+closePoints=cellfun(@(x) abs(x-imageIdx)<3,currentFiducials(:,4),'uniform',0);
+inSlicePoints=cellfun(@(x) x==imageIdx,currentFiducials(:,4),'uniform',0);
 
 
 %move text around, if the points are not close, move them off the screen
@@ -421,7 +445,7 @@ for iNeuron=1:100
         
         if any(iVolume==flagged_volumes) || any(flagged_neurons==iNeuron)
             text_handles(iNeuron).Color=[.94 0 0];
-        elseif iNeuron==currentTarget && ~all(text_handles(iNeuron).Color==[0 1 0])
+        elseif iNeuron==currentTarget
             text_handles(iNeuron).Color=[0 1 0];
         elseif ~all(text_handles(iNeuron).Color==1)
             text_handles(iNeuron).Color=[1 1 1];
@@ -496,16 +520,21 @@ else
     currentcolor='black';
 end
 oldPlotState=getappdata(handles.figure1,'oldPlot');
+if isempty(oldPlotState)
+    oldPlotState=[0 0];
+end
 newPlotState=[target plotType];
 
 %if either the neuron being tracked or the type of plot has changed, you
 %need to reload the data, otherwise, just move the dot and slide the window
-if ~all(ismember(oldPlotState,newPlotState)) || isempty(oldPlotState)
+if ~all((oldPlotState==newPlotState)) || isempty(oldPlotState)
     plot(handles.axes3,plotTrace);
     hold(handles.axes3,'on')
     tracePoint=scatter(handles.axes3,...
         iVolume,plotTrace(iVolume),...
-    currentcolor,'filled');
+        [],...
+        currentcolor,...
+    'filled');
     setappdata(handles.figure1,'tracePoint',tracePoint);
     hold(handles.axes3,'off');
     setappdata(handles.figure1,'oldPlot',newPlotState)
@@ -564,6 +593,7 @@ end
 
 handles=guidata(get(hObject,'Parent'));
 hiResData=getappdata(handles.figure1,'hiResData');
+offset=getappdata(handles.figure1,'timeOffset');
 
 set(handles.slider1,'value',get(handles.slider1,'value')+step);
 currentFrame=round(get(handles.slider1,'value'));
@@ -571,7 +601,7 @@ fiducialsAll=getappdata(handles.figure1,'fiducialPoints');
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
 if length(fiducialsAll)>currentFrame
 if size(fiducialsAll{currentFrame},1)>=currentTarget && size(fiducialsAll{currentFrame},2)>1
-    newIdx=fiducialsAll{currentFrame}{currentTarget,4};
+    newIdx=fiducialsAll{currentFrame}{currentTarget,4}-offset;
     newZ=hiResData.Z(newIdx);
 else
     newZ=get(handles.zSlider,'value');
@@ -1038,7 +1068,7 @@ function flagNeuron_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 currentTarget=str2double(get(handles.trackedNeuron,'String'));
-flagged_neurons=getappdata(handles.figure1,'flagged_volumes');
+flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
 flagged_neurons=[flagged_neurons, currentTarget];
 setappdata(handles.figure1,'flagged_neurons',flagged_neurons);
 
@@ -1060,14 +1090,48 @@ function saveHeatMap_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.currentFolder,'String',dataFolder);
+dataFolder=get(handles.currentFolder,'String');
 flagged_volumes=getappdata(handles.figure1,'flagged_volumes');
 flagged_neurons=getappdata(handles.figure1,'flagged_neurons');
 %%% load heatmap data
-heatDataFile=[dataFolder filesep 'heatData'];
+heatDataFile=[dataFolder filesep 'heatData.mat'];
 if exist(heatDataFile,'file')
     save(heatDataFile,'flagged_volumes','flagged_neurons','-append')
+    statusWarning(handles.signalStatus, ...
+        'File Saved',0)
 else
     statusWarning(handles.signalStatus, ...
-        'No neural activity found! Has the fiducialCropper run?')
+        'No neural activity found! Has the fiducialCropper run?',1)
+end
+
+
+function all_corr=illuminationCorrection()
+%% create illumination profile correction, if files are present
+
+try
+    %load illumination profiles, these are images normalized images of a
+    %fluorescent calibration slide. Each image is full field, but due to
+    %the filters only the appropriate half of the dual view image is shown.
+    
+    profileG=load('illumination_profile_G.mat');
+    profileG=profileG.illumination_profile;
+    profileG=profileG./max(profileG(:));
+
+    g_corr=1./profileG;
+    %remove very bright and very dim pixels in the calibration image
+    g_corr(g_corr>5| g_corr<0)=0;
+    
+    profileR=load('illumination_profile_R.mat');
+    profileR=profileR.illumination_profile;
+    profileR=profileR/max(profileR(:));
+    r_corr=1./profileR;
+    r_corr(r_corr>5 | r_corr<0)=0;
+    
+    %combine the two halves, the two regions corresponding to the image should
+    %have no overlap so a straight pix by pix sum will work
+    all_corr=g_corr+r_corr;
+catch me
+    
+    display(' No illumination profile found, no correction applied')
+    all_corr=1;
 end

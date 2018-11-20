@@ -1,0 +1,112 @@
+diff --git a/PythonSubmissionScripts/slurmInput.py b/PythonSubmissionScripts/slurmInput.py
+index 44f8cbc..f098c2f 100755
+--- a/PythonSubmissionScripts/slurmInput.py
++++ b/PythonSubmissionScripts/slurmInput.py
+@@ -32,6 +32,7 @@ MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
+ PS_NAME1 =  'PointsStats.mat'
+ PS_NAME2 =  'PointsStats2.mat'
+ NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
++
+     
+ # construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
+ def get_email_script(mail_type='end,fail'):
+@@ -381,6 +382,7 @@ def crop_input(commandList,fullPath, email_flag = False):
+     return commandList
+ 
+ 
++
+ def flash_input(commandList,fullPath, email_flag = False):
+     commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
+     folderName=os.path.basename(fullPath)
+@@ -419,8 +421,42 @@ def flash_input(commandList,fullPath, email_flag = False):
+     return commandList
+     
+ 
++def custom_input(commandList,input_command,fullPath, email_flag = False,time='180',mem='16000'):
++    commandList.insert(len(commandList)-1, '####CUSTOM INPUT####'+NOW)
++    folderName=os.path.basename(fullPath)
++    outputFilePath=make_output_path(fullPath)
++    
++    time_str=" --time=" + time
++    mem_str=" --mem=" + mem
++    code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runCustomMatlabInput.sh'
++    
++    if email_flag:
++        email_script=get_email_script('end,fail')
++    else:
++        email_script=""
++        
++    qsubCommand = ("sbatch"
++        + mem_str 
++        + time_str 
++        + " -D " + folderName
++        + " -J "+ folderName 
++        + email_script
++        + " --output=\"" + outputFilePath + "/custom-%J.out"+ "\"" 
++        + " --error=\"" + outputFilePath + "/custom-%J.err" + "\""
++        + " " + code_runinput 
++        + " \"" + input_command +"\" ")
++    
++    commandList.insert(len(commandList)-1, qsubCommand)
++    commandList.insert(len(commandList)-1, '\r')
++    return commandList
++
++
+ #Write all of the inputs that were submitted into della into a text file and place it in the output folder. This file can be copied directly into the terminal of della to re run the job. 
+ def write_input(commandList,client,fullPath):
++    
++    #also adding write comments here, could be almost anywhere 
++    write_comments(fullPath)
++    
+     outputFilePath=make_output_path(fullPath)
+     fileName=outputFilePath+'/input.txt'
+ #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
+@@ -442,7 +478,48 @@ def write_input(commandList,client,fullPath):
+             file.write('\r\n')
+         file.flush()
+         ftp.close()
++        
++        
++#search for the comments file in the parent directory and parse the comments pertaining to the folder being analyzed. Save that output into the folder being analyzed.
++
++def write_comments(fullPath):
++    
++    #only works on tigress for now
++    if not socket.gethostname()=='tigressdata.princeton.edu':
++        print('Not on tigress! comments file not writing')
++        return
++    
++    #don't overwrite if data_comments file already exists
++    data_comments_file = fullPath + '/data_comments.txt'
++    if os.path.exists(data_comments_file):
++        print('Comments file already exists! not overwriting')
++        return
++
++
++    parent_dir,folder_name = os.path.split(fullPath)
++    comments_file=parent_dir+'/Comments.txt'
++
+     
++    if os.path.exists(comments_file):
++        
++        target=False
++        w=open(data_comments_file,'w')
++
++        
++        with open(comments_file,'r') as f:
++            search_line=f.readlines()
++            for line in search_line:
++            #write lines between seeing the date and seeing the word 'NEW FILE'
++                if folder_name in line:
++                    target=True
++                if 'NEW FILE' in line and target:
++                     w.close()
++                     break
++                if target:
++                     w.write(line)
++    else: 
++        print('Parent folder comments file not found')
++
+ 
+ #make the outputfolder where things are going to live, normally this folder is created automatically by the jobs but we need to make it ourselves because thats where we chose to put the input file from write_input. 
+ def make_ouputfolder(client,fullPath):

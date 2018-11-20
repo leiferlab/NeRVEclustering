@@ -13,6 +13,7 @@
 3dbrain/TimeAlignment/
 3dbrain/Behavior/
 3dbrain/behavior/
+3dbrain/Background/
 3dbrain/TrackingCodes/
 3dbrain/WormSegmentation/
 3dbrain/PointMatchGMMREG_jn/

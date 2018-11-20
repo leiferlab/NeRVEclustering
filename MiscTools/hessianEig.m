@@ -57,8 +57,10 @@ for i=1:2
     Heig(:,:,i)=htemp;
     if nargout==2
     for j=1:2
-        
-           HeigVec{i,j}=reshape(V(i,j,:),Hsize);
+           htemp2=zeros(Hsize);
+           htemp2(Hind)=V(i,j,:);
+           
+           HeigVec{i,j}=htemp2;
     end
     end
     
@@ -82,6 +84,7 @@ a=A(1,1,:);b=A(1,2,:);c=A(2,1,:);d=A(2,2,:);
 vec=zeros(2,2,size(A,3));
 T=a+d;D=a.*d-b.*c;
 desc=sqrt(T.^2-4*(D));
+desc=real(desc);
 v=[(T+desc)/2,(T-desc)/2];
 vec(:,1,:)=bsxfun(@rdivide,[ones(size(b)),-b./(a-v(1,1,:))],(1+(b./(a-v(1,1,:))).^2).^.5);
 vec(:,2,:)=bsxfun(@rdivide,[ones(size(b)),-b./(a-v(1,2,:))],(1+(b./(a-v(1,2,:))).^2).^.5);

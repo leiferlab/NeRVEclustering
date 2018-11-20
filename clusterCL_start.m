@@ -20,31 +20,6 @@ if contains(hostname,'della')
 end
 
 
-%% Initialize fitting parameters for centerline, 
-
-cline_para.refIdx=10;
-cline_para.tipRegion=45;
-cline_para.endRepulsion=.3;
-cline_para.repulsionD=20;
-cline_para.heat=3;
-cline_para.CLalpha=5;
-cline_para.CLbeta=100;
-cline_para.gamma=25;  
-cline_para.kappa=60;
-cline_para.endkappa=5;
-cline_para.gradient_force=20;
-cline_para.showFlag=0;
-cline_para.iterations=400;
-
-cline_para.stretching_force_factor=[.3 .3];
-cline_para.refSpring=.01;
-cline_para.stretch_ends_flag=1;
-cline_para.refL=6;
-cline_para.memForce=.05;
-
-
-smoothkernal=gausswin(1000, 4);
-smoothkernal=smoothkernal/sum(smoothkernal);
 
 
 %% find CL workspace with masks and initial centerlines
@@ -55,7 +30,8 @@ if isempty(workspace_file)
     workspace_file=dir([dataFolder filesep '*' filesep 'CLworkspace*']);
     if isempty(workspace_file)
        error(...
-            'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
+            ['LowMag folder is missing! ensure the Low mag folder is'...
+            ' in the BrainScanner Folder and the CLworkspace is present in it'])
     end
     
 end
@@ -69,16 +45,16 @@ cl_workspace=load(workspace_file);
 masks=cl_workspace.masks;
 clStartI=cl_workspace.clStartI;
 nCells=cl_workspace.nCells;
-
+cline_para=cl_workspace.cline_para;
 %% load tip file if present
 
 display('Load tip file if present, otherwise, cancel')
 tip_file=[low_mag_folder filesep 'tip_coodinates.mat'];
 if exist(tip_file,'file')
-    tips=load(tip_file);
+    newtips=load(tip_file);
     display(' Tip file found, loading tips');
 else
-    tips=[];
+    newtips=[];
     display('No tips found!');
 end
 
@@ -128,16 +104,32 @@ flash_loc_idx=find(flash_loc);
 refintensity_mean=nanmean(refintensity(:,~flash_loc),2);
 refintensityZ=bsxfun(@minus, double(refintensity),refintensity_mean);
 refintensityZ(:,flash_loc)=0;
-refintensityZ=zscore(refintensityZ,0,2);
+refintensityZ(refintensityZ>25)=25;
+refintensityZ(refintensityZ<-25)=-25;
+
 %
 [~,score,~,~] = pca(refintensityZ');
 
 % cluster backgrounds into 11 groups, calculate a background for each of
 % them
-frame_bg_lvl=kmeans(score(:,1:2),11);
+frame_bg_lvl=kmeans(score(:,1:3),11);
 
 frame_bg_list=unique(frame_bg_lvl);
 frame_bg_list=frame_bg_list(~isnan(frame_bg_list));
+
+frames_per_bg=hist(frame_bg_lvl,1:max(frame_bg_lvl));
+
+%if some of them are underpopulated, re-classify them into another cluster
+%using simple knn.
+while any(frames_per_bg< 200 & frames_per_bg>0)
+    target=find(frames_per_bg==min(frames_per_bg));
+    trainers=frame_bg_lvl~=target;
+    mdl=fitcknn(score(trainers,1:3),frame_bg_lvl(trainers));
+    class= predict(mdl,score(~trainers,1:3));
+    frame_bg_lvl(~trainers)=class;
+    frames_per_bg=hist(frame_bg_lvl,1:max(frame_bg_lvl));
+
+end
 
 %% Now, for each cluster, go through and average all frames from that cluster
 
@@ -146,7 +138,10 @@ mean_bf_all=nan(bf_imsize(1),bf_imsize(2),length(frame_bg_list));
 %parfor loop over different background levels and calculate the mean image.
 %
 parfor i_bg=1:length(frame_bg_list)
+    %randomly sample 500 backgrounds, makes things quicker for longer
+    %movies
     time_list=find(frame_bg_lvl==frame_bg_list(i_bg));
+    time_list=randsample(time_list,min(500,length(time_list)),0);
     mean_bf=zeros(bf_imsize);
     behavior_vidobj_par = VideoReader(behaviormovie);
     
@@ -227,7 +222,17 @@ initial_cl=initial_cl(2:end-1);
 worm_length_fun= @(x) sum(sqrt(sum(diff(x).^2,2)));
 w_lengths=cellfun(@(x) worm_length_fun(x), initial_cl);
 cline_para.refL=mean(w_lengths)/100;
+
+
+%% Add Fourier mask for low mag behavior image
+% Xinwei add for reduce chip posts background.
+FourierMask=GenerateFourierMask(behavior_vidobj);
 %%
+
+load([low_mag_folder filesep 'CLworkspace']);
+%%
+% to avoid overwriting tips with empty array if rerunning centerline scipt
+tips = newtips;
 save([low_mag_folder filesep 'CLworkspace'],...
     'bf_list_cell',...
     'mean_bf_all',...
@@ -237,6 +242,7 @@ save([low_mag_folder filesep 'CLworkspace'],...
     'frame_bg_lvl',...
     'cline_para',...
     'tips',...
+    'FourierMask',...
     '-append');
 
 

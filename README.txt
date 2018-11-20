@@ -2,17 +2,75 @@
 Worm analysis protocol:
 
 
+This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2017.  The paper can be found at https://doi.org/10.1371/journal.pcbi.1005517
+
+
+
 #########################################################################
-Intro
+SETUP
 
 #########################################################################
 
-
-This repository hold the code used for the analyzing movies from the Leifer Lab's Whole brain imaging set. The details of the pipeline are described in the paper “Automatically tracking neurons in a moving and deforming brain” by Nguyen et al 2017.  The paper can be found at https://doi.org/10.1371/journal.pcbi.1005517. The data associated with this code can be found at the IEEE DataPort repository http://dx.doi.org/10.21227/H2901H
-
+All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. Jobs are submitted to della via python wrappers that take in some inputs. Folders with HighMag data are on tigress. The corresponding low mag folder should be placed inside the high mag folder. Prior to running submission scripts, you need to have access to della,tigressdata, /tigress/LEIFER (ask Andy to email John Wiggins). If you are using a Windows machine, you will need to download and install PUTTY. 
 
 
-All of the analysis is done in matlab, but many of them are called on DELLA, which is Princeton University’s SLURM based computational cluster. For public usage, some paths and commands will need to be changed in order to run on local machines or home institution computing clusters. You can run this code on the example files provided at 
+
+TO RUN THE CODE FROM TIGRESSDATA
+
+
+Once you have access to della and tigressdata, open a VNC connection by following the instructions on https://www.princeton.edu/researchcomputing/faq/how-do-i-use-vnc-on-tigre/. 
+
+Open a terminal window by going to Applications->System Tools -> Terminal
+
+Run the following commands:
+
+
+
+/tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/wormAnalysis_makefile.sh 
+	
+
+
+#####TO RUN A PYTHON SCRIPT#####:
+
+
+
+Most of the anlaysis is run via Python submission scripts. From Terminal navigate to the code location with:
+
+	
+
+cd /tigress/LEIFER/communalCode/3dbrain/PythonSubmissionScripts/
+
+
+
+You can then run the Python submission codes by entering:
+
+	module load anaconda
+
+python <python submission code name>.py
+	
+
+
+
+#####TO RUN A MATLAB SCRIPT#####:
+
+
+If running from tigressdata, matlab can be found by typing this into terminal:
+
+	/usr/licensed/matlab-R2017a/bin/matlab
+
+In the matlab command line, set up the paths to use these programs with:
+
+	>>cd /tigress/LEIFER/communalCode
+	>>path(pathdef)
+
+
+
+You can then run any GUI typing the name of the .m file into the command line.
+You may also want to change the keyboard shortcuts under 
+Preference->Keyboard->Shortcuts
+so you have the familiar copy/paste/find keyboard shortcuts.
+
+
 
 ######################################################################
 
@@ -47,43 +105,52 @@ STEP 0a: TIMING SYNCHRONIZATION FOR VIDEOS
 
 
 STEP 0b: IMAGE ALIGNMENT FOR VIDEOS
+(done on tigressdata VNC with Matlab, does not depend on timing)
 
-After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. . Use alignment_gui.m on the data folder that has the alignment videos. After saving the alignments, move the alignment.mat file into each of the data folders for analysis. 
+After taking the alignment videos on both computers, move the LowMag folder into the the BrainScanner folder. This is likely done on tigressdata VNC. Use alignment_gui.m on the BrainScanner folder that has the alignment videos. If you need to select the green channel for the neuron segmentation and tracking instead of the red one (i.e. if you are using a red-shifted Ca2+ indicator and GFP), use alignment_gui2.m . After saving the alignments, move the alignment.mat file into each of the BrainScanner folders for analysis. 
 
 
 STEP 1: WORM CENTERLINE DETECTION
+(done locally or on tigressdata VNC with MATLAB for manual centerline initialization)
+This step processes the behavior images and produces centerlines for the worm in all frames. 
 
-	wormCL_tip_clicker.m
-		- this is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail. 
 	initializeCLWorkspace.m 
-		- this will calculate background images and allow the user to manually initialize a few centerlines to help the detection algorithm.
- 
-		- when this is done, move the alignment and the initialCLWorkspace.mat into the corresponding LowMag folder on tigress.
+		- this will allow the user to manually initialize a few centerlines to help the detection algorithm.
+        - it also gets user ROIs to help calculating backgrounds, like bubble removal and head position. 
 
- 
+	wormCL_tip_clicker.m (OPTIONAL)
+        
+		- This is an optional GUI that will allow the user to help the centerline fitting by explicitly clicking on the location of the head and the tail.
+        - To use this, click on a subset of the head and tail coordinates. You can adjust the stepSize to skip over some frames.
+        - The program interpolates for frames you do not click, so every 5-10 is fine for normal paced worm, 100-200 for very slow or stationary worms. 
+        - remember to save. 
+		- You can use this after doing an initial check of the centerlines. Run the submission code and take a look. If it's bad, do the tip clicking and rerun the python code. No need to rerun initializeCLWorkspace.
+
 	Python submission code:
-
 		submitWormAnalysisCenterline.py
 	Matlab analysis code:
-
+        clusterCLStart.m
 		clusterWormCenterline.m
+
 	File Outputs:
 	CLstartworkspace.mat, initialized points and background images for darkfield images
 	CL_files folder, containing partial CL.mat files
 	BehaviorAnalysis folder, containing the centerline.mat file with XY coordinates for each image.
 
+    *NOTE: if you run this and later decide to add the tips, you simply need to rerun the program with the startWorkspace box checked and the program will use the tips. 
 
 	*NOTE: due to poor image quality of dark field images, it may be necessary to use some of the code developed by ANL to manually adjust centerlines
 
-
+After Centerlines and timing are done, it's good to view them and the timing by using the program WormAnalysisPreview
 
 **steps 2-5 all use submitWormAnalysisPipelineFull.py for submission. 
 STEP 2: STRAIGHTEN AND SEGMENTATION
-	
+
+This step will performing straightening of the HiMag images using the centerlines from the previous step. It will also perform segmentation of the neurons in the straightened coordinate system. 
+
 Python submission code:
 
 		submitWormAnalysisPipelineFull.py
-
 
 	Matlab analysis code called by python:
 
@@ -91,6 +158,7 @@ Python submission code:
 		clusterStraightenStart.m
 
 		clusterWormStraightening.m
+        
 	
 File Outputs:
 	startWorkspace.mat, initial workspace used for during straightening for all volumes
@@ -98,6 +166,7 @@ File Outputs:
 
 
 STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
+This step does the Nerve clustering. It is the longest step in the analysis. It produces registration vectors for each volume of the recording, and clusters them to assign neuron identities. 
 
 	Python submission code:
 
@@ -105,18 +174,19 @@ STEP 3: NEURON REGISTRATION VECTOR ENCODING AND CLUSTERING
 
 
 	Matlab analysis code called by python:
-
-
+		makePointStatsRef.m
 
 		clusterWormTracker.m
 
 		clusterWormTrackCompiler.m
 
 	File Outputs:
+		PSref.mat, structure array containing the pointStats for all volumes used as references. Useful for making other registration vectors after the analysis is completed. 
 		TrackMatrixFolder, containing all registrations of sample volumes with reference volumes.
 		pointStats.mat, structure containing all coordinates from all straightened volumes along with a trackIdx, the result of initial tracking of points. 
 
 STEP 4: ERROR CORRECTION
+This step does cross validation on the neural IDs that are produced by step 3. It will reassign some neural IDs or create new points. 
 
 	Python submission code:
 
@@ -134,6 +204,7 @@ STEP 4: ERROR CORRECTION
 	pointStatsNew.mat- matfile containing the refined trackIdx after error correction. 
 
 STEP 5: SIGNAL EXTRACTION
+This step gets fluorescent intensities from pixels around the neurons to get a trace of neural activity for each neuron. The neural signal is presented in several ways, including raw, photobleaching corrected, and ratiometric. 
 
 	Python submission code:
 
@@ -147,6 +218,9 @@ STEP 5: SIGNAL EXTRACTION
 
 	File Output:
 	heatData.mat, all signal results from extracting signal from the coordinates. 
+	
+STEP 6: LOOK AT THE DATA
+After the analysis pipeline it is always a good idea to manually look at the signal and the tracking to see if the results are reasonable by eye. Volumes are rejected if the program thinks they are bad, but some slip through so you should look at them quickly using the visualization GUIs. You can flag all the neurons in a volume or a single neuron for all volumes using VisualizeTrackedData.m
 	
 
 #########################################################################
@@ -175,9 +249,9 @@ WormAnalysisPreview.m - Gui to check time and spatial alignments of all videos. 
 GUIs for post-pipeline to make sure things worked
 -------------------------------------------------
 
-VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons. 
+VisualzeWorm3danalysis.m - Check that behavior and straightening worked well. Also shows tracked neurons on the straighted coordinates in 3d. It also shows the different signals for each neuron.  
 
-VisualizeTrackedData.m - Check to see that tracking works well. Works on unstraightened .dat file. 
+VisualizeTrackedData.m - Check to see that tracking works well. Shows the tracking of neurons in the unstraighted images. You can also flag neurons or volumes that look bad. It also shows the different signals for each neuron.  
 
 
 
@@ -245,41 +319,6 @@ alignments.mat -matlab structure with fields containing the affine transforms fo
 
 
 ======Output Files ========
-
-EARLY OUTPUT FILES
-
-Along the way, the pipeline produces some useful alignment files for timing and image alignment. 
-
-hiResData.mat - 	data for each frame of HiMag video. This contains the information about the imaging plane, position of the stage, timing, and which volume each frame belongs to. 
-Fields:
-	Z - 		z voltage from piezo for each frame, indicating the imaging plane. 
-	frameTime -	time of each frame after flash alignment in seconds.
-	stackIdx -	number of the stack each frame belongs to. Each volume recorded is given an increasing number starting at 1 for the first volume. For example, the first 40 images will belong to stackIdx=1, then the next 40 will have stackIdx=2 etc etc…
-	imSTD - 	standard dev of each frame
-	xpos and ypos - stage position for each frame
-	flashLoc -	index of the frame of each flash
-
-*note some of these fields have an extra point at the end, just remove it to make everything the same size
-
-
-*flashTrack.mat - 1xN vector where N is the number of frames in the corresponding video. The values of flashTrack are the mean of each image. It will show a clear peak when a flash is triggered. This can be used to align the videos. 
-
-*YAML.mat - 1xN vector where N is the number of frames in the corresponding video. Each element of the mcdf has all of the metadata for each frame of the video. Using this requires code from https://github.com/leiferlab/MindControlAccessUtils.git github repo. 
-
-
-
-
-alignments.mat - 	set of affine transformations between videos feeds. Each has a "tconcord" field that works 
-with matlab’s imwarp function.
-Fields:
-	lowresFluor2BF-	Alignment from low mag fluorescent video to low mag behavior video
-	S2AHiRes -	Alignment from HiMag Red channel to HiMag green channel. This alignment is prior to cropping of the HiMag Red channel. 
-	Hi2LowResF -	Alignment from HiMag Red to low mag fluorescent video
-	
-
-
-FINAL OUTPUT FILES
-
 The result of the pipeline is various .mat files that contain neural signals and coordinates. The main output is heatData.mat
 
 heatData.mat 
@@ -290,17 +329,20 @@ Signal vairables
 	rPhotoCorr - the rRaw signal after photobleaching correction for each neuron. No other smoothing or normalization is applied. Photobleaching correction is applied by fitting an exponential curve to a wide 20th percentile filter, and then subtraction the exponential from the raw signal.
 	gPhotoCorr - same as above but with the green signal. Exponential curves are fit independently. 
 
-	R2 - Smoothed and normalized version of rPhotoCorr.Normalization is done as delta F/ F0, where F0 is the lower 20th percentile signal. 
+	R2 - Smoothed and normalized version of rPhotoCorr.Normalization is done as delta F/ F0, where F0 is the lower 20th percentile signal. A 5 time step (.83s) fwhm Gaussian is used to smooth the result. 
 	G2 - Same as above but with gPhotoCorr.
 
-	Ratio2 - The ratio signal is defined as gPhotoCorr/rPhotoCorr, the Ratio is then normalized as delta R/ R0. is the same way as R2 and G2. 
-
+	Ratio2 - First, both the green and red signals are smoothed with a 5 time step fwhm Gaussian filter. Then the Ratio is then taken as  gPhotoCorr/rPhotoCorr and normalized as delta R/ R0 in the same way as R2 and G2. Some modifications are made to deal with some of the nans. 
+	
+If you flagged any neurons using VisuzliedTrackedData.mat, then you will also see
+	flagged_neurons - a list of neuron IDs that are flagged and should not be considered
+	flagged_volumes - a list of volume indexes that are flagged and should not be considered. 
 
 
 Other fields:
 behavior - structure with 
     ethogram: t Volumes by 1 vector of behaviors, -1 for reverse, 0 pause, 1 forward, 2 turn. Behaviors determined automatically using the centerlines.
-       x_pos: t Volumes by 1 vector of x coordinates in the reference frame of the plate.
+       x_pos: t Volumes by 1 vector of x coordinates of the worm center of mass in the reference frame of the plate.
        y_pos: t Volumes by 1 vector of y coordinates in the reference frame of the plate.
            v: t Volumes by 1 vector of worm center of mass velocities in the reference frame of the plate. Positive is forward, negative reverse.
        pc1_2: t Volumes by 2 vector of the projections onto the first two eigenworms. 

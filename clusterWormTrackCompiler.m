@@ -66,16 +66,20 @@ transitionMatrixCell=...
 %% build training set on first 800 time points
 %if this fails, continuously decrease the number of training time points
 %until it works. 
-
+% start later in the recording -- in case there are 'bad volumes'
+nStart= 500
 for iTry=0:5
     %% try loop to try to work around out of memory issues
 
-        NTrainingRange=900-100*iTry;
+        NTrainingRange=900-100*iTry+nStart;
+	%bla
+	%NTrainingRange=450-50*iTry;	
+        
         NTrainingRange=min(NTrainingRange,N-1);
-        nTraining=min(NTrainingRange,N-1);
+        nTraining=min(NTrainingRange-nStart,N-1-nStart);
         
         display(['Attempting nTraining of ' num2str(nTraining)]);
-        nSelect=round(1:NTrainingRange/nTraining:NTrainingRange);
+        nSelect=round(nStart:NTrainingRange/nTraining:NTrainingRange);
     try
         
         %% correlation and cluster, can take up to 10 minutes  
@@ -95,7 +99,7 @@ for iTry=0:5
         %clusters_initial is a linear list for each neuron in the subtransition matrix
         %with a number indicating which cluster that neuron belongs to
         clusters_initial=cluster(Z,'cutoff',.9,'criterion','distance'); 
-        
+	
         %if clusters successfully calculated, exit loop. 
         display(['Success with nTraining of ' num2str(nTraining)]);
         break
@@ -110,6 +114,9 @@ end
 cluster_items=unique(clusters_initial(~isnan(clusters_initial)));
 cluster_items(cluster_items==0)=[];
 n_clusters=max(cluster_items);
+
+%%bla
+n_clusters
 
 %%  correction factor, add groups that are close but were not clustered
 
@@ -180,6 +187,9 @@ caccum=hist(clusters_initial,1:max(clusters_initial));
 % than 120%
 caccumN=find(caccum<nTraining*.4|caccum>nTraining*1.2); %bad clusters
 
+%bla
+size(caccumN)
+
 % set bad clusters and nans to one for later removal. 
 clusters_initial(ismember(clusters_initial,caccumN))=1;
 clusters_initial(isnan(clusters_initial))=1;
@@ -200,9 +210,17 @@ cluster_assign=cluster_assign-1;
 %%  make new distance matrix between clusters for saving, 
 %not currently used elsewhere
 cluster_items=unique(cluster_assign(~isnan(cluster_assign)));
+
+%%bla
+cluster_items
+
 cluster_items(cluster_items==0)=[];
 n_clusters=max(cluster_items);
 
+%%bla
+n_clusters
+
+display(['Remaining number of clusters ' num2str(n_clusters)]);
 subTcorr=zeros(length(tcorr2),n_clusters);
 subTcorr2=zeros(n_clusters);
 % average correlations matrices from each subgoup
@@ -217,7 +235,9 @@ for i=1:n_clusters
 end
 
 
-%% find "basis" by averaging over a cluster.
+%% find "basis" by averaging over a cluster. this is the cm of the point clound
+% and will be used to classify every neuron from every volume, this is step
+% 2 of the clustering in the paper. 
 
 masterVec=zeros(n_clusters,size(subTranstionMatrix,2));
 totalVec=zeros(n_clusters,size(subTranstionMatrix,2));
@@ -270,7 +290,7 @@ cluster_assign_present=cluster_assign(~isnan(cluster_assign));
 [~,ia]=sort(cluster_assign_present);
 assignedNodes=assignedNodes(ia);
 
-%make list of indices that should be theoretically 
+%make list of indices that should be theoretically assigned to the group
 hitIdx=sub2ind(size(score),cluster_assign_present(ia),assignedNodes);
 %turn that list onto a logical matrix, where each training neuron has 1
 %for the cluster it belongs to and 0 everywhere else. 

@@ -28,14 +28,17 @@ def make_gui():
     master = gu.submitTK(rows=12,cols=2)
     #variables will be stored in a dict in master.e
     master.addGuiField("User Name",'user_name',defaultName)
-    master.addGuiField("Parent Path",'parent_path','')
+    master.addGuiField("Parent Path",'parent_path','/tigress/LEIFER/PanNeuronal')
     master.addGuiField("Date of data",'date',defaultDate)
     master.addGuiField("DataFolderName",'folder_name',defaultFolder)
     master.addGuiCheck("Start Workspace",'start_flag',1)
     master.addGuiCheck("Email",'email_flag',1)
+    master.addGuiCheck("Chip",'chip_flag',0)
     
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
-    master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
+    if  socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
+        master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
+    return master
     
 
 def submitScript(master=None):
@@ -47,6 +50,7 @@ def submitScript(master=None):
     
     startFlag        = master.e['start_flag'].var.get()
     emailFlag       = master.e['email_flag'].var.get()
+    chipFlag       = master.e['chip_flag'].var.get() 
         
     # which folder to process, must add paths linux style
     fullPath = beginOfPath + "/" + date
@@ -72,7 +76,7 @@ def submitScript(master=None):
     commandList=slurm.path_setup(commandList)
     if startFlag:
         commandList=slurm.centerline_start_input(commandList,fullPath)
-    commandList=slurm.centerline_input(commandList,fullPath,emailFlag)
+    commandList=slurm.centerline_input(commandList,fullPath,emailFlag,chipFlag)
 
     #save defaults using pickle dump
     master.pickleDump()
@@ -126,6 +130,8 @@ if __name__ == '__main__':
         Before running this code, you must have a CLworkspace.mat file 
         in the LowMag folder. 
         
+        
+        
         Requirements:
                 CLworkspace.mat: created by initilaizeCLWorkspace
                     must be located in the LowMag folder
@@ -135,16 +141,19 @@ if __name__ == '__main__':
                 
                     
         The code has 2 sections. 
-                CL_start: uses user provide results to calculate backgrounds
+                CL_start: uses user provide results to calculate backgrounds. Will also
+                            find the tips_coordinates.mat file if it is present in the Low
+                            Mag folder. Check the StartWorkspace box to run this section. 
                 Centerline: fits centerlines using the backgroudns and initial
                             Centerlines provided.
         
         For a quick test, run this code as follows:
         User Name: <your username>
-        
-        Press the "SELECT FOLDER" button and add navigate to the dataset folder.
-
-        <Check box>
+        Parent Path:/tigress/LEIFER/PanNeuronal
+        Date of Data: testing_sets
+        Data Folder Name: Brain_working_dataset
+        Start Workspace: <Check box> 
+        Email: <Check box>
         
         ''')
     master=make_gui()

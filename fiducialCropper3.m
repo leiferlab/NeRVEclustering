@@ -37,14 +37,15 @@ pointStats=pointStats.pointStatsNew;
 XYZcoord=getSampleCoordinates(pointStats); %will be saved
 
 hasPoints=1:length(pointStats);
-hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)==1);
+%change to >=1 to get at least as many time points as stacks
+hasPointsTime=hiResData.frameTime(diff(hiResData.stackIdx)>=1);
+size(hasPointsTime),size(hasPoints) 
 hasPointsTime=hasPointsTime(hasPoints);
-
 
 [centerline,eigenProj, CLV,wormCentered]=loadCLBehavior(dataFolder);
 n_CL=size(centerline,3);
+n_CL, size(bfAll.frameTime)
 clTime=bfAll.frameTime(1:n_CL);
-
 
 
 %% load centerline data, pad with zeros if needed to making size the same as
@@ -150,12 +151,15 @@ try
     
     profileG=load('illumination_profile_G.mat');
     profileG=profileG.illumination_profile;
+    profileG=profileG./max(profileG(:));
+
     g_corr=1./profileG;
     %remove very bright and very dim pixels in the calibration image
     g_corr(g_corr>5| g_corr<0)=0;
     
     profileR=load('illumination_profile_R.mat');
     profileR=profileR.illumination_profile;
+    profileR=profileR/max(profileR(:));
     r_corr=1./profileR;
     r_corr(r_corr>5 | r_corr<0)=0;
     
@@ -206,7 +210,12 @@ alignments=alignments.alignments;
 S2AHiRes=alignments.S2AHiRes;
 rect1=S2AHiRes.rect1;
 rect2=S2AHiRes.rect2;
-background=alignments.background;
+
+if isfield(alignments,'background')
+    background=alignments.background;
+else
+    background=0;
+end
 
 
 
@@ -230,8 +239,12 @@ for i=1:length(pointStats)
         hiResImage=(reshape(pixelValues,rows,cols,nSlices));
         
         %subtract background and apply intensity correction
-        hiResImage=bsxfun(@minus,hiResImage,background);
-        hiResImage=bsxfun(@times,hiResImage,all_corr);
+        if any(background(:))
+            hiResImage=bsxfun(@minus,hiResImage,background);
+        else
+            hiResImage=pedistalSubtract(hiResImage);
+        end
+       % hiResImage=bsxfun(@times,hiResImage,all_corr);
         hiResImage(hiResImage<0)=0;
         
         
@@ -301,7 +314,7 @@ for i=1:length(pointStats)
         %make raw points for saving, need to check
         rawPoints=coordinateTransform3d(straightPoints,X,Y,Z);
         hiResRange=find(hiResData.stackIdx==pointStats(i).stackIdx);
-        hiResIdx=hiResRange(rawPoints(:,3))+timeOffset;
+        hiResIdx=interp1(hiResRange,rawPoints(:,3),'linear','extrap')+timeOffset;
         hiResVoltage=interp1(hiResData.Z,hiResIdx-timeOffset);
         fiducialPointsi=cell(200,4);
         %% loop over points and get average pixel intensities
@@ -346,6 +359,8 @@ newFiducialFolder=[dataFolder filesep 'BotfFiducialPoints'];
 mkdir(newFiducialFolder);
 %save time offset and unstraightened fiducial cell structure, not as
 %important any more, but good for visualization
+
+%used for clicking back in the day, not really needed anymore
 clickPoints=0;
 save([newFiducialFolder filesep 'timeOffset'],'timeOffset');
 save([newFiducialFolder filesep 'botFiducials'],...
@@ -416,7 +431,9 @@ function [xPos,yPos]=calculate_cm_position(centerline,hiResData,bf_frameTime)
 %some conversion factors
 pos2mm=1/10000;
 CL2mm=1/557; % 1mm per 557 pixels
+
 %angle between stage positions and behavior camera
+%MODIFY THIS IF CAMERA ANGLE CHANGES
 stageCamAngle=90;
 stageCamAngle=stageCamAngle*pi/180;
 
@@ -456,6 +473,7 @@ yPosStage=inpaint_nans(yPosStage);
 
 % switched some signs 1 and 2 for jeff cls, may need switching for some
 % camera rotations
+
 xPos=xPosStage-1*hiResCLposition(:,1);
 yPos=yPosStage+1*hiResCLposition(:,2);
 

@@ -103,7 +103,7 @@ setappdata(handles.figure1,'imFolder',imFolder);
 
 red_images=dat_images(1:512,:,:);
 green_images=dat_images(513:end,:,:);
-nFrames=size(red_images,3);
+nFrames=min(size(avi0_images,3),size(red_images,3));
 all_images=repmat(struct(),1,nFrames);
 setappdata(handles.figure1,'nFrames',nFrames);
 for iFrame=1:nFrames
@@ -224,13 +224,14 @@ LowResB2F_name=[fileName 'LowResB2F'];
 HiResS2LoResF_name=[fileName 'HiResS2LoResF'];
 
 [~,hostname]=system('hostname');
-if strfind('tigressdata',hostname)
-    alignmentFolder='/tigress/LEIFER/commnualCode/3dbrain/registration/';
-    backgroundLocation='/tigress/LEIFER/commnualCode/background';
+if strfind(hostname,'tigressdata')
+    alignmentFolder='/tigress/LEIFER/communalCode/3dbrain/registration/';
+    backgroundLocation='/tigress/LEIFER/communalCode/3dbrain/Background';
 else
 alignmentFolder='Y:\CommunalCode\3dbrain\registration\';
 backgroundLocation='Y:\CommunalCode\3dbrain\background\';
 end
+
 alignments=makeTransformation(handles);
 setappdata(handles.figure1,'alignments',alignments)
 % if there's a background image, load it as well into alignments.
@@ -259,7 +260,7 @@ save([alignmentFolder HiResS2LoResF_name],'-struct'...
 save([alignmentFolder LowResB2F_name],'-struct'...
     ,'lowResFluor2BF')
 save([imFolder filesep 'alignments'],'alignments');
-print('Saved!')
+display('Saved! Copy the alignment.mat folder into all the BrainScanner folders.')
 
 
 function alignments=makeTransformation(handles)
@@ -539,7 +540,7 @@ function fluorView_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of fluorView
 if get(hObject,'Value')
-    setDemoView(hObject,handles,2);
+    setDemoView(hObject,handles,3);
     hObject.BackgroundColor=[1 .4 .4];
     handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
     handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];
@@ -558,7 +559,7 @@ function greenView_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of greenView
 if get(hObject,'Value')
-    setDemoView(hObject,handles,3);
+    setDemoView(hObject,handles,2);
     hObject.BackgroundColor=[1 .4 .4];
     handles.redView.BackgroundColor=[0.9400 0.9400 0.9400];
     handles.darkView.BackgroundColor=[0.9400 0.9400 0.9400];

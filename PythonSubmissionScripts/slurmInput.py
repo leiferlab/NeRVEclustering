@@ -27,21 +27,25 @@ import getpass
 import socket
 import time
 
-#YOU MUST SET THE PATH TO THE CODE HERE 
-CODE_PATH='' #path to the code repo
-#YOU MUST SET THE LOCAL HOST NAME, this was for different text file saving methods. 
-LOCAL_HOST = ''
-EMAIL_DOMAIN='@princeton.edu'
-
-MIN_TIME_STR = "--time=180"  #minimum time string for use on short queue
+CODE_PATH='/tigress/LEIFER/communalCode/3dbrain' #path to the code repo
+MIN_TIME_STR = "--time=6:02:00"  #minimum time string for use on short queue
 PS_NAME1 =  'PointsStats.mat'
 PS_NAME2 =  'PointsStats2.mat'
 NOW=datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") # datetime string
-    
+
+# apparently an update of slurm and/or della requires now an absolute path after 
+# "-D" in slurm submission commands. Replacing os.path.basename(fullPath) with a
+# call to this function, so that it can be reverted easily.
+def get_folder_name(fullPath):
+    # it was
+    #folderName=os.path.basename(fullPath)
+    folderName=fullPath
+    return folderName
+
 # construct email string using the user currently logged on. This is fine if run from tigressdata, but may have problems when run from home computers where the user is not a princeton netID. 
 def get_email_script(mail_type='end,fail'):
     user= getpass.getuser()
-    user_email=user+EMAIL_DOMAIN
+    user_email=user+'@princeton.edu'
     mail_script= ' --mail-type=' + mail_type +' --mail-user=' + user_email
     return mail_script
 
@@ -78,14 +82,14 @@ def path_setup(commandList):
 # input code for initializing the centerline worksapce
 def centerline_start_input(commandList,fullPath,email_flag=False):
     commandList.insert(len(commandList)-1, '####CENTERLINES START####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= make_output_path(fullPath)
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
     
     input0 = "clusterCL_start('"+ fullPath + "')"
     #make submission command
-    qsubCommand0 = ("sbatch --mem=12000 " 
-        + MIN_TIME_STR 
+    qsubCommand0 = ("sbatch --mem=18000 " 
+        + "--time=2:02:00"
         + " -N 1 -n 1 -c 10" #for use of 10 cores for parfor loops in the matlab code
         + " -D " + folderName
         + " -J "+ folderName
@@ -99,11 +103,11 @@ def centerline_start_input(commandList,fullPath,email_flag=False):
     return commandList
         
 # input code for centerline submission
-def centerline_input(commandList,fullPath,email_flag = False):
+def centerline_input(commandList,fullPath,email_flag = False,chip_flag = 0):
     #make header for input file
     commandList.insert(len(commandList)-1, '####CENTERLINES####'+NOW)
     
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= make_output_path(fullPath)
     
     #path to shell script job files
@@ -116,8 +120,9 @@ def centerline_input(commandList,fullPath,email_flag = False):
         email_script=get_email_script('fail')
         
     
-    qsubCommand1 = ("sbatch --mem=12000 " 
-        + MIN_TIME_STR 
+    qsubCommand1 = ("sbatch --mem=18000 " 
+        + "--time=2:02:00" 
+#        + "--time=7320"
         + " -D " + folderName
         + " -J "+ folderName
         + " -d singleton" #dependency (only allow one job with this name at a time.. in this case wait for the previous job to complete)
@@ -125,13 +130,14 @@ def centerline_input(commandList,fullPath,email_flag = False):
         + " --error=\"" + outputFilePath + "/CLjob-%J.err" + "\"" #where error messages are stored
         + " --array=1-32:1"  #there are 32 threads for centerline fitting
         + " " + code_centerline #this is the shell command to invoke the centerline specific matlab script
-        + " '"  + fullPath +"' ") #this is an input which is handed into the shell command which gets into matlab
+        + " '"  + fullPath +"' "+ str(chip_flag) +" ") #this is an input which is handed into the shell command which gets into matlab
         
     commandList.insert(len(commandList)-1, qsubCommand1) #Add this to the stack of strings
    
     #Same as above but now for the "centerline compile" part 
-    qsubCommand2 = ("sbatch --mem=12000 " 
-        + MIN_TIME_STR 
+    qsubCommand2 = ("sbatch --mem=18000 " 
+#        + MIN_TIME_STR 
+        + "--time=2:02:00"
         + " -D " + folderName
         + " -J "+ folderName
         + email_script
@@ -150,23 +156,25 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
     commandList.insert(len(commandList)-1, '####STRAIGHTENING####'+NOW)
 
     totalRuns = int(totalRuns)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= make_output_path(fullPath)
     
     code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
     code_straighten = CODE_PATH + '/PythonSubmissionScripts/runWormStraighten.sh'
     code_pscompiler = CODE_PATH + '/PythonSubmissionScripts/runWormCompilePointStats.sh'
-    
+    fail_script=email_script=get_email_script('fail')
+
     if email_flag:
         email_script=get_email_script()
     else:
         email_script=get_email_script('fail')
     
     input0 = "clusterStraightenStart('"+ fullPath + "')"
-    qsubCommand0 = ("sbatch --mem=12000 " 
+    qsubCommand0 = ("sbatch --mem=16000 " 
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName
+        + fail_script
         + " --output=\"" + outputFilePath + "/straight_s-%J.out" + "\""
         + " --error=\"" + outputFilePath + "/straight_s-%J.err" + "\""
         + " " + code_runinput
@@ -193,11 +201,12 @@ def straighten_input(commandList,fullPath,totalRuns,email_flag = False):
         else:
             currentLimit="1000"
 
-        qsubCommand1 = ("sbatch --mem=12000 " 
+        qsubCommand1 = ("sbatch --mem=16000 " 
             + MIN_TIME_STR 
             + " -D " + folderName
             + " -J "+ folderName 
             + dependencyString
+            + fail_script
             + " --output=\"" + outputFilePath + "/straight-%J.out" + "\""
             + " --error=\"" + outputFilePath + "/straight-%J.err" + "\""
             + " --array=1-" + currentLimit + ":" + str(stepSize) 
@@ -227,7 +236,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
     totalRuns=int(totalRuns)
     nRef=int(nRef)
     
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath= fullPath + "/outputFiles"
     currentDate=datetime.date.today()
     currentDate=str(currentDate)
@@ -289,7 +298,7 @@ def track_input(commandList,fullPath,totalRuns,nRef,email_flag = False):
         commandList.insert(len(commandList)-1, qsubCommand1)
     commandList.insert(len(commandList)-1, '\r')
     
-    qsubCommand2 = ("sbatch --mem=100000 " 
+    qsubCommand2 = ("sbatch --mem=128000 " 
         + qString_track 
         + " -D " + folderName
         + " -J "+ folderName 
@@ -309,7 +318,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     nCheck=int(nCheck)
     nNeurons=int(nNeurons)
     
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     if email_flag:
@@ -326,6 +335,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
     
     qsubCommand5 = ("sbatch --mem=8000 " 
         + qString_check 
+#        + "--time=4:02:00"
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -337,8 +347,8 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
         + str(nCheck))
     commandList.insert(len(commandList)-1, qsubCommand5)
         
-    qsubCommand6 = ("sbatch --mem=100000 " 
-        + MIN_TIME_STR 
+    qsubCommand6 = ("sbatch --mem=16000 " 
+        + "--time=10:02:00"
         + " -D " + folderName
         + " -J "+ folderName 
         + " -d singleton"
@@ -355,7 +365,7 @@ def check_input(commandList,fullPath,totalRuns,nCheck,nNeurons,email_flag = Fals
 
 def crop_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, '####CROPPING####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runMatlabInput.sh'
@@ -367,7 +377,7 @@ def crop_input(commandList,fullPath, email_flag = False):
     else:
         email_script=""
         
-    qsubCommand7 = ("sbatch --mem=16000 " 
+    qsubCommand7 = ("sbatch --mem=8000 " 
         + MIN_TIME_STR 
         + " -D " + folderName
         + " -J "+ folderName 
@@ -383,9 +393,10 @@ def crop_input(commandList,fullPath, email_flag = False):
     return commandList
 
 
+
 def flash_input(commandList,fullPath, email_flag = False):
     commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
-    folderName=os.path.basename(fullPath)
+    folderName=get_folder_name(fullPath)
     outputFilePath=make_output_path(fullPath)
     
     code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
@@ -397,8 +408,8 @@ def flash_input(commandList,fullPath, email_flag = False):
 
     input1= "highResTimeTraceAnalysisTriangle4('"+ fullPath + "')"
     input2= "multipleAVIFlash('"+ fullPath +"')"
-    qsubCommand1 = ("sbatch --mem=2000 " 
-        + MIN_TIME_STR 
+    qsubCommand1 = ("sbatch --mem=4000 " 
+        + "--time=3:02:00" 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
@@ -409,7 +420,84 @@ def flash_input(commandList,fullPath, email_flag = False):
     print(qsubCommand1)
     
     qsubCommand2 = ("sbatch --mem=2000 "  
-        + MIN_TIME_STR 
+        + "--time=2:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/avFlash-%J.err" + "\""
+        + " " + code_runinput + " " 
+        + " \"" + input2 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand2)
+    print(qsubCommand2)
+    return commandList
+
+# For new file format from LabView's new software
+def flashNew_input(commandList,fullPath, email_flag = False):
+    commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
+    folderName=get_folder_name(fullPath)
+    outputFilePath=make_output_path(fullPath)
+    
+    code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
+    code_runinput_python = CODE_PATH + '/PythonSubmissionScripts/runPythonInput.sh'
+
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+
+    input1= CODE_PATH + "/TimeAlignment/highResTimeTraceAnalysisTriangle4.py 4000 " + fullPath
+    input2= "multipleAVIFlash('"+ fullPath +"')"
+    qsubCommand1 = ("sbatch --mem=20000 " 
+        + "--time=3:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
+        + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
+        + " " + code_runinput_python + " " 
+        + "\"" + input1 +" \"")
+    commandList.insert(len(commandList)-1, qsubCommand1)
+    print(qsubCommand1)
+    
+    qsubCommand2 = ("sbatch --mem=2000 "  
+        + "--time=2:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
+        + " --error=\"" + outputFilePath + "/avFlash-%J.err" + "\""
+        + " " + code_runinput + " " 
+        + " \"" + input2 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand2)
+    print(qsubCommand2)
+    return commandList
+    
+def flashNewNotWorking_input(commandList,fullPath, email_flag = False):
+    commandList.insert(len(commandList)-1, '####TIME SYNC####'+NOW)
+    folderName=get_folder_name(fullPath)
+    outputFilePath=make_output_path(fullPath)
+    
+    code_runinput = CODE_PATH + '/PythonSubmissionScripts/runMatlabInput.sh'
+    
+    if email_flag:
+        email_script=get_email_script()
+    else:
+        email_script=""
+        
+    memlimit = 4000
+
+    input1= "python highResTimeTraceAnalysisTriangle4.py 4000 " + fullPath
+    input2= "multipleAVIFlash('"+ fullPath +"')"
+    qsubCommand1 = ("sbatch --mem=4000 " 
+        + "--time=3:02:00" 
+        + " -J "+ folderName
+        + email_script
+        + " --output=\"" + outputFilePath + "/datFlash-%J.out"+ "\"" 
+        + " --error=\"" + outputFilePath + "/datFlash-%J.err" + "\""
+        + input1 +"\" ")
+    commandList.insert(len(commandList)-1, qsubCommand1)
+    print(qsubCommand1)
+    
+    qsubCommand2 = ("sbatch --mem=2000 "  
+        + "--time=2:02:00" 
         + " -J "+ folderName
         + email_script
         + " --output=\"" + outputFilePath + "/avFlash-%J.out" + "\""
@@ -421,12 +509,47 @@ def flash_input(commandList,fullPath, email_flag = False):
     return commandList
     
 
+def custom_input(commandList,input_command,fullPath, email_flag = False,time='180',mem='16000'):
+    commandList.insert(len(commandList)-1, '####CUSTOM INPUT####'+NOW)
+    folderName=get_folder_name(fullPath)
+    outputFilePath=make_output_path(fullPath)
+    
+    time_str=" --time=" + time
+    mem_str=" --mem=" + mem
+    code_runinput = CODE_PATH+ '/PythonSubmissionScripts/runCustomMatlabInput.sh'
+    
+    if email_flag:
+        email_script=get_email_script('end,fail')
+    else:
+        email_script=""
+        
+    qsubCommand = ("sbatch"
+        + mem_str 
+        + time_str 
+        + " -D " + folderName
+        + " -J "+ folderName 
+        + email_script
+        + " --output=\"" + outputFilePath + "/custom-%J.out"+ "\"" 
+        + " --error=\"" + outputFilePath + "/custom-%J.err" + "\""
+        + " " + code_runinput 
+        + " \"" + input_command +"\" ")
+    
+    commandList.insert(len(commandList)-1, qsubCommand)
+    commandList.insert(len(commandList)-1, '\r')
+    return commandList
+
+
 #Write all of the inputs that were submitted into della into a text file and place it in the output folder. This file can be copied directly into the terminal of della to re run the job. 
 def write_input(commandList,client,fullPath):
+    
+    #also adding write comments here, could be almost anywhere 
+    write_comments(fullPath)
+    
     outputFilePath=make_output_path(fullPath)
     fileName=outputFilePath+'/input.txt'
 #open sftp client to do the write, this is needed for writing from local machine over ssh, otherwise, just write normally. 
-    if socket.gethostname()==LOCAL_HOST:
+    if socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
+        print(fileName)
         with open(fileName,'a') as f:
             for command in commandList:
                 f.write(command)
@@ -444,13 +567,54 @@ def write_input(commandList,client,fullPath):
             file.write('\r\n')
         file.flush()
         ftp.close()
+        
+        
+#search for the comments file in the parent directory and parse the comments pertaining to the folder being analyzed. Save that output into the folder being analyzed.
+
+def write_comments(fullPath):
     
+    #only works on tigress for now
+    if not socket.gethostname()=='tigressdata.princeton.edu':
+        print('Not on tigress! comments file not writing')
+        return
+    
+    #don't overwrite if data_comments file already exists
+    data_comments_file = fullPath + '/data_comments.txt'
+    if os.path.exists(data_comments_file):
+        print('Comments file already exists! not overwriting')
+        return
+
+
+    parent_dir,folder_name = os.path.split(fullPath)
+    comments_file=parent_dir+'/Comments.txt'
+
+    
+    if os.path.exists(comments_file):
+        
+        target=False
+        w=open(data_comments_file,'w')
+
+        
+        with open(comments_file,'r') as f:
+            search_line=f.readlines()
+            for line in search_line:
+            #write lines between seeing the date and seeing the word 'NEW FILE'
+                if folder_name in line:
+                    target=True
+                if 'NEW FILE' in line and target:
+                     w.close()
+                     break
+                if target:
+                     w.write(line)
+    else: 
+        print('Parent folder comments file not found')
+
 
 #make the outputfolder where things are going to live, normally this folder is created automatically by the jobs but we need to make it ourselves because thats where we chose to put the input file from write_input. 
 def make_ouputfolder(client,fullPath):
     outputFilePath=make_output_path(fullPath)
     
-    if socket.gethostname()==LOCAL_HOST:
+    if socket.gethostname()=='tigressdata.princeton.edu':
         if not os.path.exists(outputFilePath):
             os.makedirs(outputFilePath)
             os.chmod(outputFilePath,06775)

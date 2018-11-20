@@ -1,12 +1,15 @@
-function clusterWormCenterline(dataFolder,iCell,show2)
+function clusterWormCenterline(dataFolder,iCell,isChip,show2)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %clusterworm tracker fits centerlines to behavior videos from our whole
 %brain imaging setup. a CL workspace must be loaded with initial parameters
 %and paths in order to run this code, and the activeContourFit program
 %requires the eigenworms to be loaded as "eigbasis" on to the main window.
 %It also requires an alignment.mat file in the BrainScanner folder.
+if nargin<3
+    isChip=0;
+end
 
-if nargin==2
+if nargin<4
     show2=0;
 end
 
@@ -18,6 +21,10 @@ GAUSSFILTER2=fspecial('gaussian',50,15);
 
 cm_fluor=[26 26];
 sdev_nhood=getnhood(strel('disk',5));
+
+se=strel('disk',11);
+se=se.Neighborhood;
+k=fspecial('Gaussian',5,2.5);
 
 
 %% load eigenworms and set as global
@@ -34,10 +41,9 @@ workspace_file=dir([dataFolder filesep 'CLworkspace*']);
 if isempty(workspace_file)
     workspace_file=dir([dataFolder filesep '*' filesep 'CLworkspace*']);
     if isempty(workspace_file)
-       error(...
+        error(...
             'LowMag folder is missing! ensure the Low mag folder is in the BrainScanner Folder')
     end
-    
 end
 
 workspace_file=workspace_file(1);
@@ -48,21 +54,29 @@ low_mag_folder=fileparts(workspace_file);
 
 %% load initial variables from CLworkspace
 
-CLworkspace=load(workspace_file);
-bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
-mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
-f_background=CLworkspace.f_background;  %f_background fluorBackground
-initial_cl=CLworkspace.initial_cl; % initial_cl clStart
-flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
-frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
+try
+    CLworkspace=load(workspace_file);
+    bf_list_cell=CLworkspace.bf_list_cell; %bf_list_cell bfCell
+    mean_bf_all=CLworkspace.mean_bf_all; %mean_bf_all meanBfAll2
+    f_background=CLworkspace.f_background;  %f_background fluorBackground
+    initial_cl=CLworkspace.initial_cl; % initial_cl clStart
+    flash_loc_idx=CLworkspace.flash_loc_idx; %flash_loc flashLoc
+    frame_bg_lvl=CLworkspace.frame_bg_lvl; %frame_bg_lvl newZ2
+    if isChip
+        FourierMask=CLworkspace.FourierMask;
+    end
+    %setup paths to movies
+    fluormovie=CLworkspace.fluormovie;
+    behaviormovie=CLworkspace.behaviormovie;
+    
+    
+    %set up centerline fitting parameters
+    cline_para=CLworkspace.cline_para;
+catch me
+    error('Files are missing from the CLworkspace, did you run clusterCL_start?')
+end
 
-%setup paths to movies
-fluormovie=CLworkspace.fluormovie;
-behaviormovie=CLworkspace.behaviormovie;
 
-
-%set up centerline fitting parameters
-cline_para=CLworkspace.cline_para;
 if isfield(CLworkspace,'bf2fluor_lookup')
     bf2fluor_lookup=CLworkspace.bf2fluor_lookup; %for old setup of avi files
 else
@@ -80,25 +94,44 @@ cl_intensities=zeros(100,length(framelist)); %cl_intensities IsAll
 %load tip data and interpolate missing values
 if isfield(CLworkspace,'tips')
     if isfield(CLworkspace.tips,'head_pts')
-    head_pts=CLworkspace.tips.head_pts;
-    tail_pts=CLworkspace.tips.tail_pts;
-    same_pt=all(head_pts==tail_pts,2);
-    
-
-    head_time=find(head_pts(:,1) & ~same_pt);
-    head_pts_sub=head_pts(head_time,:);
-    head_pt_list=interp1(head_time,head_pts_sub,framelist,'pchip');
-    
-    tail_time=find(tail_pts(:,1) & ~same_pt);
-    tail_pts_sub=tail_pts(tail_time,:); 
-    tail_pt_list=interp1(tail_time,tail_pts_sub,framelist,'pchip');
-    
-    cline_para.stretch_ends_flag=0;
-    cline_para.endkappa=0;
-    
+        head_pts=CLworkspace.tips.head_pts;
+        tail_pts=CLworkspace.tips.tail_pts;
+        
+        tip_mat_length=min(size(head_pts,1),size(tail_pts,1));
+        head_pts=head_pts(1:tip_mat_length,:);
+        tail_pts=tail_pts(1:tip_mat_length,:);
+        
+        same_pt=all(head_pts==tail_pts,2);
+        
+        head_time=find(head_pts(:,1) & ~same_pt);
+        head_pts_sub=head_pts(head_time,:);
+        
+        tail_time=find(tail_pts(:,1) & ~same_pt);
+        tail_pts_sub=tail_pts(tail_time,:);
+        
+        if isempty(head_pts_sub)
+            head_pt_list=[];
+            display('WARNING: tip file present, but no head points are Found!')
+        else
+            head_pt_list=interp1(head_time,head_pts_sub,framelist,'pchip');
+        end
+        
+        if isempty(tail_pts_sub)
+            tail_pt_list=[];
+            display('WARNING: tip file present, but no tail points are Found!')
+        else
+            tail_pt_list=interp1(tail_time,tail_pts_sub,framelist,'pchip');
+        end
+        
+        
+        cline_para.stretch_ends_flag=0;
+        cline_para.stretching_force_factor=[0 0];
+        cline_para.endkappa=0;
+        cline_para.endRepulsion=.003;
+        cline_para.refSpring=0.01; %turn down pulling to center if tips are clicked
     else
-    head_pt_list=[];
-    tail_pt_list=[];  
+        head_pt_list=[];
+        tail_pt_list=[];
     end
 else
     head_pt_list=[];
@@ -140,28 +173,78 @@ for iframe=1:length(framelist)
     tic
     try
         if ~isnan(frame_bg_lvl(itime)) && ~any(flash_loc_idx==itime) && itime>=1
-            %% filter behavior images
-            bf_frame_raw = read(behavior_vidobj,itime);
-            bf_frame_raw=double(bf_frame_raw(:,:,1));
-            background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
-            %scale background for best match before subtraction.
-            c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
-            bf_frame_raw=bf_frame_raw-background_raw*c;
-            bf_frame_raw=abs(bf_frame_raw);
-            % afew filter steps
-            bf_frame=imtophat(bf_frame_raw,strel('disk',50));
-            bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
-            bf_frame_std=normalizeRange(bf_frame_std);
-            bfstdthresh=(bf_frame_std>graythresh(bf_frame_std));
-            bf_frame(bfstdthresh)=abs(bf_frame(bfstdthresh));
-            bf_frame_std=bpass((bf_frame_std),1,80);
-            bf_frame=bpass(bf_frame,4,80)/10;
+            
+            if isChip
+                bf_frame_raw = read(behavior_vidobj,itime);
+                bf_frame_raw=double(bf_frame_raw(:,:,1));
+                % fourier mask filter(if not empty)
+                %low pass filter to deal with background.
+                lowpassMask=false(size(bf_frame_raw,1),size(bf_frame_raw,2));
+                lowpassMask(floor(size(bf_frame_raw,1)/2),floor(size(bf_frame_raw,2)/2))=true;
+                se_lowpass=strel('square',5);
+                lowpassMask=imdilate(lowpassMask,se_lowpass);
+                if ~isempty(FourierMask)
+                    FourierMask=FourierMask | lowpassMask;
+                else
+                    FourierMask=lowpassMask;
+                end  
+                
+                fftimg=fftshift(fft2(bf_frame_raw));
+                fftimg(logical(FourierMask))=0;
+                bf_frame_raw=real( ifft2( ifftshift(fftimg) ) );
+                bf_frame=imfilter(bf_frame_raw,k);
+            
+                % afew filter steps
+                bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
+                bf_frame_std=normalizeRange(bf_frame_std);
+            else
+                %% filter behavior images
+                bf_frame_raw = read(behavior_vidobj,itime);
+                bf_frame_raw=double(bf_frame_raw(:,:,1));
+                background_raw=mean_bf_all(:,:,frame_bg_lvl(itime));
+                %scale background for best match before subtraction.
+                c=sum(sum(bf_frame_raw.*background_raw))/sum(background_raw(:).^2);
+                bf_frame_raw=bf_frame_raw-background_raw*c;
+                
+                
+                
+                
+                bg=normalizeRange(background_raw);
+                bg_mask=bg>.5;
+                bg_mask=AreaFilter(bg_mask,5000,[],8);
+                bg_mask=imclose(bg_mask,true(12));
+                bg_mask=imdilate(bg_mask,true(25));
+                
+                
+                C2=imfilter(bf_frame_raw,k);
+                [H,D]=hessianMatrix(C2,3);
+                [Heig,HeigVec]=hessianEig(H);
+                
+                
+                bf_frame_raw(bf_frame_raw<0)=0;
+                
+                
+                H1=stdfilt(HeigVec{1,1}.*Heig(:,:,1),se);
+                H2=stdfilt(HeigVec{2,1}.*Heig(:,:,1),se);
+                H=sqrt(H1.^2+H2.^2);
+                
+                H=H*1000;
+                H=pedistalSubtract(H);
+                H=H-2*median(H(:));
+                H(H<0)=0;
+                bf_frame=bf_frame_raw*.7+H*.3;
+                
+                
+                % afew filter steps
+                bf_frame_std=stdfilt(bf_frame_raw,sdev_nhood);
+                bf_frame_std=normalizeRange(bf_frame_std);
+            end
             
             %% filter fluor images
             % this is empty for new setup, not empty for old
             if ~isempty(bf2fluor_lookup)
                 fluor_time=round(bf2fluor_lookup(itime));
-                %band aid solution for if time's dont align well (behavior 
+                %band aid solution for if time's dont align well (behavior
                 %starts after fluor), this doesnt happen for new setup
                 if isnan(fluor_time) || fluor_time<1;
                     fluor_time=1;
@@ -191,12 +274,13 @@ for iframe=1:length(framelist)
             cm_fluor=mean([cmx cmy]);
             cm=transformPointsForward(lowResFluor2BF.t_concord,cm_fluor);
             %% make input image
-            %combine filtered image and filtered sdev image
-            inputImage=2*bf_frame/max(bf_frame(:))+normalizeRange(bf_frame_std);
-            inputImage(inputImage<0)=0;
+            
             %gassian filter
-            inputImage=filter2(GAUSSFILTER,inputImage,'same');
-            inputImage=normalizeRange(inputImage);
+            if isChip
+                inputImage=bf_frame;
+            else
+                inputImage=filter2(GAUSSFILTER,bf_frame,'same');
+            end
             
             bf_frame_std=normalizeRange(imfilter(bf_frame_std,GAUSSFILTER2));
             bfFrameMask=(bf_frame_std>min(graythresh(bf_frame_std),.7));
@@ -204,7 +288,7 @@ for iframe=1:length(framelist)
             %make tip image, to help provide forces of extenstion for tip
             tip_image=bfFrameMask.*inputImage;
             bfFrameLTmask=bfFrameMask & tip_image<bf_frame_std;
-            tip_image(bfFrameLTmask)=bf_frame_std(bfFrameLTmask);
+            tip_image(bfFrameLTmask)=bf_frame_std(bfFrameLTmask); 
             %% fit centerlines using previous centerline as starting point
             %ActiveContourFit_wormRef4 does all the work.
             if STARTFLAG
@@ -223,6 +307,12 @@ for iframe=1:length(framelist)
                 cl_old=cl_all(:,:,oldTime);
                 [cl,Is,Eout]=ActiveContourFit_wormRef4(...
                     inputImage,tip_image, cline_para, cl_old,refIdx,cm);
+                
+                cl_dist=mean(sqrt(sum((cl-cl_old).^2,2)));
+                %don't let the centerlines go too far
+                if cl_dist>25 && isempty(cline_para.head_pt)
+                    cl=cl_old;
+                end
             end
             
             %% plot some of the results if show2 is 1
@@ -251,7 +341,7 @@ for iframe=1:length(framelist)
             cl_all(:,:,iframe)=cl;
             cl_intensities(:,iframe)=Is;
         else
-            %if theres a frame error, reuse the previous frame's CL. 
+            %if theres a frame error, reuse the previous frame's CL.
             cl_all(:,:,iframe)=cl_all(:,:,iframe-1);
             cl_intensities(:,iframe)=cl_intensities(:,iframe-1);
         end

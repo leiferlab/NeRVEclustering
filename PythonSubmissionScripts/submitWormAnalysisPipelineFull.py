@@ -40,7 +40,7 @@ def make_gui():
     
     #add each row with text inputs
     master.addGuiField("User Name",'user_name',defaultName)
-    master.addGuiField("Parent Path",'parent_path','')
+    master.addGuiField("Parent Path",'parent_path','/tigress/LEIFER/PanNeuronal')
     master.addGuiField("Date of data",'date',defaultDate)
     master.addGuiField("DataFolderName",'folder_name',defaultFolder)
     master.addGuiField("Number of frames",'nframes',defaultFrameNumber)
@@ -57,7 +57,9 @@ def make_gui():
     master.addGuiButton("Enter",b_command=lambda:callback1(master=master))
 
     #if we're logged onto tigressdata, then add a select folder button to navigate files
-    master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
+    if  socket.gethostname()=='tigressdata.princeton.edu' or socket.gethostname()=='tigressdata2.princeton.edu':
+        print("Navigate inside a Brainscanner folder and press Select.")
+        master.addGuiButton("Select Folder",b_command=lambda:gu.selectFolder(master=master))
     return master
 
 
@@ -210,17 +212,14 @@ if __name__ == '__main__':
                 
         For a quick test, run this code as follows:
         User Name: <your username>
+        Parent Path:/tigress/LEIFER/PanNeuronal
+        Date of Data: testing_sets
+        Data Folder Name: Brain_working_dataset
         Number of Frames : All  (or specify some subset of frames for testing.. e.g. 1000)
-        Number of References: 100 (This determines how good our tracking is. 300 was used by default. For stationary animals, use ~25)
+        Number of References: 10 (This determines how good our tracking is. 300 was used by default. For stationary animals, use ~25)
         Number of Neurons: 150 (Sets the upper limit for the number of neurons in the worm)
         Number of Checks: 100 (Number of volumes to use for the error checking step... ~100-300 is normally fine)
         <click all check boxes>  (you would only uncheck the Run Straighting, Run Track, Run Check or Run Crop for debugging purposes)
-        This is the submission script for running time alignment and detcting flashes in videos. 
-        The videos must each contain at least 2 flashes.
-        
-        
-        Press the "SELECT FOLDER" button and add navigate to the dataset folder.
-        
 
         
         ''')

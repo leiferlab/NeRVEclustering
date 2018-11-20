@@ -22,7 +22,7 @@ function varargout = VisualizeWorm3dAnalysis(varargin)
 
 % Edit the above text to modify the response to help VisualizeWorm3dAnalysis
 
-% Last Modified by GUIDE v2.5 07-Jan-2016 14:09:56
+% Last Modified by GUIDE v2.5 26-Jun-2017 12:04:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -142,10 +142,10 @@ setappdata(handles.figure1,'heatData',heatData);
 %display the ethogram
 
 % define ethogramColormap
-fcolor=[0 1 0];%[27 158 119]/256;
-bcolor=[1 0 0];%[217 95 2]/256;
-turncolor=[0 0 1];%[117 112 179]/256;
-pausecolor=[255 217 50]/256;
+fcolor=[0 1 0];%[27 158 119]/256;%green
+bcolor=[1 0 0];%[217 95 2]/256;%red
+turncolor=[0 0 1];%[117 112 179]/256;%blue
+pausecolor=[255 217 50]/256;%yellow
 ethocolormap=[bcolor;pausecolor;fcolor;turncolor];
 
 try
@@ -166,9 +166,6 @@ ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
 setappdata(handles.figure1,'ethoPlot',ethoPlot);
 hold(handles.axes5,'off');
 
-
-
-
 imageInfo=imfinfo([imFolder filesep imFiles(1).name]);
 setappdata(handles.figure1,'imFiles',imFiles);
 setappdata(handles.figure1,'imFolder',imFolder);
@@ -187,7 +184,10 @@ set(handles.slider2,'max',length(imageInfo));
 set(handles.slider2,'value',1);
 
 [bfAll,~,hiResData]=tripleFlashAlign(dataFolder);
-lookup=interp1(bfAll.frameTime,1:length(bfAll.frameTime),hiResData.frameTime,'nearest',01);
+n_CL=size(centerline,3);
+clTime=bfAll.frameTime(1:n_CL);
+lookup=interp1(clTime,1:length(bfAll.frameTime),hiResData.frameTime(diff(hiResData.stackIdx)==1),'nearest',0);
+size(lookup)
 setappdata(handles.figure1,'lookup',lookup);
 plotter(handles.slider1,eventdata);
 
@@ -309,6 +309,11 @@ switch get(handles.pointShowType,'Value')
 end
 pointID=pointID(:);
 
+if isempty(pointID)
+display('No Points Found!')
+return
+end
+
 %only leave points that are in or close to the current slice being
 %displayed
 if ~get(handles.showAllPoints,'Value')
@@ -402,10 +407,11 @@ scatter(handles.axes3,iImage,plotTrace(iImage),currentcolor,'filled');
  
  
 %slide the window around the current time
- xRange=iImage+[-100,100];
- xRange=xRange-min(xRange(1),0);
+ xRange=iImage+[-200,200];
+ xRange=xRange-min(xRange(1)-1,1);
  xlim(handles.axes3,xRange);
- ylim(handles.axes3,nanmean(plotTrace)+[-.5 1]*(nanstd(plotTrace)*4));
+ ylim(handles.axes3,nanmean( plotTrace(xRange(1):xRange(2)))...
+     +[-.5 1]*(nanstd( plotTrace(xRange(1):xRange(2)))*4));
 
  
  %%% Also plot centerlines
@@ -413,7 +419,7 @@ CLdata=getappdata(handles.figure1,'CLdata');
 if ~isempty(CLdata)
     
 lookup=getappdata(handles.figure1,'lookup');
-CLidx=lookup(iImage);
+CLidx=lookup(iImage); %need to correct here to go from volIndex to ClIndex.
 currentCL=CLdata.centerline(:,:,round(CLidx));
 currentCL=bsxfun(@minus,currentCL,mean(currentCL));
 
@@ -421,16 +427,16 @@ currentCL=bsxfun(@minus,currentCL,mean(currentCL));
 CL_handle=findobj(handles.axes4,'type','Line');
 head_handle=findobj(handles.axes4,'type','Scatter');
 if isempty(CL_handle) && isempty(head_handle)
-plot(handles.axes4,currentCL(:,1),currentCL(:,2),'linewidth',4);
+plot(handles.axes4,currentCL(:,2),currentCL(:,1),'linewidth',4);
 hold(handles.axes4,'on')
-scatter(handles.axes4,currentCL(1,1),currentCL(1,2),['o' currentcolor],'filled')
+scatter(handles.axes4,currentCL(1,2),currentCL(1,1),['o' currentcolor],'filled')
 hold(handles.axes4,'off');
 axis(handles.axes4,[-400 400 -400 400],'off');
 else
-    CL_handle.XData=currentCL(:,1);
-    CL_handle.YData=currentCL(:,2);
-    head_handle.XData=currentCL(1,1);
-    head_handle.YData=currentCL(1,2);
+    CL_handle.XData=currentCL(:,2);
+    CL_handle.YData=currentCL(:,1);
+    head_handle.XData=currentCL(1,2);
+    head_handle.YData=currentCL(1,1);
     head_handle.MarkerFaceColor=currentcolor;
 end
 
@@ -464,17 +470,19 @@ ethoPlot.XData=[iImage iImage];
 
 %get images and points, plot the signal
 baseImg= getImage(handles);
-[ pointsi,pointID]=getPoints(handles);
 plotSignal(handles);
+[ pointsi,pointID]=getPoints(handles);
 
 %display the image by updating axes handle
 im_handle=findobj(handles.axes1,'type','Image');
 if isempty(im_handle)
     imagesc(baseImg,'parent',handles.axes1);
+    
 else
     set(im_handle,'CData',baseImg);
 end
 caxis(handles.axes1,[0 1]);
+
 
 %delete previous text and scatter objects, slower, but this time is small
 %compared to time to load images. 
@@ -482,7 +490,7 @@ scatterObjs=findobj(handles.axes1,'type','Scatter');
 textObjs=findobj(handles.axes1,'type','Text');
 delete(scatterObjs);
 delete(textObjs);
-
+if ~isempty(pointID)
 %get the numbers of the points being displayed, create a cell array of them
 hold(handles.axes1,'on')
 pointIDstr=cellstr(num2str(pointID));
@@ -493,7 +501,7 @@ pointIDstr=cellfun(@(x) strrep(x,'NaN',''),pointIDstr,'uniform',0);
 scatter(handles.axes1,pointsi(:,1),pointsi(:,2),'xr');
 text(pointsi(:,1),pointsi(:,2),pointIDstr(:),...
     'color','w','parent',handles.axes1);
-
+end
 % show the tracked point in green.
 if any(pointID==regionSelect)
     nSelectIdx=pointID(:)==regionSelect;
@@ -502,18 +510,6 @@ if any(pointID==regionSelect)
 end
 
 hold(handles.axes1,'off')
-
-
-
-
-function smoothingWindow_Callback(hObject, eventdata, handles)
-% hObject    handle to smoothingWindow (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
- plotter(handles.slider1,eventdata);
-
-% Hints: get(hObject,'String') returns contents of smoothingWindow as text
-%        str2double(get(hObject,'String')) returns contents of smoothingWindow as a double
 
 
 
@@ -829,26 +825,6 @@ set(hObject,'String','Make Movie')
 end
 
 
-% --- Executes on button press in normalizeButton.
-function normalizeButton_Callback(hObject, eventdata, handles)
-% hObject    handle to normalizeButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of normalizeButton
-plotter(handles.slider1,eventdata);
-
-
-
-function timeStep_Callback(hObject, eventdata, handles)
-% hObject    handle to timeStep (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of timeStep as text
-%        str2double(get(hObject,'String')) returns contents of timeStep as a double
-
-
 % --------------------------------------------------------------------
 function adjustContrast_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to adjustContrast (see GCBO)
@@ -1005,3 +981,40 @@ hold(handles.axes5,'on');
 ethoPlot=plot(handles.axes5,[1 1], [ .5 1.5],'black');
 setappdata(handles.figure1,'ethoPlot',ethoPlot);
 hold(handles.axes5,'off');
+
+
+% --- Executes on button press in selectPSfile.
+function selectPSfile_Callback(hObject, eventdata, handles)
+% hObject    handle to selectPSfile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+mostRecent=getappdata(0,'mostRecent');
+pointStatsFile=uipickfiles('filterspec',mostRecent,...
+    'Prompt', 'Select Data Folder');
+pointStatsFile=pointStatsFile{1};
+dataMat=load(pointStatsFile);
+
+display('Loading mat file with neuron coordinates');
+fieldName=fieldnames(dataMat);
+dataMat=getfield(dataMat,fieldName{1});
+%save the pointStats file
+setappdata(handles.figure1,'TrackData',dataMat);
+
+
+% --- Executes on button press in instructions.
+function instructions_Callback(hObject, eventdata, handles)
+% hObject    handle to instructions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+msgbox({...
+    '1. Select Folder and choose a fully analyzed BrainScanner Folder',...
+    '2. The Pointstats file is loaded by default, if you do not want to use the PointStatsNew file, select a different one',...
+    '3. Browse the video to get an idea of the straightening and tracking quality.',...
+    '',...
+    'Controls',...
+    'asdw or arrow keys: forward and back in time, up and down in Z',...
+    'Display Range: how many slices above and below a neuron should the neuron be displayed in.'...
+    'Track Neuron: Which neuron to follow through time and show the trace of',...
+    },...
+    'Instructions');

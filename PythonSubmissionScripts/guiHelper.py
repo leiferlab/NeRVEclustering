@@ -16,9 +16,10 @@ import os
 import pickle
 
 
-#YOU MUST SET THE SEVER HOST NAME, at princeton, della.princeton.edu was used. 
-SERVER =''
-
+#server jobs willb e submitted to
+SERVER ='della.princeton.edu'
+#location of the ssh key file shared by lefierdata
+KEYPATH='/tigress/LEIFER/.ssh/id_rsa'
 
 #load the pickle files for default values to put into fields. The pickle files store your previous entries in the pickles2.p file in ~. 
 def pickle_load():
@@ -38,6 +39,10 @@ def pickle_load():
     #fill in default values
     if 'username' not in prevUser:
             prevUser['username'] = "USER"
+    if 'time' not in prevUser:
+            prevUser['time'] = "180"
+    if 'mem' not in prevUser:
+            prevUser['mem'] = "16000"
     if 'date' not in prevUser:
             prevUser['date'] = "testing_sets"
     if 'folderName' not in prevUser:
@@ -50,6 +55,11 @@ def pickle_load():
             prevUser['neuronNumber'] = "150"
     if 'checkNumber' not in prevUser:
             prevUser['checkNumber'] = "500"
+    if 'matlab_command' not in prevUser:
+            prevUser['matlab_command']='Put your code here!'
+    if 'code_path' not in prevUser:
+            prevUser['code_path']='Put the path to the .path file here!'
+            
 
     return prevUser
 
@@ -62,11 +72,14 @@ def get_nframes(client,fullPath):
     client2 = client.open_sftp()
     sub_data={}
     # read each line, saving key-values pairs into a dictionary
-    with client2.open(subDataFile) as remote_file:
-        for lines in remote_file:
-            lines=lines.split(" ")
-            print(lines)
-            sub_data[lines[0]]=lines[1]
+    try:
+        with client2.open(subDataFile) as remote_file:
+            for lines in remote_file:
+                lines=lines.split(" ")
+                print(lines)
+                sub_data[lines[0]]=lines[1]
+    except Exception:
+        raise NameError("Remote File not found")
         
     if sub_data.get('NFrames') != None:
         print('Getting number of frames from Remote')
@@ -77,7 +90,14 @@ def get_nframes(client,fullPath):
     
 
 def dellaConnect(username,password=None):
-    #use the username to connect to della, if password is provided, use it,
+    #use the username to connect to della, if password is provided, use it, otherwise, use ssh keys
+    if socket.gethostname()=='tigressdata.princeton.edu':
+        #if on tigressdata, use path to key file file in /tigress/LEIFEr
+        key = paramiko.RSAKey.from_private_key_file(KEYPATH)
+    elif socket.gethostname()=='tigressdata2.princeton.edu':
+        key = paramiko.RSAKey.from_private_key_file(KEYPATH)
+    else:
+        key=None
     # connect and submit job via sbatch
     client = paramiko.SSHClient()
     client.load_system_host_keys()
@@ -114,9 +134,14 @@ def selectFolder(master=None):
         master.e['date'].insert(0,date)
         master.e['folder_name'].delete(0,tk.END)
         master.e['folder_name'].insert(0,folderName)
-        print folder
+        print(folder)
         
-#class for building the gui and populating the rows
+def selectPath(master=None):
+    filename = tkFileDialog.askopenfilename(initialdir= '/tigress/LEIFER/communalCode/ ')
+    master.e['code_path'].delete(0,tk.END)
+    master.e['code_path'].insert(0,filename)
+# 
+# #class for building the gui and populating the rows
 class submitTK(tk.Tk):
     #build the gui with some number of max rows and cols, 
     #submitTK is a subclass of tkinter's Tk(). 
@@ -157,7 +182,7 @@ class submitTK(tk.Tk):
         self.e[name]= tk.Checkbutton(self, text=None, variable=var1)
         self.e[name].var = var1
         self.e[name].grid(row=self.row_count, column=1,sticky=tk.W+tk.E)
-        self.e[name].var.set(1)
+        self.e[name].var.set(default)
         self.row_count+=1
         
     # add a button with a text label and a function callback handle. 
@@ -174,6 +199,10 @@ class submitTK(tk.Tk):
         #refill prevUser dict with master entries
         if 'user_name' in self.e:
             prevUser['username']=self.e['user_name'].get()
+        if 'time' in self.e:
+            prevUser['time']=self.e['time'].get()
+        if 'mem' in self.e:
+            prevUser['mem']=self.e['mem'].get()
         if 'date' in self.e:
             prevUser['date'] = self.e['date'].get()
         if 'folder_name' in self.e:
@@ -186,6 +215,11 @@ class submitTK(tk.Tk):
             prevUser['neuronNumber']=self.e['n_neurons'].get()
         if 'n_checks' in self.e:
             prevUser['checkNumber']=self.e['n_checks'].get()
+        if 'matlab_command' in self.e:
+            prevUser['matlab_command']=self.e['matlab_command'].get()
+        if 'code_path' in self.e:
+            prevUser['code_path']=self.e['code_path'].get()
+            
         #save prevUser as pickle
         pickle.dump(prevUser, open(pickle_file, "wb" ) )
         

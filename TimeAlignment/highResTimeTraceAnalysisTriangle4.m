@@ -126,7 +126,7 @@ dataAll.imageIdx=imageIdx;
 dataAll.frameTime=timeAll;
 dataAll.stackIdx=stackIdx;
 dataAll.imSTD=imSTD;
-
+dataAll.imAvg=datFlashRaw;
 if size(labJackData,2)>7
     xPos=labJackData(:,7);
     yPos=labJackData(:,8);

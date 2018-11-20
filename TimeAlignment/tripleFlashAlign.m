@@ -26,6 +26,10 @@ else
     hiResData=highResTimeTraceAnalysisTriangle4(dataFolder);
 end
 
+hiResData.frameTime=hiResData.frameTime-hiResData.frameTime(1);
+bfAll.frameTime=bfAll.frameTime-bfAll.frameTime(1);
+fluorAll.frameTime=fluorAll.frameTime-fluorAll.frameTime(1);
+
 
 hiResFlashTime=(hiResData.frameTime(hiResData.flashLoc));
 bfFlashTime=bfAll.frameTime(bfAll.flashLoc);
@@ -62,44 +66,16 @@ end
 
 %compare all to the best video with the most flashes
 %start with BrightField movie
-[~,bf2fluor]=flashTimeAlign2(bestFlashTime,bfFlashTime);
-flashDiff=bfFlashTime-bestFlashTime(bf2fluor);
-
-flashDiff=flashDiff-min(flashDiff);
-f_bfTime=fit(bfFlashTime,bestFlashTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
-if f_bfTime.p1<.1
-    f_bfTime.p1=1;
-end
+f_bfTime=timefit(bestFlashTime,bfFlashTime);
 bfAll.frameTime=f_bfTime(bfAll.frameTime);
 
 
 %align with Fluor movie
-[~,bf2fluor]=flashTimeAlign2(bestFlashTime,fluorFlashTime);
-flashDiff=fluorFlashTime-bestFlashTime(bf2fluor);
-flashDiff=flashDiff-min(flashDiff);
-if length(fluorFlashTime)>1
-f_fluorTime=fit(fluorFlashTime,bestFlashTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
-if f_fluorTime.p1<.1
-    f_fluorTime.p1=1;
-    fluorAll.frameTime=f_fluorTime(fluorAll.frameTime);
-
-end
+f_fluorTime=timefit(bestFlashTime,fluorFlashTime);
 fluorAll.frameTime=f_fluorTime(fluorAll.frameTime);
 
-else 
-     fluorAll.frameTime= fluorAll.frameTime-fluorFlashTime+bestFlashTime(bf2fluor);
-end
 
-
-
-
-[~,bf2fluor]=flashTimeAlign2(bestFlashTime,hiResFlashTime);
-flashDiff=hiResFlashTime-bestFlashTime(bf2fluor);
-flashDiff=flashDiff-min(flashDiff);
-f_hiTime=fit(hiResFlashTime,bestFlashTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
-if f_hiTime.p1<.1
-    f_hiTime.p1=1;
-end
+f_hiTime=timefit(bestFlashTime,hiResFlashTime);
 hiResData.frameTime=f_hiTime(hiResData.frameTime);
 
 
@@ -120,3 +96,23 @@ fluorAll.flashTime=fluorFlashTime;
 
 hiResFlashTime=hiResData.frameTime(hiResData.flashLoc);
 hiResData.flashTime=hiResFlashTime;
+
+
+function fit_out=timefit(bestFlashTime,sampleFlashTime)
+%align with Fluor movie
+
+[~,bf2fluor]=flashTimeAlign2(bestFlashTime,sampleFlashTime);
+flashDiff=sampleFlashTime-bestFlashTime(bf2fluor);
+flashDiff=flashDiff-min(flashDiff);
+
+if length(sampleFlashTime)>1
+    fit_out=fit(sampleFlashTime,bestFlashTime(bf2fluor),'poly1','Weight',exp(-flashDiff.^2));
+    if fit_out.p1<.1
+        fit_out.p1=1;
+        
+    end
+    
+else
+    fit_out=cfit(fittype('poly1'),1,-sampleFlashTime+bestFlashTime(bf2fluor));
+end
+

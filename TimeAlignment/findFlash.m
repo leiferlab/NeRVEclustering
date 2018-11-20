@@ -20,10 +20,10 @@ end
 if ~iscell(imFolderIn)
     imFolderIn={imFolderIn};
 end
-if ~isfield(flag, 'custormRoi');
+if ~isfield(flag, 'custormRoi')
     flag.customRoi=0;
 end
-if ~isfield(flag, 'sparsesearch');
+if ~isfield(flag, 'sparsesearch')
     flag.sparseserach=0;
 end
 
@@ -36,7 +36,7 @@ for iFolder=1:length(imFolderIn)
         stackSize=length(imFiles);
         initialIm=(imread([imFolder filesep imFiles(1).name], 'tif'));
         aviFlag=0;
-    elseif strfind(imFolder, '.avi');
+    elseif strfind(imFolder, '.avi')
         vidObj = VideoReader(imFolder);
         initialIm = sum(read(vidObj, inf),3);
         stackSize= vidObj.NumberOfFrames;

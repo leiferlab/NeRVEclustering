@@ -17,14 +17,9 @@ function [xyzs_avg,Is,EOut] = ActiveContourFit_wormRef4(im,tip_image, cline_para
 xyzs = distanceInterp(cline_initial(2:end-1,:),100);
 [m, n ] = size(xyzs);
 
-
-%use of eigenworms 20160402
-eigbasis=getappdata(0,'eigbasis');
-eigbasis=eigbasis(1:8,:);
-
-
+%intializing this value for later
+ftail=0;
 refL=cline_para.refL;
-tip_l=cline_para.tipRegion;
 % for manually clicked tips
 if isfield(cline_para,'head_pt')
     head_pt=cline_para.head_pt;
@@ -36,15 +31,15 @@ else
     tip_flag=0;
 end
 
-dIgnore=true(m,tip_l);
+dIgnore=true(m,m);
 dIgnore=triu(dIgnore,-20) & tril(dIgnore,20);
-dIgnore=[dIgnore rot90(dIgnore,2)];
+%dIgnore=[dIgnore rot90(dIgnore,2)];
 repulsionD=cline_para.repulsionD;
 repulsionD2=repulsionD*1.5;
 gKernal2=gausswin(25,2);
 gKernal2=gKernal2/sum(gKernal2);
 
-[row col, stack_z_size] = size(im);
+[row ,col, stack_z_size] = size(im);
 minDist=Inf;
 minCounter=0;
 
@@ -54,32 +49,41 @@ if isfield(cline_para,'Ainv')
 else
     A = zeros(m,m);
     brow = zeros(1,m);
-    brow(1,1:5) = [cline_para.CLbeta, -(cline_para.CLalpha + 4*cline_para.CLbeta), (2*cline_para.CLalpha + 6 *cline_para.CLbeta), -(cline_para.CLalpha + 4*cline_para.CLbeta), cline_para.CLbeta];
+    brow(1,1:5) = [cline_para.CLbeta,...
+        -(cline_para.CLalpha + 4*cline_para.CLbeta),...
+        (2*cline_para.CLalpha + 6 *cline_para.CLbeta),...
+        -(cline_para.CLalpha + 4*cline_para.CLbeta),...
+        cline_para.CLbeta];
+    
     A(1, 1:3) = [cline_para.CLbeta, -2*cline_para.CLbeta, cline_para.CLbeta];
-    A(2, 1:4) = [-cline_para.CLalpha-2*cline_para.CLbeta, 2*cline_para.CLalpha+5*cline_para.CLbeta, -cline_para.CLalpha-4*cline_para.CLbeta, cline_para.CLbeta];
+    A(2, 1:4) = [-cline_para.CLalpha-2*cline_para.CLbeta,...
+        2*cline_para.CLalpha+5*cline_para.CLbeta,...
+        -cline_para.CLalpha-4*cline_para.CLbeta,...
+        cline_para.CLbeta];
     for i=3:m-2
         A(i,:) = brow;
         brow = circshift(brow',1)'; % Template row being rotated to egenrate different rows in pentadiagonal matrix
     end
-    A(m-1, m-3:m) = [cline_para.CLbeta, -cline_para.CLalpha-4*cline_para.CLbeta, 2*cline_para.CLalpha+5*cline_para.CLbeta, -cline_para.CLalpha-2*cline_para.CLbeta];
-    A(m, m-2:m) = [cline_para.CLbeta, -2*cline_para.CLbeta, cline_para.CLbeta];
+    A(m-1, m-3:m) = [cline_para.CLbeta,...
+        -cline_para.CLalpha-4*cline_para.CLbeta,...
+        2*cline_para.CLalpha+5*cline_para.CLbeta,...
+        -cline_para.CLalpha-2*cline_para.CLbeta];
+    
+    A(m, m-2:m) = [cline_para.CLbeta,...
+        -2*cline_para.CLbeta,...
+        cline_para.CLbeta];
+    
     [L, U] = lu(A + cline_para.gamma .* eye(m,m));
     Ainv = inv(U) * inv(L); % Computing Ainv using LU factorization
 end
-%%
-% find the center line of the cell
-% two pass algorithm
-
-%intial eigenworm approximation,
-[xyzs2,err]=EigenwormApprox(xyzs,[1,99],eigbasis,1:99);
 
 %% filter image to "normalize" intensity
 % make smoothed image
 gauss_kernel=fspecial('gaussian',25,5);
-imSmooth=normalizeRange(imfilter(im,gauss_kernel));
+imSmooth=imfilter(im,gauss_kernel);
 
 %testing better tip tracking
-initial_head_I=.6;%tip_image(round(refPt(2)),round(refPt(1)))/10;
+initial_head_I=1;%tip_image(round(refPt(2)),round(refPt(1)))/10;
 
 %gradient
 [fx, fy] = gradient(imSmooth*cline_para.gradient_force); %computing the gradient
@@ -89,7 +93,7 @@ initial_head_I=.6;%tip_image(round(refPt(2)),round(refPt(1)))/10;
 xyzs_avg = zeros(size(xyzs));
 counter = 0;
 %moving the snake in each iteration
-for i=1:cline_para.iterations;
+for i=1:cline_para.iterations
     
     %% calculate image gradient force on the nodes
     
@@ -102,8 +106,8 @@ for i=1:cline_para.iterations;
     Is(in_image_flag)=tip_image(gradient_ind);
     if i==1
         Is_initial=Is;
-                    % for tail intenisty, take half the last 10 points, bounded by
-            % [.06 .2]
+        % for tail intenisty, take half the last 10 points, bounded by
+
             tail_I_init=mean(Is_initial(90:end))/2;
             tail_I_init=min(tail_I_init,.2);
             tail_I_init=max(tail_I_init,.06);
@@ -111,18 +115,7 @@ for i=1:cline_para.iterations;
     
     f_image=sqrt(abs(f_image)).*sign(f_image)*mean(abs(f_image(:)));
     fs=f_image;
-    
-    if ~mod(i, 4)
-        % every 4 iiterations, reinterpolate with eigenworms to smooth out
-        % results.
-        [xyzs2,err,~]=EigenwormApprox(xyzs,[1,99],eigbasis,1:99);
-    end
-    
-    if err>4
-        xyzs2=xyzs;
-    elseif err>14
-        xyzs2=.5*(xyzs+xyzs2);
-    end
+ 
     %confine the snake in the image
     %        fs(:, 3) = fs(:, 3) + (1./(1+exp((xyzs(:,3)+0)/3))-1./(1+exp((10-xyzs(:,3))/3)))*cline_para.z_confine_factor;
     % viscos force between frames on all nodes:
@@ -130,8 +123,8 @@ for i=1:cline_para.iterations;
     %% stretch or shrink the snake at the ends
     s=sqrt(sum(diff(xyzs).^2,2));
     
-    xDiff=Gradient1(xyzs2(:,1));
-    yDiff=Gradient1(xyzs2(:,2));
+    xDiff=Gradient1(xyzs(:,1));
+    yDiff=Gradient1(xyzs(:,2));
     xyDiff=[xDiff,yDiff];
     tVector=bsxfun(@rdivide,xyDiff,sqrt(sum(xyDiff.^2,2)));
     nVector_x=Gradient1(tVector(:,1));
@@ -169,7 +162,7 @@ for i=1:cline_para.iterations;
     fs(1:2*refIdx,:)=bsxfun(@plus, fs(1:2*refIdx,:),f_refSpring);
     
     s_spring=nVector*deltaS*cline_para.refSpring*1;
-    if err>4
+    if i>cline_para.iterations/2
         s_spring=conv2(s_spring,gKernal2,'same');
     end
     fs(2:end-1,:)=fs(2:end-1,:)+s_spring(2:end-1,:);
@@ -182,14 +175,15 @@ for i=1:cline_para.iterations;
     
     %make distance matrices, using only points near the tip to rest of the
     %body, x and y seperately then together
-    xmat=bsxfun(@minus,xyzs([1:tip_l end-tip_l+1:end],1)',xyzs(:,1));
-    ymat=bsxfun(@minus,xyzs([1:tip_l end-tip_l+1:end],2)',xyzs(:,2));
+    xmat=bsxfun(@minus,xyzs(:,1)',xyzs(:,1));
+    ymat=bsxfun(@minus,xyzs(:,2)',xyzs(:,2));
     dmat=sqrt(xmat.^2+ymat.^2);
     
     %say ignored points are far
     dmat(dIgnore)=100;
     
-    %get vectors between points to project the forces along
+    %get vectors between points to project the forces along, col i is all
+    %vectors pointing towards point i,
     v_x=xmat./dmat;
     v_y=ymat./dmat;
     f_end=zeros(size(dmat));
@@ -199,24 +193,13 @@ for i=1:cline_para.iterations;
     if any(close_pts(:))
         f_end(close_pts)=repulsionD^6./(dmat(close_pts).^6+repulsionD^6);
     end
+    
     %sum the forces to points and the end
-    f_tip_end_x=sum(f_end(:,tip_l+1:end)'*v_x(:,tip_l+1:end),2);
-    f_tip_end_y=sum(f_end(:,tip_l+1:end)'*v_y(:,tip_l+1:end),2) ;
-    f_tip_end=cline_para.endRepulsion*[f_tip_end_x f_tip_end_y];
+    f_repulsion_x=sum(f_end.*v_x);
+    f_repulsion_y=sum(f_end.*v_y);
+    f_repulsion=cline_para.endRepulsion*...
+        [f_repulsion_x' f_repulsion_y'];
 
-    %apply the forces to points and the start
-    f_tip_start_x=sum(f_end(:,1:tip_l)'*v_x(:,1:tip_l),2);
-    f_tip_start_y=sum(f_end(:,1:tip_l)'*v_y(:,1:tip_l),2) ;
-    f_tip_start=cline_para.endRepulsion*[f_tip_start_x f_tip_start_y]*0.1;
-    
-    
-    % add the forces, need to check this out again
-    f_repulsion_x=-sum(f_end*v_x',2);
-    f_repulsion_y=-sum(f_end*v_y',2);
-    f_repulsion=cline_para.endRepulsion*.1*...
-        [f_repulsion_x f_repulsion_y];
-    f_repulsion(1:tip_l,:)=f_repulsion(1:tip_l,:)+f_tip_start;
-    f_repulsion(end-tip_l+1:end,:)=f_repulsion(end-tip_l+1:end,:)+f_tip_end;
     fs=fs+f_repulsion;
     
     %% repel tail and body from refPt
@@ -239,7 +222,7 @@ for i=1:cline_para.iterations;
             %intensity is less than the inital head point intensity, add
             %growing force
             if  Is(1)>0
-                fhead=cline_para.endkappa*(Is(1)-initial_head_I);
+                fhead=cline_para.endkappa*(Is(1)-initial_head_I-4*deltaS.^2*sign(deltaS));
                 fhead(fhead>15)=15;
             else
                 %if initial head intensity is zero, include stretch force 
@@ -252,21 +235,20 @@ for i=1:cline_para.iterations;
             tail_I_10=mean(Is(end-10:end));
             tail_I_5=mean(Is(end-5:end));
             
-            if tail_I_20<tail_I_init ||  tail_I_10<tail_I_init
-                ftail=-cline_para.endkappa*tail_I_init-deltaS;
-            else
-                ftail=cline_para.endkappa*(tail_I_5-tail_I_init)-deltaS;
-            end
+
+            ftail=cline_para.endkappa*(tail_I_5-1-deltaS.^2.*sign(deltaS));
+            
             ftail(ftail>5)=5;
+            ftail(ftail<-5)=-5;
         else
             ftail=0;
             fhead=0;
         end
         % stretch the head along s_head (head direction)
-        s_head = xyzs2(1,:) - xyzs2(5, :);
+        s_head = xyzs(1,:) - xyzs(5, :);
         s_head = s_head/norm(s_head);
         fs(1, :) =fs(1, :)+  s_head .* fhead*cline_para.stretching_force_factor(1);
-        s_tail = xyzs2(end, :) - xyzs(end - 4, :);
+        s_tail = xyzs(end, :) - xyzs(end - 4, :);
         
         % stretch the tail along s_tail
         s_tail = s_tail/norm(s_tail);
@@ -297,11 +279,10 @@ for i=1:cline_para.iterations;
         plotfs=fs;
         plotfs(refIdx,:)=0;
         quiver(xyzs(:,1),xyzs(:,2),plotfs(:,1),plotfs(:,2),'black');
-        plot(xyzs2(:,1),xyzs2(:,2))
+        plot(xyzs(:,1),xyzs(:,2))
         hold off
         drawnow
     end
-    
     %% move points
     
     %calculate the new position of snake
@@ -330,22 +311,33 @@ for i=1:cline_para.iterations;
         minCounter=minCounter+1;
     end
     
-    %% fix places where worm crosses itself and try to correct it
+    %% every 10 frames, remove 4 points from head and tail and try to have CL regrow
+    %trying to stop tips from getting lost
+    if i > cline_para.iterations - 50 && ~mod(i,20) &&  cline_para.stretch_ends_flag
+        xyzs=distanceInterp(xyzs(4:end-3,:),100);
+    end
+    
+    %% Try to fix places where worm crosses itself and try to correct it
     cross_bool= doesCross(xyzs);
     if cross_bool
+        display('Cross detected')
+        %find linesegments that cross
+        % cross_1(i) and cross_2(i) are the indeces of the ith cross. 
         [~,cross_1,cross_2]= doesCross(xyzs);
         cross_list=[];
         for iCross=1:length(cross_1)
             subCrossList=cross_1(iCross):cross_2(iCross);
+            %if its a small loop, excise the loop. 
             if length(subCrossList)<25
                 cross_list=[cross_list subCrossList];
+                %if its a small loop at the head, cut off part of the head
             elseif cross_1(iCross)<3
                 cross_list=[cross_list 1:3];
             end
         end
         xyzs(cross_list,:)=[];
         xyzs=distanceInterp(xyzs,100);
-    elseif ~mod(i,20) || (err>10 && ~mod(i,5))
+    elseif ~mod(i,20) 
         xyzs=distanceInterp(xyzs,100);
     end
     
@@ -354,7 +346,9 @@ end
 %do some averageing at the end to smooth out the snake.
 xyzs_avg = xyzs_avg / counter;
 xyzs_avg=distanceInterp(xyzs_avg,100);
-
+if ftail<-.1
+    xyzs_avg=distanceInterp(xyzs_avg(1:97,:),100);
+end
 %caluclate the internal energy of the snake for output
 EOut=1/2*(cline_para.CLalpha*(sum(sum(diff(xyzs_avg,1,1).^2))) + ...
     cline_para.CLbeta*(sum(sum(diff(xyzs_avg,2,1).^2))));

@@ -279,14 +279,22 @@ for iTime=empty_frames
                 %weighted by both image intensity and the ellipsoidal
                 %gaussian from the point cloud
                 
+                %WOULD BE NICE TO WEIGHT IMAGE INTENSITY MORE OR HAVE SOME
+                %SORT OF CUTOFF FOR IMAGE INTENSITY. THIS PART ALSO
+                %STRUGGLES DOWN THE NERVE CHORD WHERE POINTS LIE ON A
+                %LINE.
+                
                 % Energy of each control point as exp(-r^2)
                 P=exp(-sum((newCov\ctrlPoints')'.*ctrlPoints,2));
                 
                 %translate control grid to center around new mean
                 ctrlPoints2=round(bsxfun(@plus, ctrlPoints,newMean));
-                %get all control points in the image
+                
+                %get all control points in the image, deal with ctrlPoints
+                %that fall outside the original image
                 outside=bsxfun(@gt, ctrlPoints2,imSize);
                 outside=outside| bsxfun(@lt, ctrlPoints2,[1 1 1]);
+                
                 inImage=~any(outside,2);
                 ctrlPoints2=ctrlPoints2(inImage,:);
                 ctrlPoints2Idx=sub2ind(imSize,...

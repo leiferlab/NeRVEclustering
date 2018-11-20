@@ -23,7 +23,7 @@ end
 
 %which volume to do for initial, not too close to begining because start
 %might not have all video feeds tracking properly
-counter=300; 
+counter=500; 
 %% bundle timing data
 [bfAll,fluorAll,hiResData]=tripleFlashAlign(dataFolder);
 vidInfo.bfAll=bfAll;
@@ -69,7 +69,7 @@ zWave=gradient(zWave);
 zWave=smooth(zWave,100);
 image_std=hiResData.imSTD;
 image_std=image_std-mean(image_std);
-image_std(image_std>100)=0;
+image_std(image_std>150)=0;
 [ZSTDcorrplot,lags]=crosscorr(abs(zWave),image_std,30);
 ZSTDcorrplot=smooth(ZSTDcorrplot,3);
 zOffset=lags(ZSTDcorrplot==max(ZSTDcorrplot));

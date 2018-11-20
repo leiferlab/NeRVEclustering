@@ -7,7 +7,7 @@
 # tell the scheduler which version of matlab to use, put it before $PATH so that it takes precedence
 export PATH=/usr/local/matlab-R2013a/bin/:$PATH
 # This path is for Della
-export PATH=/tigress/LICENSED/matlab-R2014b/bin/:$PATH
+export PATH=/tigress/LICENSED/matlab-R2017a/bin/:$PATH
 
 # parse matlab paths
 FILES=$CODE_HOME/3dbrain/PythonSubmissionScripts/*.path
@@ -26,4 +26,11 @@ export MATLABPATH="$MATLABPATH;"
 # make sure that the matlab path is full/correct
 echo $MATLABPATH
 # run the job
+
+isChip=$2
+if [ $isChip == 0 ]
+then
    matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormCenterline('$1',$SLURM_ARRAY_TASK_ID);exit;"
+else
+   matlab -nosplash -nodesktop -nodisplay -singleCompThread -r "clusterWormCenterline('$1',$SLURM_ARRAY_TASK_ID,1);exit;"
+fi
